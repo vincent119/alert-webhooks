@@ -17,8 +17,13 @@ type ResponseHealthCheck struct {
 // @Summary Check health status
 // @Description Returns OK if the service is healthy
 // @Tags health
+// @Produce json
 // @Success 200 {object} ResponseHealthCheck "Health check response"
-// @Router /healthz [get]
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Security BasicAuth
+// @ID Healthz
+// @Router /api/v1/healthz [get]
 func HealthCheck(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	response := ResponseHealthCheck{
