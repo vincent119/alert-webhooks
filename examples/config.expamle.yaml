@@ -1,0 +1,116 @@
+app:
+  version: "1.2.3-dev"
+  mode: "development"
+  # application listening port
+  port: "9999"
+  key: "dev-key"
+  token: "dev-token"
+  salt: "dev-salt"
+  # trusted proxy IP ranges
+  trusted_proxies: "127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
+log:
+  # log level: debug, info, warn, error
+  level: "debug"
+  # log format: json, console
+  format: "console"
+  # log output targets: console and/or file
+  outputs: "console,file"
+  # log directory path
+  log_path: "./logs"
+  # log file name
+  log_file: "server-dev.log"
+  # maximum log file size (MB)
+  max_size: 100
+  # maximum log file age (days)
+  max_age: 7
+  # maximum number of backup files
+  max_backups: 5
+  # enable log file compression
+  compress: false
+  # include caller information in logs
+  add_caller: true
+  # include stacktrace in logs
+  add_stacktrace: true
+
+metric:
+  # metric username (leave empty to read from k8s or docker env)
+  user: ""
+  # metric password (leave empty to read from k8s or docker env)
+  password: ""
+
+webhooks:
+  enable: true
+  # basic auth username (leave empty to read from k8s or docker env)
+  base_auth_user: ""
+  # basic auth password (leave empty to read from k8s or docker env)
+  base_auth_password: ""
+
+telegram:
+  # enable telegram integration
+  enable: true
+  # telegram token (leave empty to read from k8s env)
+  token: ""
+  chat_ids0: "-1002465088995" # information group (level 0)
+  chat_ids1: "-1002465088995" # general message group (level 1)
+  chat_ids2: "-1002465088995" # critical notification group (level 2)
+  chat_ids3: "-1002465088995" # emergency alert group (level 3)
+  chat_ids4: "-1002465088995" # testing group (level 4)
+  chat_ids5: "-1002465088995" # backup group (level 5)
+  chat_ids6: "" # backup group (level 5)
+  # telegram message template mode: minimal, full
+  template_mode: "full"
+  # telegram template language: eng, tw, zh, ja, ko
+  template_language: "zh"
+
+slack:
+  # enable slack integration
+  enable: true
+  # slack token (leave empty to read from k8s or docker env)
+  token: ""
+  # default slack channel
+  channel: "#alert0"
+  # slack bot display name
+  username: "alert_bot"
+  # slack bot icon URL
+  icon_url: "https://example.com/icon.png"
+  # slack bot icon emoji
+  icon_emoji: ":warning:"
+  # slack channel mapping by alert level
+  channels:
+    chat_ids0: "#alert0"
+    chat_ids1: "#alert1"
+    chat_ids2: "#alert0"
+    chat_ids3: "#alert0"
+    chat_ids4: "#alert0"
+    chat_ids5: "#alert0"
+  # enable user/channel link parsing
+  link_names: true
+  # enable automatic link previews
+  unfurl_links: false
+  # enable automatic media previews
+  unfurl_media: false
+  # slack message template mode: minimal, full
+  template_mode: "full"
+  # slack template language: eng, tw, zh, ja, ko
+  template_language: "eng"
+
+discord:
+  enable: true # Enable Discord notifications (default: disabled)
+  token: "token" # Discord bot token (env var takes priority)
+  guild_id: "id" # Your Discord server/guild ID
+  username: "name"
+  channels:
+    # Discord channel IDs mapped to alert levels
+    chat_ids0: "1407992959202492456" # critical alerts
+    chat_ids1: "1407993012717621349" # high priority alerts
+    chat_ids2: "987654321098765434" # normal alerts
+    chat_ids3: "987654321098765435" # info notifications
+    chat_ids4: "987654321098765436" # debug messages
+    chat_ids5: "987654321098765437" # backup channel
+  # Discord specific options
+  message_format: "markdown" # Discord markdown support
+  mention_roles: [] # Role IDs to mention (optional)
+  # Template configuration
+  template_mode: "minimal" # minimal, full - template formatting mode
+  template_language: "tw" # eng, tw, zh, ja, ko - template language
