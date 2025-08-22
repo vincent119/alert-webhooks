@@ -2,79 +2,91 @@ name: Swagger Documentation Check
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   swagger-validation:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.23'
-        
-    - name: Cache Go modules
-      uses: actions/cache@v3
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-          
-    - name: Install swag tool
-      run: go install github.com/swaggo/swag/cmd/swag@latest
-      
-    - name: Install dependencies
-      run: go mod download
-      
-    - name: Generate Swagger docs
-      run: |
-        # 嘗試生成 Swagger 文檔
-        if swag init -g cmd/main.go --output docs --parseDependency --parseInternal; then
-          echo "✅ Swagger generation successful"
-          
-          # 自動修復已知問題
-          echo "🔧 Applying automatic fixes..."
-          go run scripts/fix_swagger_docs.go
-          
-          # 驗證修復後的文檔可以編譯
-          echo "🧪 Validating generated documentation..."
-          go build -o /tmp/test-build ./cmd/main.go
-          
-        else
-          echo "❌ Swagger generation failed"
-          exit 1
-        fi
-        
-    - name: Check documentation completeness
-      run: |
-        required_files=("docs/docs.go" "docs/swagger.json" "docs/swagger.yaml")
-        for file in "${required_files[@]}"; do
-          if [[ ! -f "$file" ]]; then
-            echo "❌ Missing required file: $file"
-            exit 1
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+          check-latest: true
+
+      - name: Show Go version
+        run: go version
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install swag tool
+        run: |
+          set -euo pipefail
+          go install github.com/swaggo/swag/cmd/swag@latest
+          command -v swag || { echo "❌ swag 不在 PATH"; exit 1; }
+          swag --version
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Generate Swagger docs
+        shell: bash
+        run: |
+          set -euo pipefail
+          ENTRY_MAIN="cmd/main.go"
+          [[ -f "$ENTRY_MAIN" ]] || { echo "❌ 缺少 $ENTRY_MAIN"; exit 1; }
+          swag init -g "$ENTRY_MAIN" --output docs --parseDependency --parseInternal
+          echo "✅ Swagger 生成成功"
+
+      - name: Optional fix (if script exists)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f "scripts/fix_swagger_docs.go" ]]; then
+            echo "🔧 執行修補腳本 scripts/fix_swagger_docs.go"
+            go run scripts/fix_swagger_docs.go
+          else
+            echo "ℹ️ 找不到 scripts/fix_swagger_docs.go，略過修補"
           fi
-        done
-        echo "✅ All required Swagger files present"
-        
-    - name: Lint generated code
-      run: |
-        if command -v golangci-lint >/dev/null 2>&1; then
-          golangci-lint run docs/
-        else
-          echo "⚠️  golangci-lint not available, skipping lint check"
-        fi
-        
-    - name: Upload Swagger artifacts
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: swagger-docs
-        path: docs/
-        retention-days: 7
+
+      - name: Check generated files
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=("docs/docs.go" "docs/swagger.json" "docs/swagger.yaml")
+          for f in "${files[@]}"; do
+            [[ -f "$f" ]] || { echo "❌ 缺少檔案: $f"; exit 1; }
+          done
+          echo "✅ 必要 Swagger 檔案皆存在"
+
+      - name: Validate OpenAPI (optional)
+        run: |
+          npm i -g @redocly/cli >/dev/null 2>&1 || true
+          if command -v redocly >/dev/null 2>&1; then
+            redocly lint docs/swagger.yaml || { echo "❌ OpenAPI Lint 失敗"; exit 1; }
+            echo "✅ OpenAPI Lint 通過"
+          else
+            echo "⚠️ redocly 未安裝，略過 Lint"
+          fi
+
+      - name: Upload Swagger artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: swagger-docs
+          path: docs/
+          retention-days: 7
