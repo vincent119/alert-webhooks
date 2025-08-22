@@ -22,6 +22,7 @@ import (
 // 需要跳過日誌的 API 路徑
 var skipPathList = []string{
 	"/healthz",
+	"/healthy",
 	"/api/v1/metrics",
 }
 
@@ -47,16 +48,7 @@ func setupGinMode() {
 	}
 }
 
-// DefaultRoute 設置 Gin 路由
-// @title Going-Admin Backend API
-// @version 1.0
-// @description 後台管理系統 API 文檔
-// @host localhost:8080
-// @BasePath /
-// @schemes http https
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
+
 func DefaultRoute() *gin.Engine {
 	// 設定 Gin 模式（必須在創建引擎之前）
 	setupGinMode()
@@ -93,8 +85,8 @@ func DefaultRoute() *gin.Engine {
 		logger.Fatal("Failed to set trusted proxies", mainRouteString, logger.Err(err))
 	}
 
-	// 健康檢查路由已移至 API V1 路由組
-	// routes.GET("/healthz", HealthCheck)
+	// for load balancer health check
+	routes.GET("/healthy", HealthCheck)
 
 	// 設置 Prometheus 監控
 	setupPrometheus(routes)
@@ -163,12 +155,15 @@ func setupPrometheus(r *gin.Engine) {
 
 }
 
-// HealthCheck 提供健康檢查端點
+// HealthCheck
 // @Summary 健康檢查端點
 // @Description 返回伺服器健康狀態
 // @Tags system
 // @Produce json
 // @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Security
+// @ID Healthz
 // @Router /healthz [get]
 func HealthCheck(c *gin.Context) {
 	c.JSON(200, gin.H{
