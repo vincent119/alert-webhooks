@@ -3,6 +3,7 @@ package v1
 import (
 	//"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/vincent119/commons/modelx"
 	"net/http"
 	"time"
 )
@@ -19,8 +20,8 @@ type ResponseHealthCheck struct {
 // @Tags health
 // @Produce json
 // @Success 200 {object} ResponseHealthCheck "Health check response"
-// @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 401 {object} modelx.ErrorResponse
+// @Failure 500 {object} modelx.ErrorResponse
 // @Security BasicAuth
 // @ID Healthz
 // @Router /api/v1/healthz [get]
