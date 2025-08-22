@@ -3,7 +3,7 @@
 一個高效的 AlertManager webhook 處理服務，支援多平台通知和多語言模板。
 
 [![GitHub](https://img.shields.io/badge/github-vincent119%2Falert--webhooks-blue?logo=github)](https://github.com/vincent119/alert-webhooks)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+![License](https://img.shields.io/github/license/awslabs/mcp)
 [![Go Version](https://img.shields.io/badge/go-1.19%2B-blue?logo=go)](go.mod)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/vincent119/alert-webhooks/actions)
 [![Coverage](https://img.shields.io/badge/coverage-89%25-yellow)](https://codecov.io/gh/vincent119/alert-webhooks)
