@@ -1,17 +1,27 @@
+SHELL := /bin/bash
+
 # Makefile for Alert Webhooks project
 
-.PHONY: swagger-generate swagger-clean swagger-manual run dev test build deps fmt lint upgrade-swag \
+.PHONY: swagger-generate print-swag-dirs swagger-clean swagger-manual run dev test build deps fmt lint upgrade-swag \
         docker-build docker-build-dev docker-run docker-dev docker-stop docker-clean docker-logs docker-logs-dev docker-shell help
 
 # Generate Swagger documentation
+SWAG_DIRS := cmd,$(shell \
+	find . -name "*.go" -not -path "./vendor/*" -exec dirname {} \; \
+	| sed 's|^\./||' | grep -v '^cmd$$' | sort -u | paste -sd "," - \
+)
+
+
+print-swag-dirs:
+	@echo "$(SWAG_DIRS)"
+
 swagger-generate:
 	@echo "Generating Swagger documentation..."
-	@if swag init -g cmd/main.go --output docs --parseDependency --parseInternal 2>/dev/null; then \
-		echo "✅ Swagger generation successful, applying fixes..."; \
-		go run scripts/fix_swagger_docs.go || echo "⚠️  Fix script failed but documentation may still work"; \
-	else \
-		echo "⚠️  swag tool failed, using existing documentation"; \
-	fi
+	@test -n "$(SWAG_DIRS)" || (echo "SWAG_DIRS is empty"; exit 1)
+	@swag init -g main.go -o docs --parseDependency --parseInternal -d $(SWAG_DIRS)
+	@echo "✅ Swagger generation successful, applying fixes..."
+	@go run scripts/fix_swagger_docs.go || echo "⚠️  Fix script failed but documentation may still work"
+
 
 # Clean Swagger documentation
 swagger-clean:

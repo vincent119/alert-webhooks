@@ -1,24 +1,6 @@
 basePath: /api/v1
 definitions:
-  alert-webhooks_pkg_service.Field:
-    properties:
-      short:
-        type: boolean
-      title:
-        type: string
-      value:
-        type: string
-    type: object
-  routes_api_v1.ResponseHealthCheck:
-    properties:
-      Status:
-        type: string
-      recv_time:
-        type: string
-      recv_time_utc:
-        type: string
-    type: object
-  routes_api_v1_discord.SendMessageRequest:
+  discord.SendMessageRequest:
     properties:
       alertmanager_data:
         additionalProperties: true
@@ -55,7 +37,7 @@ definitions:
       version:
         type: string
     type: object
-  routes_api_v1_discord.SendMessageResponse:
+  discord.SendMessageResponse:
     properties:
       level:
         type: string
@@ -64,7 +46,7 @@ definitions:
       success:
         type: boolean
     type: object
-  routes_api_v1_discord.StatusResponse:
+  discord.StatusResponse:
     properties:
       bot_info: {}
       error:
@@ -76,7 +58,25 @@ definitions:
       timestamp:
         type: string
     type: object
-  routes_api_v1_slack.ChannelsResponse:
+  modelx.ErrorResponse:
+    properties:
+      code:
+        example: 401
+        type: integer
+      message:
+        example: unauthorized
+        type: string
+    type: object
+  service.Field:
+    properties:
+      short:
+        type: boolean
+      title:
+        type: string
+      value:
+        type: string
+    type: object
+  slack.ChannelsResponse:
     properties:
       channels:
         additionalProperties:
@@ -85,7 +85,7 @@ definitions:
       success:
         type: boolean
     type: object
-  routes_api_v1_slack.RichMessageRequest:
+  slack.RichMessageRequest:
     properties:
       color:
         description: 顏色 (good, warning, danger, 或 hex)
@@ -93,7 +93,7 @@ definitions:
       fields:
         description: 字段列表
         items:
-          $ref: '#/definitions/alert-webhooks_pkg_service.Field'
+          $ref: '#/definitions/service.Field'
         type: array
       footer_icon:
         description: 頁腳圖示
@@ -117,7 +117,7 @@ definitions:
         description: 自定義 Bot 名稱
         type: string
     type: object
-  routes_api_v1_slack.SendMessageRequest:
+  slack.SendMessageRequest:
     properties:
       alertmanager_data:
         additionalProperties: true
@@ -166,7 +166,7 @@ definitions:
       version:
         type: string
     type: object
-  routes_api_v1_slack.SendMessageResponse:
+  slack.SendMessageResponse:
     properties:
       level:
         type: string
@@ -175,7 +175,7 @@ definitions:
       success:
         type: boolean
     type: object
-  routes_api_v1_slack.StatusResponse:
+  slack.StatusResponse:
     properties:
       channels:
         additionalProperties:
@@ -188,7 +188,7 @@ definitions:
       success:
         type: boolean
     type: object
-  routes_api_v1_telegram.Alert:
+  telegram.Alert:
     properties:
       annotations:
         additionalProperties:
@@ -209,11 +209,11 @@ definitions:
       status:
         type: string
     type: object
-  routes_api_v1_telegram.AlertManagerWebhook:
+  telegram.AlertManagerWebhook:
     properties:
       alerts:
         items:
-          $ref: '#/definitions/routes_api_v1_telegram.Alert'
+          $ref: '#/definitions/telegram.Alert'
         type: array
       commonAnnotations:
         additionalProperties:
@@ -240,11 +240,11 @@ definitions:
       version:
         type: string
     type: object
-  routes_api_v1_telegram.SendMessageRequest:
+  telegram.SendMessageRequest:
     properties:
       alertmanager_data:
         allOf:
-        - $ref: '#/definitions/routes_api_v1_telegram.AlertManagerWebhook'
+        - $ref: '#/definitions/telegram.AlertManagerWebhook'
         description: AlertManager webhook 數據
       message:
         description: 可選，當使用 AlertManager 格式時不需要
@@ -253,7 +253,7 @@ definitions:
         description: 可選，優先使用配置檔案中的設定
         type: string
     type: object
-  routes_api_v1_telegram.SendMessageResponse:
+  telegram.SendMessageResponse:
     properties:
       level:
         type: integer
@@ -261,6 +261,15 @@ definitions:
         type: string
       success:
         type: boolean
+    type: object
+  v1.ResponseHealthCheck:
+    properties:
+      Status:
+        type: string
+      recv_time:
+        type: string
+      recv_time_utc:
+        type: string
     type: object
 info:
   contact:
@@ -273,6 +282,30 @@ info:
   title: Alert Webhooks API
   version: "1.0"
 paths:
+  /api/v1/healthz:
+    get:
+      description: Returns OK if the service is healthy
+      operationId: Healthz
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Health check response
+          schema:
+            $ref: '#/definitions/v1.ResponseHealthCheck'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/modelx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/modelx.ErrorResponse'
+      security:
+      - BasicAuth: []
+      summary: Check health status
+      tags:
+      - health
   /api/v1/slack/channel/{channel}:
     post:
       consumes:
@@ -289,26 +322,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/routes_api_v1_slack.SendMessageRequest'
+          $ref: '#/definitions/slack.SendMessageRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
       security:
       - BasicAuth: []
       summary: 發送 Slack 訊息到指定頻道
@@ -323,15 +356,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.ChannelsResponse'
+            $ref: '#/definitions/slack.ChannelsResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
       security:
       - BasicAuth: []
       summary: 獲取 Slack 頻道配置
@@ -353,26 +386,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/routes_api_v1_slack.SendMessageRequest'
+          $ref: '#/definitions/slack.SendMessageRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
       security:
       - BasicAuth: []
       summary: 發送 Slack 訊息到指定等級
@@ -394,26 +427,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/routes_api_v1_slack.RichMessageRequest'
+          $ref: '#/definitions/slack.RichMessageRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
       security:
       - BasicAuth: []
       summary: 發送富文本 Slack 訊息
@@ -428,11 +461,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.StatusResponse'
+            $ref: '#/definitions/slack.StatusResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
       security:
       - BasicAuth: []
       summary: 獲取 Slack 服務狀態
@@ -449,15 +482,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
       security:
       - BasicAuth: []
       summary: 測試 Slack 連接
@@ -478,19 +511,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
         "503":
           description: Service Unavailable
           schema:
-            $ref: '#/definitions/routes_api_v1_slack.SendMessageResponse'
+            $ref: '#/definitions/slack.SendMessageResponse'
       security:
       - BasicAuth: []
       summary: 驗證 Slack 頻道
@@ -512,14 +545,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/routes_api_v1_telegram.SendMessageRequest'
+          $ref: '#/definitions/telegram.SendMessageRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_telegram.SendMessageResponse'
+            $ref: '#/definitions/telegram.SendMessageResponse'
         "400":
           description: Bad Request
           schema:
@@ -563,22 +596,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/routes_api_v1_discord.SendMessageRequest'
+          $ref: '#/definitions/discord.SendMessageRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.SendMessageResponse'
+            $ref: '#/definitions/discord.SendMessageResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.SendMessageResponse'
+            $ref: '#/definitions/discord.SendMessageResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.SendMessageResponse'
+            $ref: '#/definitions/discord.SendMessageResponse'
       summary: Send message to Discord channel
       tags:
       - discord
@@ -598,22 +631,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/routes_api_v1_discord.SendMessageRequest'
+          $ref: '#/definitions/discord.SendMessageRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.SendMessageResponse'
+            $ref: '#/definitions/discord.SendMessageResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.SendMessageResponse'
+            $ref: '#/definitions/discord.SendMessageResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.SendMessageResponse'
+            $ref: '#/definitions/discord.SendMessageResponse'
       summary: Send message to Discord level channel
       tags:
       - discord
@@ -626,11 +659,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.StatusResponse'
+            $ref: '#/definitions/discord.StatusResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.StatusResponse'
+            $ref: '#/definitions/discord.StatusResponse'
       summary: Get Discord service status
       tags:
       - discord
@@ -647,15 +680,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.SendMessageResponse'
+            $ref: '#/definitions/discord.SendMessageResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.SendMessageResponse'
+            $ref: '#/definitions/discord.SendMessageResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.SendMessageResponse'
+            $ref: '#/definitions/discord.SendMessageResponse'
       summary: Test Discord channel
       tags:
       - discord
@@ -672,21 +705,22 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.SendMessageResponse'
+            $ref: '#/definitions/discord.SendMessageResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.SendMessageResponse'
+            $ref: '#/definitions/discord.SendMessageResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/routes_api_v1_discord.SendMessageResponse'
+            $ref: '#/definitions/discord.SendMessageResponse'
       summary: Validate Discord channel
       tags:
       - discord
-  /healthz:
+  /healthy:
     get:
       description: 返回伺服器健康狀態
+      operationId: Healthy
       produces:
       - application/json
       responses:
@@ -695,6 +729,12 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security: []
       summary: 健康檢查端點
       tags:
       - system

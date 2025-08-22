@@ -22,6 +22,44 @@
     },
     "basePath": "/api/v1",
     "paths": {
+        "/api/v1/healthz": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "Returns OK if the service is healthy",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Check health status",
+                "operationId": "Healthz",
+                "responses": {
+                    "200": {
+                        "description": "Health check response",
+                        "schema": {
+                            "$ref": "#/definitions/v1.ResponseHealthCheck"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/modelx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/modelx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/slack/channel/{channel}": {
             "post": {
                 "security": [
@@ -54,7 +92,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageRequest"
+                            "$ref": "#/definitions/slack.SendMessageRequest"
                         }
                     }
                 ],
@@ -62,25 +100,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -105,19 +143,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.ChannelsResponse"
+                            "$ref": "#/definitions/slack.ChannelsResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -155,7 +193,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageRequest"
+                            "$ref": "#/definitions/slack.SendMessageRequest"
                         }
                     }
                 ],
@@ -163,25 +201,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -219,7 +257,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.RichMessageRequest"
+                            "$ref": "#/definitions/slack.RichMessageRequest"
                         }
                     }
                 ],
@@ -227,25 +265,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -270,13 +308,13 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.StatusResponse"
+                            "$ref": "#/definitions/slack.StatusResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -304,19 +342,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -350,25 +388,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -401,7 +439,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_telegram.SendMessageRequest"
+                            "$ref": "#/definitions/telegram.SendMessageRequest"
                         }
                     }
                 ],
@@ -409,7 +447,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_telegram.SendMessageResponse"
+                            "$ref": "#/definitions/telegram.SendMessageResponse"
                         }
                     },
                     "400": {
@@ -477,7 +515,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageRequest"
+                            "$ref": "#/definitions/discord.SendMessageRequest"
                         }
                     }
                 ],
@@ -485,19 +523,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     }
                 }
@@ -530,7 +568,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageRequest"
+                            "$ref": "#/definitions/discord.SendMessageRequest"
                         }
                     }
                 ],
@@ -538,19 +576,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     }
                 }
@@ -570,13 +608,13 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.StatusResponse"
+                            "$ref": "#/definitions/discord.StatusResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.StatusResponse"
+                            "$ref": "#/definitions/discord.StatusResponse"
                         }
                     }
                 }
@@ -602,19 +640,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     }
                 }
@@ -640,26 +678,27 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     }
                 }
             }
         },
-        "/healthz": {
+        "/healthy": {
             "get": {
+                "security": [],
                 "description": "返回伺服器健康狀態",
                 "produces": [
                     "application/json"
@@ -668,9 +707,17 @@
                     "system"
                 ],
                 "summary": "健康檢查端點",
+                "operationId": "Healthy",
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -681,35 +728,7 @@
         }
     },
     "definitions": {
-        "alert-webhooks_pkg_service.Field": {
-            "type": "object",
-            "properties": {
-                "short": {
-                    "type": "boolean"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "routes_api_v1.ResponseHealthCheck": {
-            "type": "object",
-            "properties": {
-                "Status": {
-                    "type": "string"
-                },
-                "recv_time": {
-                    "type": "string"
-                },
-                "recv_time_utc": {
-                    "type": "string"
-                }
-            }
-        },
-        "routes_api_v1_discord.SendMessageRequest": {
+        "discord.SendMessageRequest": {
             "type": "object",
             "properties": {
                 "alertmanager_data": {
@@ -761,7 +780,7 @@
                 }
             }
         },
-        "routes_api_v1_discord.SendMessageResponse": {
+        "discord.SendMessageResponse": {
             "type": "object",
             "properties": {
                 "level": {
@@ -775,7 +794,7 @@
                 }
             }
         },
-        "routes_api_v1_discord.StatusResponse": {
+        "discord.StatusResponse": {
             "type": "object",
             "properties": {
                 "bot_info": {},
@@ -793,7 +812,34 @@
                 }
             }
         },
-        "routes_api_v1_slack.ChannelsResponse": {
+        "modelx.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 401
+                },
+                "message": {
+                    "type": "string",
+                    "example": "unauthorized"
+                }
+            }
+        },
+        "service.Field": {
+            "type": "object",
+            "properties": {
+                "short": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "slack.ChannelsResponse": {
             "type": "object",
             "properties": {
                 "channels": {
@@ -807,7 +853,7 @@
                 }
             }
         },
-        "routes_api_v1_slack.RichMessageRequest": {
+        "slack.RichMessageRequest": {
             "type": "object",
             "properties": {
                 "color": {
@@ -818,7 +864,7 @@
                     "description": "字段列表",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/alert-webhooks_pkg_service.Field"
+                        "$ref": "#/definitions/service.Field"
                     }
                 },
                 "footer_icon": {
@@ -851,7 +897,7 @@
                 }
             }
         },
-        "routes_api_v1_slack.SendMessageRequest": {
+        "slack.SendMessageRequest": {
             "type": "object",
             "properties": {
                 "alertmanager_data": {
@@ -919,7 +965,7 @@
                 }
             }
         },
-        "routes_api_v1_slack.SendMessageResponse": {
+        "slack.SendMessageResponse": {
             "type": "object",
             "properties": {
                 "level": {
@@ -933,7 +979,7 @@
                 }
             }
         },
-        "routes_api_v1_slack.StatusResponse": {
+        "slack.StatusResponse": {
             "type": "object",
             "properties": {
                 "channels": {
@@ -953,7 +999,7 @@
                 }
             }
         },
-        "routes_api_v1_telegram.Alert": {
+        "telegram.Alert": {
             "type": "object",
             "properties": {
                 "annotations": {
@@ -985,13 +1031,13 @@
                 }
             }
         },
-        "routes_api_v1_telegram.AlertManagerWebhook": {
+        "telegram.AlertManagerWebhook": {
             "type": "object",
             "properties": {
                 "alerts": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/routes_api_v1_telegram.Alert"
+                        "$ref": "#/definitions/telegram.Alert"
                     }
                 },
                 "commonAnnotations": {
@@ -1032,14 +1078,14 @@
                 }
             }
         },
-        "routes_api_v1_telegram.SendMessageRequest": {
+        "telegram.SendMessageRequest": {
             "type": "object",
             "properties": {
                 "alertmanager_data": {
                     "description": "AlertManager webhook 數據",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/routes_api_v1_telegram.AlertManagerWebhook"
+                            "$ref": "#/definitions/telegram.AlertManagerWebhook"
                         }
                     ]
                 },
@@ -1053,7 +1099,7 @@
                 }
             }
         },
-        "routes_api_v1_telegram.SendMessageResponse": {
+        "telegram.SendMessageResponse": {
             "type": "object",
             "properties": {
                 "level": {
@@ -1064,6 +1110,20 @@
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "v1.ResponseHealthCheck": {
+            "type": "object",
+            "properties": {
+                "Status": {
+                    "type": "string"
+                },
+                "recv_time": {
+                    "type": "string"
+                },
+                "recv_time_utc": {
+                    "type": "string"
                 }
             }
         }

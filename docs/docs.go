@@ -25,6 +25,44 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/healthz": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "Returns OK if the service is healthy",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Check health status",
+                "operationId": "Healthz",
+                "responses": {
+                    "200": {
+                        "description": "Health check response",
+                        "schema": {
+                            "$ref": "#/definitions/v1.ResponseHealthCheck"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/modelx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/modelx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/slack/channel/{channel}": {
             "post": {
                 "security": [
@@ -57,7 +95,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageRequest"
+                            "$ref": "#/definitions/slack.SendMessageRequest"
                         }
                     }
                 ],
@@ -65,25 +103,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -108,19 +146,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.ChannelsResponse"
+                            "$ref": "#/definitions/slack.ChannelsResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -158,7 +196,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageRequest"
+                            "$ref": "#/definitions/slack.SendMessageRequest"
                         }
                     }
                 ],
@@ -166,25 +204,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -222,7 +260,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.RichMessageRequest"
+                            "$ref": "#/definitions/slack.RichMessageRequest"
                         }
                     }
                 ],
@@ -230,25 +268,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -273,13 +311,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.StatusResponse"
+                            "$ref": "#/definitions/slack.StatusResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -307,19 +345,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -353,25 +391,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_slack.SendMessageResponse"
+                            "$ref": "#/definitions/slack.SendMessageResponse"
                         }
                     }
                 }
@@ -404,7 +442,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_telegram.SendMessageRequest"
+                            "$ref": "#/definitions/telegram.SendMessageRequest"
                         }
                     }
                 ],
@@ -412,7 +450,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_telegram.SendMessageResponse"
+                            "$ref": "#/definitions/telegram.SendMessageResponse"
                         }
                     },
                     "400": {
@@ -480,7 +518,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageRequest"
+                            "$ref": "#/definitions/discord.SendMessageRequest"
                         }
                     }
                 ],
@@ -488,19 +526,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     }
                 }
@@ -533,7 +571,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageRequest"
+                            "$ref": "#/definitions/discord.SendMessageRequest"
                         }
                     }
                 ],
@@ -541,19 +579,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     }
                 }
@@ -573,13 +611,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.StatusResponse"
+                            "$ref": "#/definitions/discord.StatusResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.StatusResponse"
+                            "$ref": "#/definitions/discord.StatusResponse"
                         }
                     }
                 }
@@ -605,19 +643,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     }
                 }
@@ -643,26 +681,27 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/routes_api_v1_discord.SendMessageResponse"
+                            "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     }
                 }
             }
         },
-        "/healthz": {
+        "/healthy": {
             "get": {
+                "security": [],
                 "description": "返回伺服器健康狀態",
                 "produces": [
                     "application/json"
@@ -671,9 +710,17 @@ const docTemplate = `{
                     "system"
                 ],
                 "summary": "健康檢查端點",
+                "operationId": "Healthy",
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -684,35 +731,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "alert-webhooks_pkg_service.Field": {
-            "type": "object",
-            "properties": {
-                "short": {
-                    "type": "boolean"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "routes_api_v1.ResponseHealthCheck": {
-            "type": "object",
-            "properties": {
-                "Status": {
-                    "type": "string"
-                },
-                "recv_time": {
-                    "type": "string"
-                },
-                "recv_time_utc": {
-                    "type": "string"
-                }
-            }
-        },
-        "routes_api_v1_discord.SendMessageRequest": {
+        "discord.SendMessageRequest": {
             "type": "object",
             "properties": {
                 "alertmanager_data": {
@@ -764,7 +783,7 @@ const docTemplate = `{
                 }
             }
         },
-        "routes_api_v1_discord.SendMessageResponse": {
+        "discord.SendMessageResponse": {
             "type": "object",
             "properties": {
                 "level": {
@@ -778,7 +797,7 @@ const docTemplate = `{
                 }
             }
         },
-        "routes_api_v1_discord.StatusResponse": {
+        "discord.StatusResponse": {
             "type": "object",
             "properties": {
                 "bot_info": {},
@@ -796,7 +815,34 @@ const docTemplate = `{
                 }
             }
         },
-        "routes_api_v1_slack.ChannelsResponse": {
+        "modelx.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 401
+                },
+                "message": {
+                    "type": "string",
+                    "example": "unauthorized"
+                }
+            }
+        },
+        "service.Field": {
+            "type": "object",
+            "properties": {
+                "short": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "slack.ChannelsResponse": {
             "type": "object",
             "properties": {
                 "channels": {
@@ -810,7 +856,7 @@ const docTemplate = `{
                 }
             }
         },
-        "routes_api_v1_slack.RichMessageRequest": {
+        "slack.RichMessageRequest": {
             "type": "object",
             "properties": {
                 "color": {
@@ -821,7 +867,7 @@ const docTemplate = `{
                     "description": "字段列表",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/alert-webhooks_pkg_service.Field"
+                        "$ref": "#/definitions/service.Field"
                     }
                 },
                 "footer_icon": {
@@ -854,7 +900,7 @@ const docTemplate = `{
                 }
             }
         },
-        "routes_api_v1_slack.SendMessageRequest": {
+        "slack.SendMessageRequest": {
             "type": "object",
             "properties": {
                 "alertmanager_data": {
@@ -922,7 +968,7 @@ const docTemplate = `{
                 }
             }
         },
-        "routes_api_v1_slack.SendMessageResponse": {
+        "slack.SendMessageResponse": {
             "type": "object",
             "properties": {
                 "level": {
@@ -936,7 +982,7 @@ const docTemplate = `{
                 }
             }
         },
-        "routes_api_v1_slack.StatusResponse": {
+        "slack.StatusResponse": {
             "type": "object",
             "properties": {
                 "channels": {
@@ -956,7 +1002,7 @@ const docTemplate = `{
                 }
             }
         },
-        "routes_api_v1_telegram.Alert": {
+        "telegram.Alert": {
             "type": "object",
             "properties": {
                 "annotations": {
@@ -988,13 +1034,13 @@ const docTemplate = `{
                 }
             }
         },
-        "routes_api_v1_telegram.AlertManagerWebhook": {
+        "telegram.AlertManagerWebhook": {
             "type": "object",
             "properties": {
                 "alerts": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/routes_api_v1_telegram.Alert"
+                        "$ref": "#/definitions/telegram.Alert"
                     }
                 },
                 "commonAnnotations": {
@@ -1035,14 +1081,14 @@ const docTemplate = `{
                 }
             }
         },
-        "routes_api_v1_telegram.SendMessageRequest": {
+        "telegram.SendMessageRequest": {
             "type": "object",
             "properties": {
                 "alertmanager_data": {
                     "description": "AlertManager webhook 數據",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/routes_api_v1_telegram.AlertManagerWebhook"
+                            "$ref": "#/definitions/telegram.AlertManagerWebhook"
                         }
                     ]
                 },
@@ -1056,7 +1102,7 @@ const docTemplate = `{
                 }
             }
         },
-        "routes_api_v1_telegram.SendMessageResponse": {
+        "telegram.SendMessageResponse": {
             "type": "object",
             "properties": {
                 "level": {
@@ -1067,6 +1113,20 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "v1.ResponseHealthCheck": {
+            "type": "object",
+            "properties": {
+                "Status": {
+                    "type": "string"
+                },
+                "recv_time": {
+                    "type": "string"
+                },
+                "recv_time_utc": {
+                    "type": "string"
                 }
             }
         }

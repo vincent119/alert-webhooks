@@ -163,8 +163,8 @@ func setupPrometheus(r *gin.Engine) {
 // @Success 200 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Security
-// @ID Healthz
-// @Router /healthz [get]
+// @ID Healthy
+// @Router /healthy [get]
 func HealthCheck(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"status":  "ok",
