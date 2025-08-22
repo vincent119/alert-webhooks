@@ -37,7 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           go install github.com/swaggo/swag/cmd/swag@latest
-          command -v swag || { echo "❌ swag 不在 PATH"; exit 1; }
+          command -v swag || { echo "swag not in PATH"; exit 1; }
           swag --version
 
       - name: Install dependencies
@@ -48,19 +48,18 @@ jobs:
         run: |
           set -euo pipefail
           ENTRY_MAIN="cmd/main.go"
-          [[ -f "$ENTRY_MAIN" ]] || { echo "❌ 缺少 $ENTRY_MAIN"; exit 1; }
+          [[ -f "$ENTRY_MAIN" ]] || { echo "missing $ENTRY_MAIN"; exit 1; }
           swag init -g "$ENTRY_MAIN" --output docs --parseDependency --parseInternal
-          echo "✅ Swagger 生成成功"
+          echo "ok"
 
       - name: Optional fix (if script exists)
         shell: bash
         run: |
           set -euo pipefail
           if [[ -f "scripts/fix_swagger_docs.go" ]]; then
-            echo "🔧 執行修補腳本 scripts/fix_swagger_docs.go"
             go run scripts/fix_swagger_docs.go
           else
-            echo "ℹ️ 找不到 scripts/fix_swagger_docs.go，略過修補"
+            echo "skip"
           fi
 
       - name: Check generated files
@@ -69,23 +68,21 @@ jobs:
           set -euo pipefail
           files=("docs/docs.go" "docs/swagger.json" "docs/swagger.yaml")
           for f in "${files[@]}"; do
-            [[ -f "$f" ]] || { echo "❌ 缺少檔案: $f"; exit 1; }
+            [[ -f "$f" ]] || { echo "missing $f"; exit 1; }
           done
-          echo "✅ 必要 Swagger 檔案皆存在"
 
       - name: Validate OpenAPI (optional)
         run: |
           npm i -g @redocly/cli >/dev/null 2>&1 || true
           if command -v redocly >/dev/null 2>&1; then
-            redocly lint docs/swagger.yaml || { echo "❌ OpenAPI Lint 失敗"; exit 1; }
-            echo "✅ OpenAPI Lint 通過"
+            redocly lint docs/swagger.yaml || exit 1
           else
-            echo "⚠️ redocly 未安裝，略過 Lint"
+            echo "skip"
           fi
 
       - name: Upload Swagger artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: swagger-docs
           path: docs/
