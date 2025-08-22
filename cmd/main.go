@@ -46,12 +46,16 @@ func waitForShutdownSignal(server *http.Server) {
 // @title           Alert Webhooks API
 // @version         1.0
 // @description     這是 Alert Webhooks 的 Swagger 文件（由 swag 自動產生）。
-// @BasePath        /api/v1
 // @schemes         http https
-// @contact.name    API Support
-// @contact.email   you@example.com
+// @BasePath        /api/v1
 // @produce         json
 // @consume         json
+// @contact.name    API Support
+// @contact.email   vincent119@gmail.com
+// @license.name    MIT
+// @license.url     https://opensource.org/licenses/MIT
+// @securityDefinitions.basic  BasicAuth
+// @security  BasicAuth
 func main() {
 	// 初始化配置
 	config.Init()
