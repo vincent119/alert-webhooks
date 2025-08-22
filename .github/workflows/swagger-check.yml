@@ -1,0 +1,80 @@
+name: Swagger Documentation Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  swagger-validation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23'
+        
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+          
+    - name: Install swag tool
+      run: go install github.com/swaggo/swag/cmd/swag@latest
+      
+    - name: Install dependencies
+      run: go mod download
+      
+    - name: Generate Swagger docs
+      run: |
+        # 嘗試生成 Swagger 文檔
+        if swag init -g cmd/main.go --output docs --parseDependency --parseInternal; then
+          echo "✅ Swagger generation successful"
+          
+          # 自動修復已知問題
+          echo "🔧 Applying automatic fixes..."
+          go run scripts/fix_swagger_docs.go
+          
+          # 驗證修復後的文檔可以編譯
+          echo "🧪 Validating generated documentation..."
+          go build -o /tmp/test-build ./cmd/main.go
+          
+        else
+          echo "❌ Swagger generation failed"
+          exit 1
+        fi
+        
+    - name: Check documentation completeness
+      run: |
+        required_files=("docs/docs.go" "docs/swagger.json" "docs/swagger.yaml")
+        for file in "${required_files[@]}"; do
+          if [[ ! -f "$file" ]]; then
+            echo "❌ Missing required file: $file"
+            exit 1
+          fi
+        done
+        echo "✅ All required Swagger files present"
+        
+    - name: Lint generated code
+      run: |
+        if command -v golangci-lint >/dev/null 2>&1; then
+          golangci-lint run docs/
+        else
+          echo "⚠️  golangci-lint not available, skipping lint check"
+        fi
+        
+    - name: Upload Swagger artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: swagger-docs
+        path: docs/
+        retention-days: 7
