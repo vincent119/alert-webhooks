@@ -9,6 +9,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-89%25-yellow)](https://codecov.io/gh/vincent119/alert-webhooks)
 [![Score](https://img.shields.io/badge/score-9.2-brightgreen)](https://goreportcard.com/report/github.com/vincent119/alert-webhooks)
 ![GitHub stars](https://img.shields.io/github/stars/awslabs/mcp)
+![GitHub release](https://img.shields.io/github/v/release/awslabs/mcp)
 
 ## 🌟 主要功能
 
