@@ -1,0 +1,178 @@
+package routes
+
+import (
+	"alert-webhooks/config"
+	"alert-webhooks/pkg/logger"
+	"alert-webhooks/pkg/middleware"
+	v1 "alert-webhooks/routes/api/v1"
+	"io"
+	"os"
+	"strings"
+
+	_ "alert-webhooks/docs"
+
+	"github.com/gin-contrib/gzip"
+	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	ginprometheus "github.com/zsais/go-gin-prometheus"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+)
+
+// 需要跳過日誌的 API 路徑
+var skipPathList = []string{
+	"/healthz",
+	"/api/v1/metrics",
+}
+
+var mainRouteString = "main-route"
+
+// setupGinMode 設置 Gin 運行模式
+func setupGinMode() {
+	mode := strings.ToLower(config.App.Mode)
+	
+	switch mode {
+	case "release", "production":
+		gin.SetMode(gin.ReleaseMode)
+		logger.Info("Gin mode set to release", mainRouteString)
+	case "debug", "development":
+		gin.SetMode(gin.DebugMode)
+		logger.Info("Gin mode set to debug", mainRouteString)
+	case "test":
+		gin.SetMode(gin.TestMode)
+		logger.Info("Gin mode set to test", mainRouteString)
+	default:
+		gin.SetMode(gin.ReleaseMode)
+		logger.Warn("Unknown mode, defaulting to release", mainRouteString, logger.String("mode", mode))
+	}
+}
+
+// DefaultRoute 設置 Gin 路由
+// @title Going-Admin Backend API
+// @version 1.0
+// @description 後台管理系統 API 文檔
+// @host localhost:8080
+// @BasePath /
+// @schemes http https
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+func DefaultRoute() *gin.Engine {
+	// 設定 Gin 模式（必須在創建引擎之前）
+	setupGinMode()
+	
+	// 設定 Gin 輸出
+	gin.ForceConsoleColor()
+	gin.DefaultWriter = io.MultiWriter(os.Stdout)
+
+	// 創建 Gin 實例
+	routes := gin.New()
+
+	// 設定中介件
+	routes.Use(
+		otelgin.Middleware(config.App.AppName), // OpenTelemetry 追蹤
+		middleware.CORS(),                         // 跨域處理
+		//middleware.RequestID(),                    // 請求 ID
+		middleware.Logger(), // 日誌中介件
+		//middleware.Recovery(),                     // 恢復中介件
+		gin.Recovery(), // 恢復中介件
+		gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: skipPathList}), // 設定日誌跳過路徑
+
+		gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{
+			"/healthz",
+			"/api/v1/metrics",
+			"/swagger/*any",
+			"/swagger/doc.json",
+		})),
+
+	// logger.GinLogger()
+	)
+
+	// 設置信任代理
+	if err := setupTrustedProxies(routes); err != nil {
+		logger.Fatal("Failed to set trusted proxies", mainRouteString, logger.Err(err))
+	}
+
+	// 健康檢查路由已移至 API V1 路由組
+	// routes.GET("/healthz", HealthCheck)
+
+	// 設置 Prometheus 監控
+	setupPrometheus(routes)
+
+	// // 如果是本地存儲，則配置靜態文件路由
+	// if config.Upload.StorageType == "local" {
+	// 	uploadPath := config.Upload.BasePath
+	// 	staticPathPrefix := "/uploads/"
+	// 	routes.Static(staticPathPrefix, uploadPath)
+	// 	logger.Info("Local file storage configured",
+	// 		logger.String("path", uploadPath),
+	// 		logger.String("url_prefix", staticPathPrefix))
+	// }
+
+	// Swagger API 文檔
+	routes.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// 獲取並註冊 API 路由組
+	apiGroup := routes.Group("/api")
+	{
+		v1Router := apiGroup.Group("/v1")
+		v1.RegisterApiV1Routes(v1Router)
+	}
+	return routes
+}
+
+// setupTrustedProxies 設置信任代理
+func setupTrustedProxies(r *gin.Engine) error {
+	var trustedProxies []string
+
+	// 從配置中讀取信任代理
+	if proxyConfig := config.App.TrustedProxies; len(proxyConfig) > 0 {
+		trustedProxies = strings.Split(proxyConfig, ",")
+	} else {
+		// 預設值
+		if config.Conf.App.Mode == "production" {
+			trustedProxies = []string{"127.0.0.1", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}
+		} else {
+			trustedProxies = []string{"127.0.0.1"}
+		}
+	}
+
+	logger.Debug("Setting trusted proxies", mainRouteString, logger.Any("proxies", trustedProxies))
+	return r.SetTrustedProxies(trustedProxies)
+}
+
+// setupPrometheus 設置 Prometheus 監控
+func setupPrometheus(r *gin.Engine) {
+	p := ginprometheus.NewPrometheus("gin")
+
+	// 設定 Prometheus 指標路徑
+	p.MetricsPath = "/api/v1/metrics"
+
+	// 如果配置了用戶名和密碼，則使用身份驗證
+	metricUser := config.Metric.User
+	metricPassword := config.Metric.Password
+
+	if metricUser != "" && metricPassword != "" {
+		logger.Info("Authentication has been enabled for Prometheus metrics", mainRouteString)
+		p.UseWithAuth(r, gin.Accounts{metricUser: metricPassword})
+	} else {
+		logger.Warn("Authentication is not enabled for Prometheus metrics; it is recommended to enable it in production environments", mainRouteString)
+
+		p.Use(r)
+	}
+
+}
+
+// HealthCheck 提供健康檢查端點
+// @Summary 健康檢查端點
+// @Description 返回伺服器健康狀態
+// @Tags system
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /healthz [get]
+func HealthCheck(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"status":  "ok",
+		"version": config.App.Version,
+	})
+}

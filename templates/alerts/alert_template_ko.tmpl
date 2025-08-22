@@ -1,0 +1,24 @@
+{{ if gt .FiringCount 0 }}{{ if .FormatOptions.ShowEmoji.Enabled }}🚨 {{ end }}{{ format_bold .Platform "알림 발생" }}{{ else if gt .ResolvedCount 0 }}{{ if .FormatOptions.ShowEmoji.Enabled }}✅ {{ end }}{{ format_bold .Platform "알림 해결됨" }}{{ end }}
+{{ format_bold .Platform "상태:" }} {{ format_text .Platform .Status }}
+{{ format_italic .Platform "알림명:" }} {{ format_text .Platform .AlertName }}
+{{ format_italic .Platform "환경:" }} {{ format_text .Platform .Env }}
+{{ format_italic .Platform "심각도:" }} {{ format_text .Platform .Severity }}
+{{ format_italic .Platform "네임스페이스:" }} {{ format_text .Platform .Namespace }}
+{{ format_italic .Platform "총 알림 수:" }} {{ .TotalAlerts }}{{ if gt .FiringCount 0 }}
+{{ format_italic .Platform "발생중:" }} {{ .FiringCount }}{{ end }}{{ if gt .ResolvedCount 0 }}
+{{ format_italic .Platform "해결됨:" }} {{ .ResolvedCount }}{{ end }}{{ if gt .FiringCount 0 }}
+{{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "🚨 발생중인 알림:" }}{{ else }}{{ format_bold .Platform "발생중인 알림:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "firing" }}
+{{ format_bold $.Platform (printf "알림 %d:" (add $index 1)) }}
+• 요약: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+• Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
+• 시작 시간: {{ format_time $.Platform $alert.StartsAt }}
+• 종료 시간: {{ if ne $alert.EndsAt "0001-01-01T00:00:00Z" }}{{ format_time $.Platform $alert.EndsAt }}{{ else }}진행 중{{ end }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "자세히 보기" }}{{ end }}{{ end }}{{ end }}{{ end }}{{ if gt .ResolvedCount 0 }}
+{{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "✅ 해결된 알림:" }}{{ else }}{{ format_bold .Platform "해결된 알림:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "resolved" }}
+{{ format_bold $.Platform (printf "알림 %d:" (add $index 1)) }}
+• 요약: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+• Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
+• 시작 시간: {{ format_time $.Platform $alert.StartsAt }}
+• 종료 시간: {{ format_time $.Platform $alert.EndsAt }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "자세히 보기" }}{{ end }}{{ end }}{{ end }}{{ end }}{{ if and .FormatOptions.ShowExternalURL.Enabled .ExternalURL }}
+{{ if .FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link .Platform .ExternalURL "모든 알림 보기" }}{{ end }}
