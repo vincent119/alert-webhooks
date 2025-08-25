@@ -64,7 +64,8 @@ func DefaultRoute() *gin.Engine {
 		otelgin.Middleware(config.App.AppName), // OpenTelemetry 追蹤
 		middleware.CORS(),                         
 		//middleware.RequestID(),                    
-		middleware.Logger(), 
+		//middleware.Logger(), 
+		middleware.LoggerWithSkipPaths(skipPathList),
 		//middleware.Recovery(),                     
 		gin.Recovery(),
 		gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: skipPathList}), 
