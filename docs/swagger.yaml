@@ -306,70 +306,6 @@ paths:
       summary: Check health status
       tags:
       - health
-  /api/v1/slack/channel/{channel}:
-    post:
-      consumes:
-      - application/json
-      description: 發送訊息到指定的 Slack 頻道
-      parameters:
-      - description: '頻道名稱 (例如: alerts, emergency)'
-        in: path
-        name: channel
-        required: true
-        type: string
-      - description: 發送訊息請求
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/slack.SendMessageRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-      security:
-      - BasicAuth: []
-      summary: 發送 Slack 訊息到指定頻道
-      tags:
-      - slack
-  /api/v1/slack/channels:
-    get:
-      description: 獲取當前配置的所有 Slack 頻道映射
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/slack.ChannelsResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-        "503":
-          description: Service Unavailable
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-      security:
-      - BasicAuth: []
-      summary: 獲取 Slack 頻道配置
-      tags:
-      - slack
   /api/v1/slack/level/{level}:
     post:
       consumes:
@@ -452,134 +388,6 @@ paths:
       summary: 發送富文本 Slack 訊息
       tags:
       - slack
-  /api/v1/slack/status:
-    get:
-      description: 獲取 Slack 服務的當前狀態和配置信息
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/slack.StatusResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-      security:
-      - BasicAuth: []
-      summary: 獲取 Slack 服務狀態
-      tags:
-      - slack
-  /api/v1/slack/test:
-    post:
-      consumes:
-      - application/json
-      description: 發送測試訊息到預設頻道以驗證 Slack 連接
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-        "503":
-          description: Service Unavailable
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-      security:
-      - BasicAuth: []
-      summary: 測試 Slack 連接
-      tags:
-      - slack
-  /api/v1/slack/validate/{channel}:
-    post:
-      description: 檢查 Bot 是否已加入指定頻道，如果未加入會提供加入指引
-      parameters:
-      - description: '頻道名稱 (例如: alerts, emergency)'
-        in: path
-        name: channel
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-        "503":
-          description: Service Unavailable
-          schema:
-            $ref: '#/definitions/slack.SendMessageResponse'
-      security:
-      - BasicAuth: []
-      summary: 驗證 Slack 頻道
-      tags:
-      - slack
-  /api/v1/telegram/chatid_{chatid}:
-    post:
-      consumes:
-      - application/json
-      description: Send message to specified Telegram chat level
-      parameters:
-      - description: '聊天等級 (格式: L{0-4})'
-        in: path
-        name: chatid
-        required: true
-        type: string
-      - description: 訊息內容
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/telegram.SendMessageRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/telegram.SendMessageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Send Telegram message
-      tags:
-      - telegram
-  /api/v1/telegram/info:
-    get:
-      description: 獲取 Telegram 機器人的基本資訊
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: 獲取機器人資訊
-      tags:
-      - telegram
   /discord/channel/{channel}:
     post:
       consumes:
@@ -738,6 +546,202 @@ paths:
       summary: 健康檢查端點
       tags:
       - system
+  /slack/channel/{channel}:
+    post:
+      consumes:
+      - application/json
+      description: 發送訊息到指定的 Slack 頻道
+      parameters:
+      - description: '頻道名稱 (例如: alerts, emergency)'
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: 發送訊息請求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/slack.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+      security:
+      - BasicAuth: []
+      summary: 發送 Slack 訊息到指定頻道
+      tags:
+      - slack
+  /slack/channels:
+    get:
+      description: 獲取當前配置的所有 Slack 頻道映射
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slack.ChannelsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+      security:
+      - BasicAuth: []
+      summary: 獲取 Slack 頻道配置
+      tags:
+      - slack
+  /slack/status:
+    get:
+      description: 獲取 Slack 服務的當前狀態和配置信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slack.StatusResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+      security:
+      - BasicAuth: []
+      summary: 獲取 Slack 服務狀態
+      tags:
+      - slack
+  /slack/test:
+    post:
+      consumes:
+      - application/json
+      description: 發送測試訊息到預設頻道以驗證 Slack 連接
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+      security:
+      - BasicAuth: []
+      summary: 測試 Slack 連接
+      tags:
+      - slack
+  /slack/validate/{channel}:
+    post:
+      description: 檢查 Bot 是否已加入指定頻道，如果未加入會提供加入指引
+      parameters:
+      - description: '頻道名稱 (例如: alerts, emergency)'
+        in: path
+        name: channel
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+      security:
+      - BasicAuth: []
+      summary: 驗證 Slack 頻道
+      tags:
+      - slack
+  /telegram/chatid_{chatid}:
+    post:
+      consumes:
+      - application/json
+      description: Send message to specified Telegram chat level
+      parameters:
+      - description: '聊天等級 (格式: L{0-4})'
+        in: path
+        name: chatid
+        required: true
+        type: string
+      - description: 訊息內容
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/telegram.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/telegram.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BasicAuth: []
+      summary: Send Telegram message
+      tags:
+      - telegram
+  /telegram/info:
+    get:
+      description: 獲取 Telegram 機器人的基本資訊
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BasicAuth: []
+      summary: 獲取機器人資訊
+      tags:
+      - telegram
 produces:
 - application/json
 schemes:
