@@ -24,8 +24,8 @@ build_docker:
     - ${RUNNER_TAGS}
   script:
     - |
-      docker build --build-arg timezone=Asia/Taipei  --no-cache . -t ${lowercase_prolect}:${DOCKER_TAGS}
-      echo  docker tag ${lowercase_prolect}:${DOCKER_TAGS} $ECR_URL/${lowercase_prolect}:${DOCKER_TAGS}
+      docker build --build-arg timezone=Asia/Taipei  --no-cache . -t ${lowercase_prolect}:${TAGS}
+      echo  docker tag ${lowercase_prolect}:${TAGS} $ECR_URL/${lowercase_prolect}:${AGS}
       docker tag ${lowercase_prolect}:${TAGS} $ECR_URL/${lowercase_prolect}:${TAGS}
 
 
