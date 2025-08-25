@@ -102,10 +102,11 @@ type SendMessageResponse struct {
 // @Produce json
 // @Param chatid path string true "聊天等級 (格式: L{0-4})"
 // @Param request body SendMessageRequest true "訊息內容"
+// @Security BasicAuth
 // @Success 200 {object} SendMessageResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/telegram/chatid_{chatid} [post]
+// @Router /telegram/chatid_{chatid} [post]
 func (h *Handler) SendMessage(c *gin.Context) {
 	// 從 URL 參數獲取 chatid
 	chatIDParam := c.Param("chatid")
@@ -224,8 +225,9 @@ func (h *Handler) SendMessage(c *gin.Context) {
 // @Description 獲取 Telegram 機器人的基本資訊
 // @Tags telegram
 // @Produce json
+// @Security BasicAuth
 // @Success 200 {object} map[string]interface{}
-// @Router /api/v1/telegram/info [get]
+// @Router /telegram/info [get]
 func (h *Handler) GetBotInfo(c *gin.Context) {
 	// 獲取機器人資訊
 	meInterface, err := h.telegramService.GetBotInfo()
