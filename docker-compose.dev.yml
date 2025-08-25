@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  alert-webhooks-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder # Use builder stage for development
+    image: alert-webhooks:dev
+    container_name: alert-webhooks-dev
+    restart: unless-stopped
+
+    ports:
+      - "9999:9999"
+      - "2345:2345" # Delve debugger port
+
+    environment:
+      # Development settings
+      - APP_ENV=development
+      - GIN_MODE=debug
+      - LOG_LEVEL=debug
+
+      # Development environment variables
+      - METRIC_USER=admin
+      - METRIC_PASSWORD=admin
+      - WEBHOOKS_USER=admin
+      - WEBHOOKS_PASSWORD=admin
+      # Add your tokens here or use .env file
+      # - TELEGRAM_TOKEN=your-telegram-token
+      # - SLACK_TOKEN=your-slack-token
+
+    volumes:
+      # Mount source code for hot reload (if using air or similar)
+      - .:/app
+      - go-mod-cache:/go/pkg/mod
+
+    # Override command for development
+    command:
+      ["/app/alert-webhooks", "-c", "/app/configs/config.development.yaml"]
+
+    # Development doesn't need security restrictions
+    user: "root"
+    read_only: false
+
+    networks:
+      - alert-dev-network
+
+  # Development database (if needed)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: redis-dev
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - alert-dev-network
+
+networks:
+  alert-dev-network:
+    driver: bridge
+
+volumes:
+  go-mod-cache:

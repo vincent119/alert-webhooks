@@ -63,15 +63,15 @@ func DefaultRoute() *gin.Engine {
 	// 設定中介件
 	routes.Use(
 		otelgin.Middleware(config.App.AppName), // OpenTelemetry 追蹤
-		middleware.CORS(),                         // 跨域處理
-		//middleware.RequestID(),                    // 請求 ID
-		middleware.Logger(), // 日誌中介件
-		//middleware.Recovery(),                     // 恢復中介件
-		gin.Recovery(), // 恢復中介件
-		gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: skipPathList}), // 設定日誌跳過路徑
+		middleware.CORS(),                         
+		//middleware.RequestID(),                    
+		middleware.Logger(), 
+		//middleware.Recovery(),                     
+		gin.Recovery(),
+		gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: skipPathList}), 
 
 		gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{
-			"/healthz",
+			"/healthy",
 			"/api/v1/metrics",
 			"/swagger/*any",
 			"/swagger/doc.json",
