@@ -43,7 +43,7 @@ app:
 **請求範例：**
 
 ```bash
-curl -X POST http://localhost:9999/api/v1/chatid_L0 \
+curl -X POST http://localhost:9999/api/v1/telegram/chatid_L0 \
   -H "Content-Type: application/json" \
   -d '{
     "message": "這是一條測試訊息"
@@ -91,19 +91,76 @@ curl http://localhost:9999/api/v1/telegram/info
 
 ```bash
 # 發送到等級 0
-curl -X POST http://localhost:9999/api/v1/chatid_L0 \
+curl -X POST \
+  -u admin:admin \
   -H "Content-Type: application/json" \
-  -d '{"message": 一般訊息"}'
+  -d '{
+    "receiver": "telegram-alerts",
+    "status": "firing",
+    "groupLabels": {
+      "alertname": "HighCPUUsage",
+      "env": "production",
+      "severity": "warning"
+    },
+    "commonAnnotations": {
+      "summary": "High CPU usage detected"
+    },
+    "externalURL": "https://alertmanager.example.com",
+    "alerts": [
+      {
+        "status": "firing",
+        "labels": {
+          "alertname": "HighCPUUsage",
+          "env": "production",
+          "severity": "warning",
+          "instance": "server-01"
+        },
+        "annotations": {
+          "summary": "CPU usage above 80% for 5 minutes",
+          "description": "Server experiencing high load"
+        },
+        "startsAt": "2023-01-01T10:30:00.000Z",
+        "generatorURL": "https://prometheus.example.com/graph?expr=cpu_usage"
+      }
+    ]
+  }' \
+  http://localhost:9999/api/v1/telegram/chatid_L0
 
 # 發送到等級 1
-curl -X POST http://localhost:9999/api/v1/chatid_L1 \
+curl -X POST \
+  -u admin:admin \
   -H "Content-Type: application/json" \
-  -d '{"message": "重要通知"}'
-
-# 發送到等級 2
-curl -X POST http://localhost:9999/api/v1/chatid_L2 \
-  -H "Content-Type: application/json" \
-  -d '{"message": "緊急通報"}'
+  -d '{
+    "receiver": "telegram-alerts",
+    "status": "firing",
+    "groupLabels": {
+      "alertname": "HighCPUUsage",
+      "env": "production",
+      "severity": "warning"
+    },
+    "commonAnnotations": {
+      "summary": "High CPU usage detected"
+    },
+    "externalURL": "https://alertmanager.example.com",
+    "alerts": [
+      {
+        "status": "firing",
+        "labels": {
+          "alertname": "HighCPUUsage",
+          "env": "production",
+          "severity": "warning",
+          "instance": "server-01"
+        },
+        "annotations": {
+          "summary": "CPU usage above 80% for 5 minutes",
+          "description": "Server experiencing high load"
+        },
+        "startsAt": "2023-01-01T10:30:00.000Z",
+        "generatorURL": "https://prometheus.example.com/graph?expr=cpu_usage"
+      }
+    ]
+  }' \
+  http://localhost:9999/api/v1/telegram/chatid_L1
 ```
 
 ### 2. 錯誤處理
@@ -111,7 +168,7 @@ curl -X POST http://localhost:9999/api/v1/chatid_L2 \
 **無效的 chatid 格式：**
 
 ```bash
-curl -X POST http://localhost:9999/api/v1/chatid_L5 \
+curl -X POST http://localhost:9999/api/v1/telegram/chatid_L5 \
   -H "Content-Type: application/json" \
   -d '{"message": "測試"}'
 ```
@@ -128,7 +185,7 @@ curl -X POST http://localhost:9999/api/v1/chatid_L5 \
 **空訊息：**
 
 ```bash
-curl -X POST http://localhost:9999/api/v1/chatid_L0 \
+curl -X POST http://localhost:9999/api/v1/telegram/chatid_L0 \
   -H "Content-Type: application/json" \
   -d '{"message": ""}'
 ```
