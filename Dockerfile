@@ -58,7 +58,7 @@ RUN addgroup -g 1500 -S appgroup && \
 WORKDIR /app
 
 # Create necessary directories
-RUN mkdir -p /app/configs /app/templates /app/logs  && \
+RUN mkdir -p /app/configs /app/templates/alerts /app/logs  && \
     chown -R appuser:appgroup /app
 
 # Copy binary from builder stage
@@ -66,7 +66,7 @@ COPY --from=builder --chown=appuser:appgroup /build/alert-webhooks /app/alert-we
 
 # Copy configuration files
 COPY --chown=appuser:appgroup configs/ /app/configs/
-COPY --chown=appuser:appgroup templates/ /app/templates/
+COPY --chown=appuser:appgroup templates/alerts/ /app/templates/alerts/
 
 # Copy Swagger documentation (if exists)
 COPY --chown=appuser:appgroup docs/ /app/docs/
