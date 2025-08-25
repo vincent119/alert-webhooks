@@ -184,7 +184,7 @@ make lint             # Code quality check
 | Method | Path              | Description       | Authentication |
 | ------ | ----------------- | ----------------- | -------------- |
 | `GET`  | `/api/v1/healthz` | Health check      | ❌             |
-| `GET`  | `/swagger/*`      | API documentation | ❌             |
+| `GET`  | `/swagger/*`      | API documentation | ✅ Basic Auth  |
 
 ### AlertManager Integration Example
 
