@@ -155,16 +155,7 @@ func setupPrometheus(r *gin.Engine) {
 
 }
 
-// HealthCheck
-// @Summary 健康檢查端點
-// @Description 返回伺服器健康狀態
-// @Tags system
-// @Produce json
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Security
-// @ID Healthy
-// @Router /healthy [get]
+
 func HealthCheck(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"status":  "ok",

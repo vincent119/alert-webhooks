@@ -501,27 +501,6 @@ paths:
       summary: Validate Discord channel
       tags:
       - discord
-  /healthy:
-    get:
-      description: 返回伺服器健康狀態
-      operationId: Healthy
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security: []
-      summary: 健康檢查端點
-      tags:
-      - system
   /healthz:
     get:
       description: Returns OK if the service is healthy
