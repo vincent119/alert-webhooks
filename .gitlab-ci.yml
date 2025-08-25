@@ -4,6 +4,7 @@ stages:
   - Remove-image
 variables:
   RUNNER_TAGS: 'gitlab-runner1-1'
+  TimeZone: 'Asia/Taipei'
 
 default:
   before_script:
@@ -24,9 +25,7 @@ build_docker:
     - ${RUNNER_TAGS}
   script:
     - |
-      docker buildx create --name ecr-builder --driver docker-container --use
-      docker buildx inspect --bootstrap
-      docker buildx build --platform linux,arm64 --build-arg timezone=Asia/Taipei -t ${lowercase_prolect}:${TAGS} .
+      docker build --platform linux/arm64 --build-arg timezone=${TimeZone} -t ${lowercase_prolect}:${TAGS} .
       echo  docker tag ${lowercase_prolect}:${TAGS} $ECR_URL/${lowercase_prolect}:${AGS}
       docker tag ${lowercase_prolect}:${TAGS} $ECR_URL/${lowercase_prolect}:${TAGS}
 
