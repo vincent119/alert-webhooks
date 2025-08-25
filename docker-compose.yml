@@ -1,89 +1,52 @@
-version: '3.8'
-
 services:
   alert-webhooks:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: alert-webhooks:latest
+    image: alert-webhooks:v1.0.0
     container_name: alert-webhooks
     restart: unless-stopped
-    
+
     ports:
       - "9999:9999"
-    
+
     environment:
       # Application settings
-      - APP_ENV=production
+      - APP_ENV=development
       - GIN_MODE=release
       - LOG_LEVEL=info
-      
-      # Sensitive configurations via environment variables
-      # Uncomment and set these values or use .env file
-      # - METRIC_USER=${METRIC_USER}
-      # - METRIC_PASSWORD=${METRIC_PASSWORD}
-      # - WEBHOOKS_USER=${WEBHOOKS_USER}
-      # - WEBHOOKS_PASSWORD=${WEBHOOKS_PASSWORD}
-      # - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
-      # - SLACK_TOKEN=${SLACK_TOKEN}
-    
+
     volumes:
       # Mount configuration files (optional, for easy config updates)
       - ./configs:/app/configs:ro
       - ./templates:/app/templates:ro
-      
+
       # Mount logs directory (optional, for log persistence)
       - ./logs:/app/logs
-    
+
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9999/healthz"]
+      test: ["CMD", "curl", "-f", "http://localhost:9999/healthy"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    
+
     # Resource limits
     deploy:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.1'
-    
+          cpus: "0.1"
+
     # Security settings
     user: "1001:1001"
     read_only: true
     tmpfs:
       - /tmp:rw,size=10M
-    
+
     networks:
       - alert-network
-
-  # Optional: Add Prometheus for metrics scraping
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   container_name: prometheus
-  #   restart: unless-stopped
-  #   ports:
-  #     - "9090:9090"
-  #   volumes:
-  #     - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
-  #     - '--storage.tsdb.path=/prometheus'
-  #     - '--web.console.libraries=/etc/prometheus/console_libraries'
-  #     - '--web.console.templates=/etc/prometheus/consoles'
-  #     - '--web.enable-lifecycle'
-  #   networks:
-  #     - alert-network
 
 networks:
   alert-network:
     driver: bridge
-
-# Optional: Add volumes for data persistence
-# volumes:
-#   prometheus_data:
-#   alert_logs:
