@@ -8,43 +8,33 @@ variables:
 build_and_push_ecr:
   stage: build_and_push
   tags:
-    - gitlab-runner1-1       # 實際存在的 Runner tag，不能用變數
+    - gitlab-runner1-1       
   only:
     - main
   script: |
     set -euo pipefail
-
     echo "CI_PROJECT_NAME=${CI_PROJECT_NAME}"
-
-    # 解析 TAG：優先用最新 git tag；若沒有，fallback 到 commit short SHA
     TAGS="$(git tag --list | sort -V | tail -n1 | sed 's/ //g')"
     if [ -z "${TAGS}" ]; then TAGS="${CI_COMMIT_SHORT_SHA}"; fi
     echo "Resolved TAGS=${TAGS}"
 
-    # 專案名稱轉小寫作為 repo 名稱
     REPO_NAME="$(echo "${CI_PROJECT_NAME}" | tr '[:upper:]' '[:lower:]')"
     echo "REPO_NAME=${REPO_NAME}"
 
-    # 驗證必要環境變數
     if [ -z "${ECR_REGION:-}" ] || [ -z "${ECR_URL:-}" ]; then
       echo "ECR_REGION/ECR_URL is required"; exit 1
     fi
 
-    # 登入 ECR
     aws ecr get-login-password --region "${ECR_REGION}" | docker login "${ECR_URL}" --username AWS --password-stdin
 
-    # 啟用 QEMU（amd64 主機可交叉建置 arm64）
     docker run --privileged --rm tonistiigi/binfmt --install linux/amd64,linux/arm64
 
-    # 建立/啟用 buildx（docker-container driver 支援 multi-arch）
     docker buildx create --name xbuilder --driver docker-container --use || docker buildx use xbuilder
     docker buildx inspect --bootstrap
 
-    # 目標影像（ECR）
     IMAGE="${ECR_URL}/${REPO_NAME}:${TAGS}"
     echo "Target Image: ${IMAGE}"
 
-    # 多架構建置並直接推送（multi-arch 必須 --push）
     docker buildx build \
       --platform linux/amd64,linux/arm64 \
       --build-arg timezone="${TimeZone}" \
