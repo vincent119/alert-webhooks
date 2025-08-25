@@ -358,36 +358,6 @@
                 }
             }
         },
-        "/healthy": {
-            "get": {
-                "security": [],
-                "description": "返回伺服器健康狀態",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "system"
-                ],
-                "summary": "健康檢查端點",
-                "operationId": "Healthy",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/healthz": {
             "get": {
                 "security": [
