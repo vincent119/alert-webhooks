@@ -1,4 +1,4 @@
-FROM golang:1.25.0-alpine3.22 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25.0-alpine3.22 AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -39,7 +39,7 @@ RUN file alert-webhooks && ls -la alert-webhooks
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime stage
 # -----------------------------------------------------------------------------
-FROM alpine:3.22.1 AS runtime
+FROM --platform=$TARGETPLATFORM alpine:3.22.1 AS runtime
 
 ARG timezone=UTC
 
