@@ -50,7 +50,6 @@ func setupGinMode() {
 
 
 func DefaultRoute() *gin.Engine {
-	// 設定 Gin 模式（必須在創建引擎之前）
 	setupGinMode()
 	
 	// 設定 Gin 輸出
@@ -102,7 +101,7 @@ func DefaultRoute() *gin.Engine {
 	// }
 
 	// Swagger API 文檔
-	routes.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	routes.GET("/swagger/*any", middleware.BasicAuth(), ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// 獲取並註冊 API 路由組
 	apiGroup := routes.Group("/api")
