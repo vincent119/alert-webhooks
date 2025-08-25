@@ -113,7 +113,7 @@ type ChannelsResponse struct {
 // @Failure 400 {object} SendMessageResponse
 // @Failure 401 {object} SendMessageResponse
 // @Failure 500 {object} SendMessageResponse
-// @Router /api/v1/slack/channel/{channel} [post]
+// @Router /slack/channel/{channel} [post]
 func (h *Handler) SendMessageToChannel(c *gin.Context) {
 	// 檢查 Slack 服務是否可用
 	if h.slackService == nil {
@@ -375,7 +375,7 @@ func (h *Handler) SendRichMessage(c *gin.Context) {
 // @Security BasicAuth
 // @Success 200 {object} StatusResponse
 // @Failure 401 {object} SendMessageResponse
-// @Router /api/v1/slack/status [get]
+// @Router /slack/status [get]
 func (h *Handler) GetStatus(c *gin.Context) {
 	status := StatusResponse{
 		Success:   true,
@@ -399,7 +399,7 @@ func (h *Handler) GetStatus(c *gin.Context) {
 // @Success 200 {object} ChannelsResponse
 // @Failure 401 {object} SendMessageResponse
 // @Failure 503 {object} SendMessageResponse
-// @Router /api/v1/slack/channels [get]
+// @Router /slack/channels [get]
 func (h *Handler) GetChannels(c *gin.Context) {
 	if h.slackService == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
@@ -426,7 +426,7 @@ func (h *Handler) GetChannels(c *gin.Context) {
 // @Success 200 {object} SendMessageResponse
 // @Failure 401 {object} SendMessageResponse
 // @Failure 503 {object} SendMessageResponse
-// @Router /api/v1/slack/test [post]
+// @Router /slack/test [post]
 func (h *Handler) TestConnection(c *gin.Context) {
 	if h.slackService == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
@@ -492,7 +492,7 @@ func (h *Handler) TestConnection(c *gin.Context) {
 // @Failure 400 {object} SendMessageResponse
 // @Failure 401 {object} SendMessageResponse
 // @Failure 503 {object} SendMessageResponse
-// @Router /api/v1/slack/validate/{channel} [post]
+// @Router /slack/validate/{channel} [post]
 func (h *Handler) ValidateChannel(c *gin.Context) {
 	if h.slackService == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
