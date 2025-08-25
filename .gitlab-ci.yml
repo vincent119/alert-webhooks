@@ -15,11 +15,6 @@ default:
     - echo "Resolved TAGS=${TAGS}"
     # 小寫 repo 名稱
     - export REPO_NAME="${CI_PROJECT_NAME,,}"
-    # 必要變數檢查（避免跑到一半才失敗）
-    - test -n "${ECR_REGION}" || (echo "ECR_REGION is required" && exit 1)
-    - test -n "${ECR_URL}"    || (echo "ECR_URL is required" && exit 1)
-    # 登入 ECR
-    - aws ecr get-login-password --region "${ECR_REGION}" | docker login "${ECR_URL}" --username AWS --password-stdin
     # 啟用 QEMU（amd64 主機可交叉建置 arm64）
     - docker run --privileged --rm tonistiigi/binfmt --install linux/amd64,linux/arm64
     # 建立/啟用 buildx（docker-container driver 支援 multi-arch）
