@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25.1-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -6,10 +6,12 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata
 
-# Set build environment
+ARG TARGETOS
+ARG TARGETARCH
+
 ENV CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64
+    GOOS=${TARGETOS} \
+    GOARCH=${TARGETARCH}
 
 # Set working directory
 WORKDIR /app
@@ -18,17 +20,16 @@ WORKDIR /app
 COPY go.mod go.sum ./
 
 # Download dependencies
-RUN go mod download && go mod verify
-
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download && go mod verify
 # Copy source code
 COPY . .
 
 # Build the application
-RUN go build \
-    -ldflags='-w -s -extldflags "-static"' \
-    -a -installsuffix cgo \
-    -o alert-webhooks \
-    ./cmd/main.go
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    go build -trimpath -ldflags="-s -w" -o /out/alert-webhooks ./cmd/main.go
 
 # Verify the binary
 RUN file alert-webhooks && ls -la alert-webhooks
@@ -36,7 +37,7 @@ RUN file alert-webhooks && ls -la alert-webhooks
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime stage
 # -----------------------------------------------------------------------------
-FROM alpine:3.19 AS runtime
+FROM alpine:3.22.1 AS runtime
 
 # Install runtime dependencies
 RUN apk add --no-cache \
@@ -53,7 +54,7 @@ RUN addgroup -g 1500 -S appgroup && \
 WORKDIR /app
 
 # Create necessary directories
-RUN mkdir -p /app/configs /app/templates /app/logs /app/documentation && \
+RUN mkdir -p /app/configs /app/templates /app/logs  && \
     chown -R appuser:appgroup /app
 
 # Copy binary from builder stage
@@ -77,7 +78,7 @@ EXPOSE 9999
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:9999/healthz || exit 1
+    CMD curl -f http://localhost:9999/healthy || exit 1
 
 # Set default environment variables
 ENV GIN_MODE=release \
