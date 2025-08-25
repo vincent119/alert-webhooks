@@ -25,7 +25,7 @@ type ResponseHealthCheck struct {
 // @Failure 500 {object} modelx.ErrorResponse
 // @Security BasicAuth
 // @ID Healthz
-// @Router /api/v1/healthz [get]
+// @Router /healthz [get]
 func HealthCheck(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	response := modelx.ResponseHealthCheck{
