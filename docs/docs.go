@@ -25,44 +25,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/healthz": {
-            "get": {
-                "security": [
-                    {
-                        "BasicAuth": []
-                    }
-                ],
-                "description": "Returns OK if the service is healthy",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "health"
-                ],
-                "summary": "Check health status",
-                "operationId": "Healthz",
-                "responses": {
-                    "200": {
-                        "description": "Health check response",
-                        "schema": {
-                            "$ref": "#/definitions/v1.ResponseHealthCheck"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/modelx.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/modelx.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/slack/level/{level}": {
             "post": {
                 "security": [
@@ -424,6 +386,44 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/healthz": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "Returns OK if the service is healthy",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Check health status",
+                "operationId": "Healthz",
+                "responses": {
+                    "200": {
+                        "description": "Health check response",
+                        "schema": {
+                            "$ref": "#/definitions/v1.ResponseHealthCheck"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/modelx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/modelx.ErrorResponse"
                         }
                     }
                 }

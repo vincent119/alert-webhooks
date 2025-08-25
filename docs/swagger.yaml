@@ -282,30 +282,6 @@ info:
   title: Alert Webhooks API
   version: "1.0"
 paths:
-  /api/v1/healthz:
-    get:
-      description: Returns OK if the service is healthy
-      operationId: Healthz
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Health check response
-          schema:
-            $ref: '#/definitions/v1.ResponseHealthCheck'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/modelx.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/modelx.ErrorResponse'
-      security:
-      - BasicAuth: []
-      summary: Check health status
-      tags:
-      - health
   /api/v1/slack/level/{level}:
     post:
       consumes:
@@ -546,6 +522,30 @@ paths:
       summary: 健康檢查端點
       tags:
       - system
+  /healthz:
+    get:
+      description: Returns OK if the service is healthy
+      operationId: Healthz
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Health check response
+          schema:
+            $ref: '#/definitions/v1.ResponseHealthCheck'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/modelx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/modelx.ErrorResponse'
+      security:
+      - BasicAuth: []
+      summary: Check health status
+      tags:
+      - health
   /slack/channel/{channel}:
     post:
       consumes:
