@@ -6,12 +6,14 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata
 
-ARG TARGETOS
-ARG TARGETARCH
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+ARG timezone=UTC
 
 ENV CGO_ENABLED=0 \
     GOOS=${TARGETOS} \
-    GOARCH=${TARGETARCH}
+    GOARCH=${TARGETARCH} \
+    TZ=${timezone}
 
 # Set working directory
 WORKDIR /app
@@ -39,6 +41,9 @@ RUN file alert-webhooks && ls -la alert-webhooks
 # -----------------------------------------------------------------------------
 FROM alpine:3.22.1 AS runtime
 
+ARG timezone=UTC
+
+ENV TZ=${timezone}
 # Install runtime dependencies
 RUN apk add --no-cache \
     ca-certificates \
@@ -48,7 +53,8 @@ RUN apk add --no-cache \
 
 # Create non-root user for security
 RUN addgroup -g 1500 -S appgroup && \
-    adduser -u 1500 -S appuser -G appgroup
+    adduser -u 1500 -S appuser -G appgroup && \
+    ln -snf /usr/share/zoneinfo/"${TZ}" /etc/localtime && echo "${TZ}" > /etc/timezone
 
 # Set working directory
 WORKDIR /app
