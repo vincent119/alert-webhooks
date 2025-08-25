@@ -3,7 +3,7 @@ package v1
 import (
 	//"fmt"
 	"github.com/gin-gonic/gin"
-	//"github.com/vincent119/commons/modelx"
+	"github.com/vincent119/commons/modelx"
 	"net/http"
 	"time"
 )
@@ -27,10 +27,10 @@ type ResponseHealthCheck struct {
 // @Router /api/v1/healthz [get]
 func HealthCheck(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
-	response := ResponseHealthCheck{
+	response := modelx.ResponseHealthCheck{
 		Status:      "OK",
-		RecvTime:    time.Now().Format("2006-01-02T15:04:05"),
-		RecvTimeUTC: time.Now().UTC().Format(time.RFC3339),
+		// RecvTime:    time.Now().Format("2006-01-02T15:04:05"),
+		// RecvTimeUTC: time.Now().UTC().Format(time.RFC3339),
 	}
 	c.JSON(http.StatusOK, response)
 }
