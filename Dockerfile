@@ -1,4 +1,6 @@
-FROM --platform=$BUILDPLATFORM golang:1.25.0-alpine3.22 AS builder
+ARG alpineVersion=3.22.1
+ARG GOLANGVERSION=1.25.0
+FROM golang:${GOLANGVERSION}-alpine${alpineVersion} AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -7,13 +9,10 @@ RUN apk add --no-cache \
     tzdata \
     file
 
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
+
 ARG timezone=UTC
 
-ENV CGO_ENABLED=0 \
-    GOOS=${TARGETOS} \
-    GOARCH=${TARGETARCH} \
+ENV GOARCH=${TARGETARCH} \
     TZ=${timezone}
 
 # Set working directory
@@ -41,7 +40,7 @@ RUN file /build/alert-webhooks && ls -la /build/alert-webhooks
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime stage
 # -----------------------------------------------------------------------------
-FROM --platform=$TARGETPLATFORM alpine:3.22.1 AS runtime
+FROM  alpine:${alpineVersion} AS runtime
 
 ARG timezone=UTC
 
