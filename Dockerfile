@@ -4,7 +4,8 @@ FROM --platform=$BUILDPLATFORM golang:1.25.0-alpine3.22 AS builder
 RUN apk add --no-cache \
     git \
     ca-certificates \
-    tzdata
+    tzdata \
+    file
 
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
@@ -25,16 +26,17 @@ COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     go mod download && go mod verify
+
 # Copy source code
 COPY . .
 
 # Build the application
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    go build -trimpath -ldflags="-s -w" -o /out/alert-webhooks ./cmd/main.go
+    go build -trimpath -ldflags="-s -w" -o /build/alert-webhooks ./cmd/main.go
 
 # Verify the binary
-RUN file alert-webhooks && ls -la alert-webhooks
+RUN file /build/alert-webhooks && ls -la /build/alert-webhooks
 
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime stage
@@ -64,7 +66,7 @@ RUN mkdir -p /app/configs /app/templates /app/logs  && \
     chown -R appuser:appgroup /app
 
 # Copy binary from builder stage
-COPY --from=builder --chown=appuser:appgroup /app/alert-webhooks /app/alert-webhooks
+COPY --from=builder --chown=appuser:appgroup /build/alert-webhooks /app/alert-webhooks
 
 # Copy configuration files
 COPY --chown=appuser:appgroup configs/ /app/configs/
