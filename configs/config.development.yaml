@@ -1,0 +1,87 @@
+app:
+  version: "1.2.3-dev"
+  app_name: "alert-webhooks"
+  mode: "debug"
+  port: "9999"
+  key: "dev-key"
+  token: "dev-token"
+  salt: "dev-salt"
+  trusted_proxies: "127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+  # 請替換為您的 Telegram Bot Token
+  # 獲取方式：與 @BotFather 對話，創建新機器人
+
+log:
+  level: "debug"
+  format: "console,json"
+  outputs: "console"
+  log_path: "./logs"
+  log_file: "server-dev.log"
+  max_size: 100
+  max_age: 7
+  max_backups: 5
+  compress: false
+  add_caller: true
+  add_stacktrace: true
+
+metric:
+  user: "admin"
+  password: "admin"
+
+webhooks:
+  enable: true
+  base_auth_user: "admin"
+  base_auth_password: "admin"
+
+telegram:
+  enable: true
+  token: "your-telegram-bot-token"
+  chat_ids0: "-1002465088995" # 緊急警報群組 (等級 0)
+  chat_ids1: "-1002465088995" # 緊急警報群組 (等級 0)
+  chat_ids2: "-1002465088995" # 重要通知群組 (等級 1)
+  chat_ids3: "-1002465088995" # 一般訊息群組 (等級 2)
+  chat_ids4: "-1002465088995" # 資訊群組 (等級 3)
+  chat_ids5: "-1002465088995" # 測試群組 (等級 4)
+  chat_ids6: "" # 備用群組 (等級 5)
+  template_mode: "full" # minimal, full
+  template_language: "tw" # eng, tw, zh, ja, ko - Telegram 使用繁體中文
+
+slack:
+  enable: true
+  token: "your-slack-bot-token"
+  channel: "#alert0"
+  username: "alert_bot"
+  icon_url: "https://example.com/icon.png"
+  icon_emoji: ":warning:"
+  channels:
+    chat_ids0: "#alert0"
+    chat_ids1: "#alert1"
+    chat_ids2: "#alert0" # 可以重複使用相同頻道
+    chat_ids3: "#alert0"
+    chat_ids4: "#alert0"
+    chat_ids5: "#alert0"
+  # 消息選項
+  link_names: true
+  unfurl_links: true
+  unfurl_media: true
+  template_mode: "full" # minimal, full
+  template_language: "tw" # eng, tw, zh, ja, ko
+
+discord:
+  enable: true # Enable Discord notifications (default: disabled)
+  token: "your-discord-bot-token" # Discord bot token (env var takes priority)
+  guild_id: "1407990039605936168" # Your Discord server/guild ID
+  username: "alert-bot"
+  channels:
+    # Discord channel IDs mapped to alert levels
+    chat_ids0: "1407992959202492456" # critical alerts
+    chat_ids1: "1407993012717621349" # high priority alerts
+    chat_ids2: "987654321098765434" # normal alerts
+    chat_ids3: "987654321098765435" # info notifications
+    chat_ids4: "987654321098765436" # debug messages
+    chat_ids5: "987654321098765437" # backup channel
+  # Discord specific options
+  message_format: "markdown" # Discord markdown support
+  mention_roles: [] # Role IDs to mention (optional)
+  # Template configuration
+  template_mode: "full" # minimal, full - template formatting mode
+  template_language: "eng" # eng, tw, zh, ja, ko - template language
