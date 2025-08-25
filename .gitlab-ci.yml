@@ -1,0 +1,43 @@
+stages:
+  - Build-image
+  - Push-image
+  - Remove-image
+variables:
+  RUNNER_TAGS: 'go-runner'
+
+default:
+  before_script:
+    - export TAGS="$(git tag --list | sort -V | tail -n1 |sed 's/ //g')"
+    - export ECR_TOKEN="$(aws ecr get-login-password)"
+    - aws ecr get-login-password --region ${ECR_REGION}  | docker login ${ECR_URL} --username AWS --password-stdin
+    - export lowercase_prolect="${CI_PROJECT_NAME,,}"
+    - export PT_NAME="${CI_PROJECT_NAME,,}"
+    - echo ${CI_PROJECT_NAME}
+
+
+
+build_docker:
+  stage: Build-image
+  only:
+    - main
+  tags:
+    - ${RUNNER_TAGS}
+  script:
+    - |
+      docker build --build-arg timezone=Asia/Taipei  --no-cache . -t ${lowercase_prolect}:${DOCKER_TAGS}
+      echo  docker tag ${lowercase_prolect}:${DOCKER_TAGS} $ECR_URL/${lowercase_prolect}:${DOCKER_TAGS}
+      docker tag ${lowercase_prolect}:${TAGS} $ECR_URL/${lowercase_prolect}:${TAGS}
+
+
+push-image-to-ecr:
+  stage: Push-image
+  only:
+    - main
+  tags:
+    - ${RUNNER_TAGS}
+  script:
+    - |
+      DOCKER_TAGS=${DOCKER_TAGS}
+      echo  $ECR_URL
+      echo ${lowercase_prolect}:${DOCKER_TAGS}
+      docker push $ECR_URL/${lowercase_prolect}:${TAGS}
