@@ -2,44 +2,38 @@ stages:
   - build_and_push
 
 variables:
-  TimeZone: "Asia/Taipei"
-  DOCKER_BUILDKIT: "1"
+  TimeZone: "Asia/Taipei"     # 傳給 Dockerfile 的 ARG timezone
+  DOCKER_BUILDKIT: "1"        # 啟用 BuildKit
 
 default:
   before_script:
     - set -euo pipefail
     - echo "CI_PROJECT_NAME=${CI_PROJECT_NAME}"
-    # 解析 TAG（無 tag 則 fallback 到 commit short SHA）
+    # 解析 TAG（若無 tag 則退回使用 commit short SHA）
     - export TAGS="$(git tag --list | sort -V | tail -n1 | sed 's/ //g')"
     - if [ -z "${TAGS}" ]; then export TAGS="${CI_COMMIT_SHORT_SHA}"; fi
     - echo "Resolved TAGS=${TAGS}"
-    # 小寫的 repo 名稱
+    # 小寫 repo 名稱
     - export REPO_NAME="${CI_PROJECT_NAME,,}"
-    # 檢查必要變數
-    - : "${ECR_REGION:?ECR_REGION is required}"
-    - : "${ECR_URL:?ECR_URL is required}"
+    # 必要變數檢查（避免跑到一半才失敗）
+    - test -n "${ECR_REGION}" || (echo "ECR_REGION is required" && exit 1)
+    - test -n "${ECR_URL}"    || (echo "ECR_URL is required" && exit 1)
     # 登入 ECR
     - aws ecr get-login-password --region "${ECR_REGION}" | docker login "${ECR_URL}" --username AWS --password-stdin
-    # 啟用 QEMU（讓 amd64 主機可建 arm64）
+    # 啟用 QEMU（amd64 主機可交叉建置 arm64）
     - docker run --privileged --rm tonistiigi/binfmt --install linux/amd64,linux/arm64
-    # 建立/啟用 buildx（docker-container driver）
+    # 建立/啟用 buildx（docker-container driver 支援 multi-arch）
     - docker buildx create --name xbuilder --driver docker-container --use || docker buildx use xbuilder
     - docker buildx inspect --bootstrap
 
 build_and_push_ecr:
   stage: build_and_push
   tags:
-    - gitlab-runner1-1   # 這裡一定要填「實際存在」的 Runner tag，不能放變數
+    - gitlab-runner1-1        # 必須寫實際 Runner tag；這裡不要用變數
   only:
     - main
   script:
-    - |
-      set -euo pipefail
-      IMAGE="${ECR_URL}/${REPO_NAME}:${TAGS}"
-      echo "Target Image: ${IMAGE}"
-      docker buildx build \
-        --platform linux/amd64,linux/arm64 \
-        --build-arg timezone="${TimeZone}" \
-        -t "${IMAGE}" \
-        --push \
-        .
+    - set -euo pipefail
+    - IMAGE="${ECR_URL}/${REPO_NAME}:${TAGS}"
+    - echo "Target Image: ${IMAGE}"
+    - docker buildx build --platform linux/amd64,linux/arm64 --build-arg timezone="${TimeZone}" -t "${IMAGE}" --push .
