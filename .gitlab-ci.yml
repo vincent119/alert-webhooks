@@ -3,7 +3,7 @@ stages:
   - Push-image
   - Remove-image
 variables:
-  RUNNER_TAGS: 'go-runner'
+  RUNNER_TAGS: 'gitlab-runner1-1'
 
 default:
   before_script:
