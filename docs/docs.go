@@ -63,107 +63,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/slack/channel/{channel}": {
-            "post": {
-                "security": [
-                    {
-                        "BasicAuth": []
-                    }
-                ],
-                "description": "發送訊息到指定的 Slack 頻道",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "slack"
-                ],
-                "summary": "發送 Slack 訊息到指定頻道",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "頻道名稱 (例如: alerts, emergency)",
-                        "name": "channel",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "發送訊息請求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/slack/channels": {
-            "get": {
-                "security": [
-                    {
-                        "BasicAuth": []
-                    }
-                ],
-                "description": "獲取當前配置的所有 Slack 頻道映射",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "slack"
-                ],
-                "summary": "獲取 Slack 頻道配置",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/slack.ChannelsResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/slack/level/{level}": {
             "post": {
                 "security": [
@@ -287,205 +186,6 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/slack/status": {
-            "get": {
-                "security": [
-                    {
-                        "BasicAuth": []
-                    }
-                ],
-                "description": "獲取 Slack 服務的當前狀態和配置信息",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "slack"
-                ],
-                "summary": "獲取 Slack 服務狀態",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/slack.StatusResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/slack/test": {
-            "post": {
-                "security": [
-                    {
-                        "BasicAuth": []
-                    }
-                ],
-                "description": "發送測試訊息到預設頻道以驗證 Slack 連接",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "slack"
-                ],
-                "summary": "測試 Slack 連接",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/slack/validate/{channel}": {
-            "post": {
-                "security": [
-                    {
-                        "BasicAuth": []
-                    }
-                ],
-                "description": "檢查 Bot 是否已加入指定頻道，如果未加入會提供加入指引",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "slack"
-                ],
-                "summary": "驗證 Slack 頻道",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "頻道名稱 (例如: alerts, emergency)",
-                        "name": "channel",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "schema": {
-                            "$ref": "#/definitions/slack.SendMessageResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/telegram/chatid_{chatid}": {
-            "post": {
-                "description": "Send message to specified Telegram chat level",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "telegram"
-                ],
-                "summary": "Send Telegram message",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "聊天等級 (格式: L{0-4})",
-                        "name": "chatid",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "訊息內容",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/telegram.SendMessageRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/telegram.SendMessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/telegram/info": {
-            "get": {
-                "description": "獲取 Telegram 機器人的基本資訊",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "telegram"
-                ],
-                "summary": "獲取機器人資訊",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
                         }
                     }
                 }
@@ -721,6 +421,316 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/slack/channel/{channel}": {
+            "post": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "發送訊息到指定的 Slack 頻道",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "slack"
+                ],
+                "summary": "發送 Slack 訊息到指定頻道",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "頻道名稱 (例如: alerts, emergency)",
+                        "name": "channel",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "發送訊息請求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/slack/channels": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "獲取當前配置的所有 Slack 頻道映射",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "slack"
+                ],
+                "summary": "獲取 Slack 頻道配置",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/slack.ChannelsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/slack/status": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "獲取 Slack 服務的當前狀態和配置信息",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "slack"
+                ],
+                "summary": "獲取 Slack 服務狀態",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/slack.StatusResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/slack/test": {
+            "post": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "發送測試訊息到預設頻道以驗證 Slack 連接",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "slack"
+                ],
+                "summary": "測試 Slack 連接",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/slack/validate/{channel}": {
+            "post": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "檢查 Bot 是否已加入指定頻道，如果未加入會提供加入指引",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "slack"
+                ],
+                "summary": "驗證 Slack 頻道",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "頻道名稱 (例如: alerts, emergency)",
+                        "name": "channel",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/slack.SendMessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/telegram/chatid_{chatid}": {
+            "post": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "Send message to specified Telegram chat level",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telegram"
+                ],
+                "summary": "Send Telegram message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "聊天等級 (格式: L{0-4})",
+                        "name": "chatid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "訊息內容",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/telegram.SendMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/telegram.SendMessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/telegram/info": {
+            "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
+                "description": "獲取 Telegram 機器人的基本資訊",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "telegram"
+                ],
+                "summary": "獲取機器人資訊",
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
