@@ -1,44 +1,76 @@
-stages:
-  - Build-image
-  - Push-image
-  - Remove-image
-variables:
-  RUNNER_TAGS: 'gitlab-runner1-1'
-  TimeZone: 'Asia/Taipei'
+# ---------------------------
+# GitLab CI：建置並推送 multi-arch (amd64+arm64) 到 ECR
+# 需求：Shell executor 主機可執行 docker，允許 docker --privileged 容器
+# ---------------------------
 
+stages:
+  - build_and_push  # 單一 stage：在建置時直接 push（multi-arch 必須）
+
+# 全域變數
+variables:
+  TimeZone: "Asia/Taipei"         # 統一時區
+  DOCKER_BUILDKIT: "1"            # 啟用 BuildKit（冪等＆快取較佳）
+  # 注意：GitLab 的 tags: 區塊「不會」展開變數，因此不要在 tags: 下寫 ${RUNNER_TAGS}
+
+# 預設 before_script：每個 job 開始前都會執行
 default:
   before_script:
-    - export TAGS="$(git tag --list | sort -V | tail -n1 |sed 's/ //g')"
-    - export ECR_TOKEN="$(aws ecr get-login-password)"
-    - aws ecr get-login-password --region ${ECR_REGION}  | docker login ${ECR_URL} --username AWS --password-stdin
-    - export lowercase_prolect="${CI_PROJECT_NAME,,}"
-    - export PT_NAME="${CI_PROJECT_NAME,,}"
-    - echo ${CI_PROJECT_NAME}
+    - set -euo pipefail                               # 嚴格模式：遇錯即停、攔截未定義變數
+    - echo "CI_PROJECT_NAME=${CI_PROJECT_NAME}"
 
+    # 取最後一個 Git tag 作為版本；若沒有 tag，退回使用 commit short SHA
+    - export TAGS="$(git tag --list | sort -V | tail -n1 | sed 's/ //g')"
+    - if [ -z "${TAGS}" ]; then TAGS="${CI_COMMIT_SHORT_SHA}"; fi
+    - echo "Resolved TAGS=${TAGS}"
 
+    # 轉小寫的專案名（repo 名稱）
+    - export REPO_NAME="${CI_PROJECT_NAME,,}"
+    - echo "REPO_NAME=${REPO_NAME}"
 
-build_docker:
-  stage: Build-image
-  only:
-    - main
+    # 驗證必要的 ECR 變數（避免打到一半才失敗）
+    - : "${ECR_REGION:?ECR_REGION is required}"
+    - : "${ECR_URL:?ECR_URL is required}"            # 例：123456789012.dkr.ecr.ap-northeast-1.amazonaws.com
+
+    # 登入 ECR（使用 password-stdin，安全做法）
+    - aws ecr get-login-password --region "${ECR_REGION}" | docker login "${ECR_URL}" --username AWS --password-stdin
+
+    # 啟用 QEMU（讓 amd64 主機能 cross-build arm64）
+    - docker run --privileged --rm tonistiigi/binfmt --install linux/amd64,linux/arm64
+
+    # 建立並啟用 buildx（docker-container driver 支援 multi-arch）
+    - docker buildx create --name xbuilder --driver docker-container --use
+    - docker buildx inspect --bootstrap
+
+# 單一 Job：建置並推送 multi-arch
+build_and_push_ecr:
+  stage: build_and_push
+  # 請用「實際的」Runner Tag，GitLab 的 tags: 不支援變數展開
   tags:
-    - ${RUNNER_TAGS}
+    - gitlab-runner1-1
   script:
     - |
-      docker build --platform linux/arm64 --build-arg timezone=${TimeZone} -t ${lowercase_prolect}:${TAGS} .
-      echo  docker tag ${lowercase_prolect}:${TAGS} $ECR_URL/${lowercase_prolect}:${AGS}
-      docker tag ${lowercase_prolect}:${TAGS} $ECR_URL/${lowercase_prolect}:${TAGS}
+      set -euo pipefail
 
+      # 完整影像名稱：<acct>.dkr.ecr.<region>.amazonaws.com/<repo>:<tag>
+      IMAGE="${ECR_URL}/${REPO_NAME}:${TAGS}"
+      echo "Target Image: ${IMAGE}"
 
-push-image-to-ecr:
-  stage: Push-image
+      # 建置 amd64 + arm64，並直接 push（multi-arch 必須 --push；--load 只支援單一平台）
+      docker buildx build \
+        --platform linux/amd64,linux/arm64 \
+        --build-arg timezone="${TimeZone}" \
+        -t "${IMAGE}" \
+        --push \
+        .
+
+      # 額外：也可 Push 一個 latest tag（若你需要）
+      # LATEST_IMAGE="${ECR_URL}/${REPO_NAME}:latest"
+      # docker buildx build \
+      #   --platform linux/amd64,linux/arm64 \
+      #   --build-arg timezone="${TimeZone}" \
+      #   -t "${LATEST_IMAGE}" \
+      #   --push \
+      #   .
+
   only:
-    - main
-  tags:
-    - ${RUNNER_TAGS}
-  script:
-    - |
-      DOCKER_TAGS=${DOCKER_TAGS}
-      echo  $ECR_URL
-      echo ${lowercase_prolect}:${DOCKER_TAGS}
-      docker push $ECR_URL/${lowercase_prolect}:${TAGS}
+    - main  # 僅在 main 分支觸發；依需求調整
