@@ -1,6 +1,6 @@
 ARG alpineVersion=3.22.1
 ARG GOLANGVERSION=1.25.0
-FROM golang:${GOLANGVERSION}-alpine${alpineVersion} AS builder
+FROM golang:${GOLANGVERSION}-alpine3.22 AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
