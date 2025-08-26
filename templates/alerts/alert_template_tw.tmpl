@@ -1,0 +1,24 @@
+{{ if gt .FiringCount 0 }}{{ if .FormatOptions.ShowEmoji.Enabled }}🚨 {{ end }}{{ format_bold .Platform "警報通知" }}{{ else if gt .ResolvedCount 0 }}{{ if .FormatOptions.ShowEmoji.Enabled }}✅ {{ end }}{{ format_bold .Platform "警報已解決" }}{{ end }}
+{{ format_bold .Platform "狀態:" }} {{ format_text .Platform .Status }}
+{{ format_italic .Platform "警報名稱:" }} {{ format_text .Platform .AlertName }}
+{{ format_italic .Platform "環境:" }} {{ format_text .Platform .Env }}
+{{ format_italic .Platform "嚴重程度:" }} {{ format_text .Platform .Severity }}
+{{ format_italic .Platform "命名空間:" }} {{ format_text .Platform .Namespace }}
+{{ format_italic .Platform "總警報數:" }} {{ .TotalAlerts }}{{ if gt .FiringCount 0 }}
+{{ format_italic .Platform "觸發中:" }} {{ .FiringCount }}{{ end }}{{ if gt .ResolvedCount 0 }}
+{{ format_italic .Platform "已解決:" }} {{ .ResolvedCount }}{{ end }}{{ if gt .FiringCount 0 }}
+{{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "🚨 觸發中的警報:" }}{{ else }}{{ format_bold .Platform "觸發中的警報:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "firing" }}
+{{ format_bold $.Platform (printf "警報 %d:" (add $index 1)) }}
+• 摘要: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+• Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
+• 開始時間: {{ format_time $.Platform $alert.StartsAt }}
+• 結束時間: {{ if ne $alert.EndsAt "0001-01-01T00:00:00Z" }}{{ format_time $.Platform $alert.EndsAt }}{{ else }}進行中{{ end }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "查看詳情" }}{{ end }}{{ end }}{{ end }}{{ end }}{{ if gt .ResolvedCount 0 }}
+{{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "✅ 已解決的警報:" }}{{ else }}{{ format_bold .Platform "已解決的警報:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "resolved" }}
+{{ format_bold $.Platform (printf "警報 %d:" (add $index 1)) }}
+• 摘要: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+• Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
+• 開始時間: {{ format_time $.Platform $alert.StartsAt }}
+• 結束時間: {{ format_time $.Platform $alert.EndsAt }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "查看詳情" }}{{ end }}{{ end }}{{ end }}{{ end }}{{ if and .FormatOptions.ShowExternalURL.Enabled .ExternalURL }}
+{{ if .FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link .Platform .ExternalURL "查看所有警報詳情" }}{{ end }}

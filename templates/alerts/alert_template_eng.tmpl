@@ -1,0 +1,24 @@
+{{ if gt .FiringCount 0 }}{{ if .FormatOptions.ShowEmoji.Enabled }}🚨 {{ end }}{{ format_bold .Platform "Alert Notification" }}{{ else if gt .ResolvedCount 0 }}{{ if .FormatOptions.ShowEmoji.Enabled }}✅ {{ end }}{{ format_bold .Platform "Alert Resolved" }}{{ end }}
+{{ format_bold .Platform "Status:" }} {{ format_text .Platform .Status }}
+{{ format_italic .Platform "Alert Name:" }} {{ format_text .Platform .AlertName }}
+{{ format_italic .Platform "Environment:" }} {{ format_text .Platform .Env }}
+{{ format_italic .Platform "Severity:" }} {{ format_text .Platform .Severity }}
+{{ format_italic .Platform "Namespace:" }} {{ format_text .Platform .Namespace }}
+{{ format_italic .Platform "Total Alerts:" }} {{ .TotalAlerts }}{{ if gt .FiringCount 0 }}
+{{ format_italic .Platform "Firing:" }} {{ .FiringCount }}{{ end }}{{ if gt .ResolvedCount 0 }}
+{{ format_italic .Platform "Resolved:" }} {{ .ResolvedCount }}{{ end }}{{ if gt .FiringCount 0 }}
+{{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "🚨 Firing Alerts:" }}{{ else }}{{ format_bold .Platform "Firing Alerts:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "firing" }}
+{{ format_bold $.Platform (printf "Alert %d:" (add $index 1)) }}
+• Summary: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+• Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
+• Started: {{ format_time $.Platform $alert.StartsAt }}
+• Ended: {{ if ne $alert.EndsAt "0001-01-01T00:00:00Z" }}{{ format_time $.Platform $alert.EndsAt }}{{ else }}Ongoing{{ end }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "View Details" }}{{ end }}{{ end }}{{ end }}{{ end }}{{ if gt .ResolvedCount 0 }}
+{{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "✅ Resolved Alerts:" }}{{ else }}{{ format_bold .Platform "Resolved Alerts:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "resolved" }}
+{{ format_bold $.Platform (printf "Alert %d:" (add $index 1)) }}
+• Summary: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+• Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
+• Started: {{ format_time $.Platform $alert.StartsAt }}
+• Ended: {{ format_time $.Platform $alert.EndsAt }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "View Details" }}{{ end }}{{ end }}{{ end }}{{ end }}{{ if and .FormatOptions.ShowExternalURL.Enabled .ExternalURL }}
+{{ if .FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link .Platform .ExternalURL "View All Alert Details" }}{{ end }}

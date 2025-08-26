@@ -1,0 +1,89 @@
+name: Swagger Documentation Check
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  swagger-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+          check-latest: true
+
+      - name: Show Go version
+        run: go version
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install swag tool
+        run: |
+          set -euo pipefail
+          go install github.com/swaggo/swag/cmd/swag@latest
+          command -v swag || { echo "swag not in PATH"; exit 1; }
+          swag --version
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Generate Swagger docs
+        shell: bash
+        run: |
+          set -euo pipefail
+          ENTRY_MAIN="cmd/main.go"
+          [[ -f "$ENTRY_MAIN" ]] || { echo "missing $ENTRY_MAIN"; exit 1; }
+          swag init -g "$ENTRY_MAIN" --output docs --parseDependency --parseInternal
+          echo "ok"
+
+      - name: Optional fix (if script exists)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f "scripts/fix_swagger_docs.go" ]]; then
+            go run scripts/fix_swagger_docs.go
+          else
+            echo "skip"
+          fi
+
+      - name: Check generated files
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=("docs/docs.go" "docs/swagger.json" "docs/swagger.yaml")
+          for f in "${files[@]}"; do
+            [[ -f "$f" ]] || { echo "missing $f"; exit 1; }
+          done
+
+      - name: Validate OpenAPI (optional)
+        run: |
+          npm i -g @redocly/cli >/dev/null 2>&1 || true
+          if command -v redocly >/dev/null 2>&1; then
+            redocly lint docs/swagger.yaml || exit 1
+          else
+            echo "skip"
+          fi
+
+      - name: Upload Swagger artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swagger-docs
+          path: docs/
+          retention-days: 7

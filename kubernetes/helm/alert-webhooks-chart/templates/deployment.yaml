@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "alert-webhooks-chart.fullname" . }}
+  labels:
+    {{- include "alert-webhooks-chart.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "alert-webhooks-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "alert-webhooks-chart.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "alert-webhooks-chart.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            # Metric authentication
+            - name: METRIC_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "alert-webhooks-chart.fullname" . }}-secrets
+                  key: metric-user
+            - name: METRIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "alert-webhooks-chart.fullname" . }}-secrets
+                  key: metric-password
+            
+            # Webhooks authentication
+            - name: WEBHOOKS_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "alert-webhooks-chart.fullname" . }}-secrets
+                  key: webhooks-user
+            - name: WEBHOOKS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "alert-webhooks-chart.fullname" . }}-secrets
+                  key: webhooks-password
+            
+            # Service tokens
+            - name: TELEGRAM_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "alert-webhooks-chart.fullname" . }}-secrets
+                  key: telegram-token
+            - name: SLACK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "alert-webhooks-chart.fullname" . }}-secrets
+                  key: slack-token
+            - name: DISCORD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "alert-webhooks-chart.fullname" . }}-secrets
+                  key: discord-token
+            
+            # Application environment
+            - name: APP_ENV
+              value: {{ .Values.app.environment | quote }}
+            - name: CONFIG_PATH
+              value: "/app/configs/config.production.yaml"
+            
+            {{- range .Values.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/configs
+              readOnly: true
+            {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "alert-webhooks-chart.fullname" . }}-config
+        {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

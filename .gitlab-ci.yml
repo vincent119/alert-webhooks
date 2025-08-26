@@ -1,0 +1,43 @@
+stages:
+  - build_and_push
+
+variables:
+  TimeZone: "Asia/Taipei"
+  DOCKER_BUILDKIT: "1"
+
+build_and_push_ecr:
+  stage: build_and_push
+  tags:
+    - gitlab-runner1-1       
+  only:
+    - main
+  script: |
+    set -euo pipefail
+    echo "CI_PROJECT_NAME=${CI_PROJECT_NAME}"
+    TAGS="$(git tag --list | sort -V | tail -n1 | sed 's/ //g')"
+    if [ -z "${TAGS}" ]; then TAGS="${CI_COMMIT_SHORT_SHA}"; fi
+    echo "Resolved TAGS=${TAGS}"
+
+    REPO_NAME="$(echo "${CI_PROJECT_NAME}" | tr '[:upper:]' '[:lower:]')"
+    echo "REPO_NAME=${REPO_NAME}"
+
+    if [ -z "${ECR_REGION:-}" ] || [ -z "${ECR_URL:-}" ]; then
+      echo "ECR_REGION/ECR_URL is required"; exit 1
+    fi
+
+    aws ecr get-login-password --region "${ECR_REGION}" | docker login "${ECR_URL}" --username AWS --password-stdin
+
+    docker run --privileged --rm tonistiigi/binfmt --install linux/amd64,linux/arm64
+
+    docker buildx create --name xbuilder --driver docker-container --use || docker buildx use xbuilder
+    docker buildx inspect --bootstrap
+
+    IMAGE="${ECR_URL}/${REPO_NAME}:${TAGS}"
+    echo "Target Image: ${IMAGE}"
+
+    docker buildx build \
+      --platform linux/amd64,linux/arm64 \
+      --build-arg timezone="${TimeZone}" \
+      -t "${IMAGE}" \
+      --push \
+      .

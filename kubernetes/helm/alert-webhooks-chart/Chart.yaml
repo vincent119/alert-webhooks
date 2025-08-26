@@ -1,0 +1,40 @@
+apiVersion: v2
+name: alert-webhooks-chart
+description: A Helm chart for Alert Webhooks - Monitoring notification service
+
+# Application charts are a collection of templates that can be packaged into versioned archives
+# to be deployed.
+type: application
+
+# This is the chart version. This version number should be incremented each time you make changes
+# to the chart and its templates, including the app version.
+# Versions are expected to follow Semantic Versioning (https://semver.org/)
+version: 1.0.0
+
+# This is the version number of the application being deployed. This version number should be
+# incremented each time you make changes to the application. Versions are not expected to
+# follow Semantic Versioning. They should reflect the version the application is using.
+# It is recommended to use it with quotes.
+appVersion: "v1.0"
+
+# Maintainers information
+maintainers:
+  - name: DevOps Team
+    email: vincent119@gmail.com
+
+# Keywords for the chart
+keywords:
+  - monitoring
+  - alerting
+  - webhooks
+  - notifications
+  - telegram
+  - slack
+  - discord
+
+# Home page URL
+home: https://github.com/vincent119/alert-webhooks
+
+# Source code URLs
+sources:
+  - https://github.com/vincent119/alert-webhooks

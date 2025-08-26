@@ -1,0 +1,24 @@
+{{ if gt .FiringCount 0 }}{{ if .FormatOptions.ShowEmoji.Enabled }}🚨 {{ end }}{{ format_bold .Platform "アラート通知" }}{{ else if gt .ResolvedCount 0 }}{{ if .FormatOptions.ShowEmoji.Enabled }}✅ {{ end }}{{ format_bold .Platform "アラート解決済み" }}{{ end }}
+{{ format_bold .Platform "ステータス:" }} {{ format_text .Platform .Status }}
+{{ format_italic .Platform "アラート名:" }} {{ format_text .Platform .AlertName }}
+{{ format_italic .Platform "環境:" }} {{ format_text .Platform .Env }}
+{{ format_italic .Platform "重大度:" }} {{ format_text .Platform .Severity }}
+{{ format_italic .Platform "ネームスペース:" }} {{ format_text .Platform .Namespace }}
+{{ format_italic .Platform "アラート総数:" }} {{ .TotalAlerts }}{{ if gt .FiringCount 0 }}
+{{ format_italic .Platform "発生中:" }} {{ .FiringCount }}{{ end }}{{ if gt .ResolvedCount 0 }}
+{{ format_italic .Platform "解決済み:" }} {{ .ResolvedCount }}{{ end }}{{ if gt .FiringCount 0 }}
+{{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "🚨 発生中のアラート:" }}{{ else }}{{ format_bold .Platform "発生中のアラート:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "firing" }}
+{{ format_bold $.Platform (printf "アラート %d:" (add $index 1)) }}
+• サマリー: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+• Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
+• 開始時刻: {{ format_time $.Platform $alert.StartsAt }}
+• 終了時刻: {{ if ne $alert.EndsAt "0001-01-01T00:00:00Z" }}{{ format_time $.Platform $alert.EndsAt }}{{ else }}進行中{{ end }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "詳細を見る" }}{{ end }}{{ end }}{{ end }}{{ end }}{{ if gt .ResolvedCount 0 }}
+{{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "✅ 解決済みのアラート:" }}{{ else }}{{ format_bold .Platform "解決済みのアラート:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "resolved" }}
+{{ format_bold $.Platform (printf "アラート %d:" (add $index 1)) }}
+• サマリー: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+• Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
+• 開始時刻: {{ format_time $.Platform $alert.StartsAt }}
+• 終了時刻: {{ format_time $.Platform $alert.EndsAt }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "詳細を見る" }}{{ end }}{{ end }}{{ end }}{{ end }}{{ if and .FormatOptions.ShowExternalURL.Enabled .ExternalURL }}
+{{ if .FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link .Platform .ExternalURL "すべてのアラート詳細を見る" }}{{ end }}

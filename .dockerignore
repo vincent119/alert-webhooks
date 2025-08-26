@@ -1,0 +1,59 @@
+# Version control and IDE files
+.git
+.gitignore
+.idea
+.vscode
+.DS_Store
+
+# Environment and config files
+.env
+.env.*
+.env.local
+.env.development
+.env.test
+
+# Documentation (exclude from Docker image)
+*.md
+*.MD
+README*
+documentation/
+
+# Build and development files
+Makefile
+Dockerfile*
+docker-compose*
+
+# Test files
+*_test.go
+test_*.go
+*test*
+coverage*
+
+# Scripts and tools
+scripts/
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+
+# Exclude test JSON files but keep swagger docs
+test_*.json
+*test*.json
+# Keep swagger docs: docs/*.json will be included
+
+# Kubernetes files
+kubernetes/
+k8s/
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Other
+node_modules/
+*.orig
+*.swp
+*.swo

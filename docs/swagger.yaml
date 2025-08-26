@@ -1,0 +1,734 @@
+basePath: /api/v1
+definitions:
+  discord.SendMessageRequest:
+    properties:
+      alertmanager_data:
+        additionalProperties: true
+        description: AlertManager webhook data (wrapped format)
+        type: object
+      alerts:
+        items:
+          additionalProperties: true
+          type: object
+        type: array
+      commonAnnotations:
+        additionalProperties: true
+        type: object
+      commonLabels:
+        additionalProperties: true
+        type: object
+      externalURL:
+        type: string
+      groupKey:
+        type: string
+      groupLabels:
+        additionalProperties: true
+        type: object
+      message:
+        description: Simple text message
+        type: string
+      receiver:
+        description: Direct AlertManager JSON format (consistent with Slack/Telegram)
+        type: string
+      status:
+        type: string
+      truncatedAlerts:
+        type: integer
+      version:
+        type: string
+    type: object
+  discord.SendMessageResponse:
+    properties:
+      level:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  discord.StatusResponse:
+    properties:
+      bot_info: {}
+      error:
+        type: string
+      service:
+        type: string
+      status:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  modelx.ErrorResponse:
+    properties:
+      code:
+        example: 401
+        type: integer
+      message:
+        example: unauthorized
+        type: string
+    type: object
+  service.Field:
+    properties:
+      short:
+        type: boolean
+      title:
+        type: string
+      value:
+        type: string
+    type: object
+  slack.ChannelsResponse:
+    properties:
+      channels:
+        additionalProperties:
+          type: string
+        type: object
+      success:
+        type: boolean
+    type: object
+  slack.RichMessageRequest:
+    properties:
+      color:
+        description: 顏色 (good, warning, danger, 或 hex)
+        type: string
+      fields:
+        description: 字段列表
+        items:
+          $ref: '#/definitions/service.Field'
+        type: array
+      footer_icon:
+        description: 頁腳圖示
+        type: string
+      footer_text:
+        description: 頁腳文字
+        type: string
+      icon_emoji:
+        description: 自定義 Bot 表情符號
+        type: string
+      icon_url:
+        description: 自定義 Bot 頭像 URL
+        type: string
+      message:
+        description: 訊息內容
+        type: string
+      title:
+        description: 訊息標題
+        type: string
+      username:
+        description: 自定義 Bot 名稱
+        type: string
+    type: object
+  slack.SendMessageRequest:
+    properties:
+      alertmanager_data:
+        additionalProperties: true
+        description: AlertManager webhook 數據（包裝格式）
+        type: object
+      alerts:
+        items:
+          additionalProperties: true
+          type: object
+        type: array
+      commonAnnotations:
+        additionalProperties: true
+        type: object
+      commonLabels:
+        additionalProperties: true
+        type: object
+      externalURL:
+        type: string
+      groupKey:
+        type: string
+      groupLabels:
+        additionalProperties: true
+        type: object
+      icon_emoji:
+        description: 自定義 Bot 表情符號
+        type: string
+      icon_url:
+        description: 自定義 Bot 頭像 URL
+        type: string
+      message:
+        description: 簡單文字訊息
+        type: string
+      receiver:
+        description: 原始 AlertManager JSON 格式（直接接受）
+        type: string
+      status:
+        type: string
+      thread_ts:
+        description: 線程時間戳（回覆特定訊息）
+        type: string
+      truncatedAlerts:
+        type: integer
+      username:
+        description: 自定義 Bot 名稱
+        type: string
+      version:
+        type: string
+    type: object
+  slack.SendMessageResponse:
+    properties:
+      level:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  slack.StatusResponse:
+    properties:
+      channels:
+        additionalProperties:
+          type: string
+        type: object
+      connected:
+        type: boolean
+      enabled:
+        type: boolean
+      success:
+        type: boolean
+    type: object
+  telegram.Alert:
+    properties:
+      annotations:
+        additionalProperties:
+          type: string
+        type: object
+      endsAt:
+        type: string
+      fingerprint:
+        type: string
+      generatorURL:
+        type: string
+      labels:
+        additionalProperties:
+          type: string
+        type: object
+      startsAt:
+        type: string
+      status:
+        type: string
+    type: object
+  telegram.AlertManagerWebhook:
+    properties:
+      alerts:
+        items:
+          $ref: '#/definitions/telegram.Alert'
+        type: array
+      commonAnnotations:
+        additionalProperties:
+          type: string
+        type: object
+      commonLabels:
+        additionalProperties:
+          type: string
+        type: object
+      externalURL:
+        type: string
+      groupKey:
+        type: string
+      groupLabels:
+        additionalProperties:
+          type: string
+        type: object
+      receiver:
+        type: string
+      status:
+        type: string
+      truncatedAlerts:
+        type: integer
+      version:
+        type: string
+    type: object
+  telegram.SendMessageRequest:
+    properties:
+      alertmanager_data:
+        allOf:
+        - $ref: '#/definitions/telegram.AlertManagerWebhook'
+        description: AlertManager webhook 數據
+      message:
+        description: 可選，當使用 AlertManager 格式時不需要
+        type: string
+      template_language:
+        description: 可選，優先使用配置檔案中的設定
+        type: string
+    type: object
+  telegram.SendMessageResponse:
+    properties:
+      level:
+        type: integer
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  v1.ResponseHealthCheck:
+    properties:
+      Status:
+        type: string
+      recv_time:
+        type: string
+      recv_time_utc:
+        type: string
+    type: object
+info:
+  contact:
+    email: vincent119@gmail.com
+    name: API Support
+  description: 這是 Alert Webhooks 的 Swagger 文件（由 swag 自動產生）。
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: Alert Webhooks API
+  version: "1.0"
+paths:
+  /api/v1/slack/level/{level}:
+    post:
+      consumes:
+      - application/json
+      description: 發送訊息到指定等級對應的 Slack 頻道
+      parameters:
+      - description: '等級名稱 (例如: emergency, critical, warning, info)'
+        in: path
+        name: level
+        required: true
+        type: string
+      - description: 發送訊息請求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/slack.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+      security:
+      - BasicAuth: []
+      summary: 發送 Slack 訊息到指定等級
+      tags:
+      - slack
+  /api/v1/slack/rich/{channel}:
+    post:
+      consumes:
+      - application/json
+      description: 發送包含附件和字段的富文本訊息到指定 Slack 頻道
+      parameters:
+      - description: '頻道名稱 (例如: alerts, emergency)'
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: 富文本訊息請求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/slack.RichMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+      security:
+      - BasicAuth: []
+      summary: 發送富文本 Slack 訊息
+      tags:
+      - slack
+  /discord/channel/{channel}:
+    post:
+      consumes:
+      - application/json
+      description: Send a message to a specific Discord channel
+      parameters:
+      - description: Discord Channel ID
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: Message request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/discord.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
+      summary: Send message to Discord channel
+      tags:
+      - discord
+  /discord/chatid_L{level}:
+    post:
+      consumes:
+      - application/json
+      description: Send a message to a Discord channel based on alert level
+      parameters:
+      - description: Alert Level (0-5)
+        in: path
+        name: level
+        required: true
+        type: string
+      - description: Message request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/discord.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
+      summary: Send message to Discord level channel
+      tags:
+      - discord
+  /discord/status:
+    get:
+      description: Get the status of Discord service and bot information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/discord.StatusResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/discord.StatusResponse'
+      summary: Get Discord service status
+      tags:
+      - discord
+  /discord/test/{channel}:
+    post:
+      description: Send a test message to verify channel accessibility
+      parameters:
+      - description: Discord Channel ID
+        in: path
+        name: channel
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
+      summary: Test Discord channel
+      tags:
+      - discord
+  /discord/validate/{channel}:
+    post:
+      description: Validate if the bot can access and send messages to the channel
+      parameters:
+      - description: Discord Channel ID
+        in: path
+        name: channel
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
+      summary: Validate Discord channel
+      tags:
+      - discord
+  /healthz:
+    get:
+      description: Returns OK if the service is healthy
+      operationId: Healthz
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Health check response
+          schema:
+            $ref: '#/definitions/v1.ResponseHealthCheck'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/modelx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/modelx.ErrorResponse'
+      security:
+      - BasicAuth: []
+      summary: Check health status
+      tags:
+      - health
+  /slack/channel/{channel}:
+    post:
+      consumes:
+      - application/json
+      description: 發送訊息到指定的 Slack 頻道
+      parameters:
+      - description: '頻道名稱 (例如: alerts, emergency)'
+        in: path
+        name: channel
+        required: true
+        type: string
+      - description: 發送訊息請求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/slack.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+      security:
+      - BasicAuth: []
+      summary: 發送 Slack 訊息到指定頻道
+      tags:
+      - slack
+  /slack/channels:
+    get:
+      description: 獲取當前配置的所有 Slack 頻道映射
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slack.ChannelsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+      security:
+      - BasicAuth: []
+      summary: 獲取 Slack 頻道配置
+      tags:
+      - slack
+  /slack/status:
+    get:
+      description: 獲取 Slack 服務的當前狀態和配置信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slack.StatusResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+      security:
+      - BasicAuth: []
+      summary: 獲取 Slack 服務狀態
+      tags:
+      - slack
+  /slack/test:
+    post:
+      consumes:
+      - application/json
+      description: 發送測試訊息到預設頻道以驗證 Slack 連接
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+      security:
+      - BasicAuth: []
+      summary: 測試 Slack 連接
+      tags:
+      - slack
+  /slack/validate/{channel}:
+    post:
+      description: 檢查 Bot 是否已加入指定頻道，如果未加入會提供加入指引
+      parameters:
+      - description: '頻道名稱 (例如: alerts, emergency)'
+        in: path
+        name: channel
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/slack.SendMessageResponse'
+      security:
+      - BasicAuth: []
+      summary: 驗證 Slack 頻道
+      tags:
+      - slack
+  /telegram/chatid_{chatid}:
+    post:
+      consumes:
+      - application/json
+      description: Send message to specified Telegram chat level
+      parameters:
+      - description: '聊天等級 (格式: L{0-4})'
+        in: path
+        name: chatid
+        required: true
+        type: string
+      - description: 訊息內容
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/telegram.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/telegram.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BasicAuth: []
+      summary: Send Telegram message
+      tags:
+      - telegram
+  /telegram/info:
+    get:
+      description: 獲取 Telegram 機器人的基本資訊
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BasicAuth: []
+      summary: 獲取機器人資訊
+      tags:
+      - telegram
+produces:
+- application/json
+schemes:
+- https
+- http
+security:
+- BasicAuth: []
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"

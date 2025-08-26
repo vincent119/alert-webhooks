@@ -1,0 +1,130 @@
+# Alert Template Configuration File
+template_config:
+  # Template version
+  version: "1.0.0"
+
+  # Supported languages
+  supported_languages:
+    - code: "eng"
+      name: "English"
+      description: "English template for alert notifications"
+      fallback: true
+    - code: "tw"
+      name: "繁體中文"
+      description: "Traditional Chinese template for alert notifications"
+      fallback: false
+    - code: "zh"
+      name: "简体中文"
+      description: "Simplified Chinese template for alert notifications"
+      fallback: false
+    - code: "ko"
+      name: "한국어"
+      description: "Korean template for alert notifications"
+      fallback: false
+    - code: "ja"
+      name: "日本語"
+      description: "Japanese template for alert notifications"
+      fallback: false
+
+  # Default language fallback order
+  fallback_order:
+    - "eng"
+    - "tw"
+    - "zh"
+    - "en"
+
+  # Template file naming convention
+  naming_convention:
+    prefix: "alert_template_"
+    supported_extensions:
+      - ".tmpl"
+      - ".j2"
+    priority_order:
+      - ".tmpl"
+      - ".j2"
+
+  # Template formatting options
+  format_options:
+    show_links:
+      enabled: true
+      description: "Whether to show hyperlinks"
+    show_timestamps:
+      enabled: true
+      description: "Whether to show timestamps"
+    show_external_url:
+      enabled: true
+      description: "Whether to show external URLs"
+    show_generator_url:
+      enabled: true
+      description: "Whether to show generator URLs"
+    show_emoji:
+      enabled: true
+      description: "Whether to show emojis"
+    compact_mode:
+      enabled: false
+      description: "Compact mode (simplified display)"
+    max_summary_length:
+      value: 200
+      description: "Maximum summary length"
+
+  # Template variables description
+  template_variables:
+    - name: "Status"
+      type: "string"
+      description: "Alert status (firing/resolved)"
+    - name: "AlertName"
+      type: "string"
+      description: "Alert name"
+    - name: "Env"
+      type: "string"
+      description: "Environment"
+    - name: "Severity"
+      type: "string"
+      description: "Severity level"
+    - name: "Namespace"
+      type: "string"
+      description: "Namespace"
+    - name: "TotalAlerts"
+      type: "int"
+      description: "Total number of alerts"
+    - name: "FiringCount"
+      type: "int"
+      description: "Number of firing alerts"
+    - name: "ResolvedCount"
+      type: "int"
+      description: "Number of resolved alerts"
+    - name: "Alerts"
+      type: "[]AlertData"
+      description: "List of alerts"
+    - name: "ExternalURL"
+      type: "string"
+      description: "External URL"
+    - name: "FormatOptions"
+      type: "FormatOptions"
+      description: "Formatting options"
+
+# New Language Template Guide
+new_language_guide:
+  steps:
+    - "Copy an existing template file (e.g.: alert_template_eng.tmpl)"
+    - "Rename to alert_template_{language_code}.tmpl"
+    - "Translate template content to target language"
+    - "Restart service to load new template"
+    - "Test new language template functionality"
+
+  example_languages:
+    - code: "ja"
+      name: "日本語"
+      file: "alert_template_ja.tmpl"
+    - code: "ko"
+      name: "한국어"
+      file: "alert_template_ko.tmpl"
+    - code: "fr"
+      name: "Français"
+      file: "alert_template_fr.tmpl"
+    - code: "de"
+      name: "Deutsch"
+      file: "alert_template_de.tmpl"
+    - code: "es"
+      name: "Español"
+      file: "alert_template_es.tmpl"
