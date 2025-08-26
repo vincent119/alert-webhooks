@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: alert-webhooks-internal
+  namespace: alert-webhooks
+  annotations:
+    alb.ingress.kubernetes.io/load-balancer-name: infra
+    alb.ingress.kubernetes.io/group.name: infra
+    alb.ingress.kubernetes.io/certificate-arn: cert-arn
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/load-balancer-attributes: deletion_protection.enabled=true,idle_timeout.timeout_seconds=60
+spec:
+  ingressClassName: alb
+  rules:
+    - host: host-name
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: alert-webhooks
+                port:
+                  number: 9999

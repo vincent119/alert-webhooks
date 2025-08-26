@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: alert-webhooks-service
+  namespace: alert-webhooks
+  labels:
+    app: alert-webhooks
+spec:
+  selector:
+    app: alert-webhooks
+  ports:
+    - name: http
+      port: 80
+      targetPort: 9999
+      protocol: TCP
+  type: ClusterIP
