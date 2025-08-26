@@ -1,0 +1,216 @@
+# Default values for alert-webhooks-chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Application configuration
+app:
+  name: alert-webhooks
+  version: "1.0.0"
+  environment: production
+
+# Replica count
+replicaCount: 1
+
+# Container image configuration
+image:
+  repository: docker-replotory/alert-webhooks
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: "v1.0"
+
+# Image pull secrets for private registry
+imagePullSecrets: []
+
+# Name overrides
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Pod annotations and labels
+podAnnotations: {}
+podLabels: {}
+
+# Security contexts
+podSecurityContext: {}
+securityContext: {}
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 9999
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "alb"
+  annotations:
+    alb.ingress.kubernetes.io/load-balancer-name: infra
+    alb.ingress.kubernetes.io/group.name: infra
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-northeast-1:{aws_account}:certificate/hash"
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/load-balancer-attributes: deletion_protection.enabled=true,idle_timeout.timeout_seconds=60
+  hosts:
+    - host: alert-webhooks.domain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# Health checks
+livenessProbe:
+  httpGet:
+    path: /healthy
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /healthy
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Autoscaling configuration
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Application configuration
+config:
+  # Application settings
+  app:
+    version: "1.0.0"
+    mode: "production"
+    port: "9999"
+
+  # Logging configuration
+  log:
+    level: "info"
+    format: "json"
+
+  # Telegram configuration
+  telegram:
+    enable: true
+    template_mode: "full"
+    template_language: "tw"
+    chat_ids:
+      - "ID"
+      - "ID"
+      - "ID"
+      - "ID"
+      - "ID"
+      - "ID"
+      - "ID"
+
+  # Slack configuration
+  slack:
+    enable: true
+    channel: "#alerts"
+    username: "AlertBot"
+    icon_emoji: ":warning:"
+    channels:
+      chat_ids0: "#alert0"
+      chat_ids1: "#alert1"
+      chat_ids2: "#alert2"
+      chat_ids3: "#alert3"
+      chat_ids4: "#alert4"
+      chat_ids5: "#alert5"
+    link_names: true
+    unfurl_links: false
+    unfurl_media: false
+    template_mode: "full"
+    template_language: "tw"
+
+  # Discord configuration
+  discord:
+    enable: true
+    guild_id: "ID"
+    channels:
+      chat_ids0: "ID"
+      chat_ids1: "ID"
+      chat_ids2: "ID"
+      chat_ids3: "ID"
+      chat_ids4: "ID"
+      chat_ids5: "ID"
+    username: "AlertBot"
+    avatar_url: ""
+    template_mode: "full"
+    template_language: "tw"
+
+  # Webhooks configuration
+  webhooks:
+    enable: true
+
+# Secret configuration (tokens and credentials)
+secrets:
+  # Metric authentication
+  metric:
+    user: "admin"
+    password: "admin"
+
+  # Webhooks authentication
+  webhooks:
+    user: "admin"
+    password: "admin"
+
+  # Service tokens (these should be overridden in production)
+  telegram:
+    token: "your-telegram-token"
+  slack:
+    token: "your-slack-token"
+  discord:
+    token: "your-discord-token"
+
+# Additional volumes
+volumes: []
+
+# Additional volume mounts
+volumeMounts: []
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Environment variables
+env:
+  - name: SWAGGER_HOST
+    value: "alert-webhooks.domain.com"
+
+# Init containers
+initContainers: []

@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "alert-webhooks-chart.fullname" . }}-config
+  labels:
+    {{- include "alert-webhooks-chart.labels" . | nindent 4 }}
+data:
+  config.production.yaml: |
+    app:
+      version: {{ .Values.config.app.version | quote }}
+      mode: {{ .Values.config.app.mode | quote }}
+      port: {{ .Values.config.app.port | quote }}
+
+    metric:
+      # These values will be overridden by environment variables
+      user: "default-user"
+      password: "default-password"
+
+    log:
+      level: {{ .Values.config.log.level | quote }}
+      format: {{ .Values.config.log.format | quote }}
+
+    telegram:
+      enable: {{ .Values.config.telegram.enable }}
+      # token will be overridden by environment variables
+      token: "default-token"
+      {{- range $index, $chatId := .Values.config.telegram.chat_ids }}
+      chat_ids{{ $index }}: {{ $chatId | quote }}
+      {{- end }}
+      template_mode: {{ .Values.config.telegram.template_mode | quote }}
+      template_language: {{ .Values.config.telegram.template_language | quote }}
+
+    webhooks:
+      enable: {{ .Values.config.webhooks.enable }}
+      # These values will be overridden by environment variables
+      base_auth_user: "default-user"
+      base_auth_password: "default-password"
+
+    slack:
+      enable: {{ .Values.config.slack.enable }}
+      # token will be overridden by environment variables
+      token: "default-token"
+      channel: {{ .Values.config.slack.channel | quote }}
+      username: {{ .Values.config.slack.username | quote }}
+      icon_emoji: {{ .Values.config.slack.icon_emoji | quote }}
+      channels:
+        {{- range $key, $value := .Values.config.slack.channels }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+      link_names: {{ .Values.config.slack.link_names }}
+      unfurl_links: {{ .Values.config.slack.unfurl_links }}
+      unfurl_media: {{ .Values.config.slack.unfurl_media }}
+      template_mode: {{ .Values.config.slack.template_mode | quote }}
+      template_language: {{ .Values.config.slack.template_language | quote }}
+
+    discord:
+      enable: {{ .Values.config.discord.enable }}
+      # token will be overridden by environment variables
+      token: "default-token"
+      guild_id: {{ .Values.config.discord.guild_id | quote }}
+      channels:
+        {{- range $key, $value := .Values.config.discord.channels }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+      username: {{ .Values.config.discord.username | quote }}
+      avatar_url: {{ .Values.config.discord.avatar_url | quote }}
+      template_mode: {{ .Values.config.discord.template_mode | quote }}
+      template_language: {{ .Values.config.discord.template_language | quote }}
