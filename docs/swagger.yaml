@@ -724,8 +724,8 @@ paths:
 produces:
 - application/json
 schemes:
-- http
 - https
+- http
 security:
 - BasicAuth: []
 securityDefinitions:

@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	_ "alert-webhooks/docs"
+	"alert-webhooks/docs"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
@@ -24,9 +24,36 @@ var skipPathList = []string{
 	"/healthz",
 	"/healthy",
 	"/api/v1/metrics",
+	"/",
 }
 
 var mainRouteString = "main-route"
+
+// setupSwaggerHost 動態設定 Swagger Host
+func setupSwaggerHost() {
+	// 從請求頭或環境變數動態獲取 host
+	host := os.Getenv("SWAGGER_HOST")
+	if host == "" {
+		// 根據環境設定預設值
+		switch strings.ToLower(config.App.Mode) {
+		case "development", "debug":
+			host = "localhost:" + config.App.Port
+		case "production", "release":
+			host = "" // 生產環境讓瀏覽器自動決定
+		default:
+			host = ""
+		}
+	}
+	
+	// 動態設定 SwaggerInfo
+	if host != "" {
+		docs.SwaggerInfo.Host = host
+		logger.Info("Swagger host set", mainRouteString, logger.String("host", host))
+	} else {
+		docs.SwaggerInfo.Host = ""
+		logger.Info("Swagger host set to auto-detect", mainRouteString)
+	}
+}
 
 // setupGinMode 設置 Gin 運行模式
 func setupGinMode() {
@@ -51,6 +78,9 @@ func setupGinMode() {
 
 func DefaultRoute() *gin.Engine {
 	setupGinMode()
+	
+	// 動態設定 Swagger Host
+	setupSwaggerHost()
 	
 	// 設定 Gin 輸出
 	gin.ForceConsoleColor()

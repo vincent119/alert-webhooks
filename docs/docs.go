@@ -1128,7 +1128,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
 	BasePath:         "/api/v1",
-	Schemes:          []string{"http", "https"},
+	Schemes:          []string{"https", "http"},
 	Title:            "Alert Webhooks API",
 	Description:      "這是 Alert Webhooks 的 Swagger 文件（由 swag 自動產生）。",
 	InfoInstanceName: "swagger",
