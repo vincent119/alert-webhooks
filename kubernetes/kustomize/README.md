@@ -1,19 +1,5 @@
 # Kustomize Setup
 
-## Create secret
-
-```bash
-kubectl create secret generic alert-webhooks-secrets \
-  -n alert-webhooks \
-  --from-literal=metric-user="admin" \
-  --from-literal=metric-password="admin" \
-  --from-literal=webhooks-user="admin" \
-  --from-literal=webhooks-password="admin" \
-  --from-literal=telegram-token="your-telegram-token" \
-  --from-literal=slack-token="your-slack-token" \
-  --from-literal=discord-token="your-discord-token"
-```
-
 ## Deploy Application
 
 ### Method 1: Direct Deployment with Kustomize
