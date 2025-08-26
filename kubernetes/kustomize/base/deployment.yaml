@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alert-webhooks
+  namespace: alert-webhooks
+  labels:
+    app: alert-webhooks
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alert-webhooks
+  template:
+    metadata:
+      labels:
+        app: alert-webhooks
+    spec:
+      containers:
+        - name: alert-webhooks
+          image: 952149722289.dkr.ecr.ap-northeast-1.amazonaws.com/alert-webhooks:v1.0
+          ports:
+            - containerPort: 9999
+          env:
+            # Metric Auth - from alert-webhooks-secrets
+            - name: METRIC_USER
+              valueFrom:
+                secretKeyRef:
+                  name: alert-webhooks-secrets
+                  key: metric-user
+            - name: METRIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: alert-webhooks-secrets
+                  key: metric-password
+
+            # Webhooks Auth - from alert-webhooks-secrets
+            - name: WEBHOOKS_USER
+              valueFrom:
+                secretKeyRef:
+                  name: alert-webhooks-secrets
+                  key: webhooks-user
+            - name: WEBHOOKS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: alert-webhooks-secrets
+                  key: webhooks-password
+
+            # Telegram Token - from alert-webhooks-secrets
+            - name: TELEGRAM_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: alert-webhooks-secrets
+                  key: telegram-token
+
+            # Slack Token - from alert-webhooks-secrets
+            - name: SLACK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: alert-webhooks-secrets
+                  key: slack-token
+
+            # Discord Token - from alert-webhooks-secrets
+            - name: DISCORD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: alert-webhooks-secrets
+                  key: discord-token
+
+            # 應用環境設定
+            - name: APP_ENV
+              value: "production"
+            - name: CONFIG_PATH
+              value: "/app/configs/config.production.yaml"
+
+          # Volume mounts
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/configs
+              readOnly: true
+
+          # Resource limits
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /healthy
+              port: 9999
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: /healthy
+              port: 9999
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+      # Volumes
+      volumes:
+        - name: config-volume
+          configMap:
+            name: alert-webhooks-config

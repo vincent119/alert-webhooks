@@ -10,10 +10,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+
 	//"strings"
 	"syscall"
 	"time"
-
 	//"github.com/gin-gonic/gin"
 )
 
@@ -46,7 +46,7 @@ func waitForShutdownSignal(server *http.Server) {
 // @title           Alert Webhooks API
 // @version         1.0
 // @description     這是 Alert Webhooks 的 Swagger 文件（由 swag 自動產生）。
-// @schemes         http https
+// @schemes         https http
 // @BasePath        /api/v1
 // @produce         json
 // @consume         json
