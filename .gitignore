@@ -36,3 +36,5 @@ bin/
 .docker/
 
 .aws/
+
+kubernetes/helm/alert-webhooks-chart/values-*.yaml
