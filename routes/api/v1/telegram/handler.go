@@ -285,6 +285,13 @@ func (h *Handler) generateAlertManagerMessage(webhook *AlertManagerWebhook, lang
 		severity = firstAlert.Labels["severity"]
 		namespace = firstAlert.Labels["namespace"]
 	}
+
+	// 若第一筆 alert 的 labels 沒有 namespace，回退到 CommonLabels 取值
+	if namespace == "" && webhook.CommonLabels != nil {
+		if ns, ok := webhook.CommonLabels["namespace"]; ok && ns != "" {
+			namespace = ns
+		}
+	}
 	
 	// 轉換警報數據為模板格式
 	var alertData []template.AlertData

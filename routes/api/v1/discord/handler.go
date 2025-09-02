@@ -566,6 +566,13 @@ func (h *Handler) generateBuiltInMessage(alertData json.RawMessage) (string, err
 		}
 	}
 
+	// 若從第一筆 alert 取不到 namespace，回退到 CommonLabels
+	if namespace == "" {
+		if ns, ok := req.CommonLabels["namespace"]; ok {
+			namespace = h.getStringValue(ns)
+		}
+	}
+
 	// Use escapeText for dynamic content to ensure Discord compatibility
 	message.WriteString(fmt.Sprintf("**Alert Name:** %s\n", h.escapeText(alertName)))
 	message.WriteString(fmt.Sprintf("**Environment:** %s\n", h.escapeText(env)))
@@ -707,6 +714,12 @@ func (h *Handler) convertToTemplateData(req types.AlertManagerData) (*template.T
 			env = h.getStringValue(labels["env"])
 			severity = h.getStringValue(labels["severity"])
 			namespace = h.getStringValue(labels["namespace"])
+		}
+	}
+	// 若第一筆 alert 無 namespace，回退 CommonLabels
+	if namespace == "" {
+		if ns, ok := req.CommonLabels["namespace"]; ok {
+			namespace = h.getStringValue(ns)
 		}
 	}
 
