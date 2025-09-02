@@ -935,6 +935,14 @@ func (te *TemplateEngine) GetFullDefaultConfig() *TemplateConfig {
 	return getFullDefaultConfig()
 }
 
+// GetCurrentFormatOptions 取得目前載入配置的 FormatOptions
+func (te *TemplateEngine) GetCurrentFormatOptions() FormatOptions {
+	if te != nil && te.config != nil {
+		return te.config.FormatOptions
+	}
+	return getFullDefaultConfig().FormatOptions
+}
+
 // getFormatOptionsForPlatform 根據平台配置返回對應的 FormatOptions
 func (te *TemplateEngine) getFormatOptionsForPlatform(platform string) FormatOptions {
 	// 由於循環依賴問題，這裡暫時使用配置文件中的默認值

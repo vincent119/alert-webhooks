@@ -318,7 +318,11 @@ func (h *Handler) generateAlertManagerMessage(webhook *AlertManagerWebhook, lang
 		ResolvedCount: resolvedCount,
 		Alerts:        alertData,
 		ExternalURL:   webhook.ExternalURL,
-		FormatOptions: h.getFormatOptionsForTelegram(),
+	}
+
+	// 使用模板引擎目前的 FormatOptions，確保與配置檔一致
+	if h.templateEngine != nil {
+		templateData.FormatOptions = h.templateEngine.GetCurrentFormatOptions()
 	}
 	
 	// 嘗試使用模板引擎渲染
@@ -426,7 +430,7 @@ func (h *Handler) sendSeparateAlertMessages(webhook *AlertManagerWebhook, langua
 // generateBuiltInMessage 生成內建的訊息模板（備用方案）
 func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language string, firingCount, resolvedCount int, alertName, env, severity, namespace string) string {
 	var message strings.Builder
-	
+
 	// 為 Telegram MarkdownV2 創建轉義函數
 	escapeText := func(text string) string {
 		// 轉義 MarkdownV2 特殊字符
@@ -440,7 +444,15 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 		}
 		return result
 	}
-	
+
+	// 讀取當前平台顯示開關（優先使用模板引擎載入的配置）
+	var formatOptions template.FormatOptions
+	if h.templateEngine != nil {
+		formatOptions = h.templateEngine.GetCurrentFormatOptions()
+	} else {
+		formatOptions = h.getFormatOptionsForTelegram()
+	}
+
 	if language == "tw" {
 		// 繁體中文模板
 		if firingCount > 0 {
@@ -475,7 +487,7 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 					if alert.EndsAt != "0001-01-01T00:00:00Z" {
 						message.WriteString(fmt.Sprintf("• 結束時間: %s\n", escapeText(h.formatTime(alert.EndsAt))))
 					}
-					if alert.GeneratorURL != "" {
+					if formatOptions.ShowGeneratorURL.Enabled && alert.GeneratorURL != "" {
 						message.WriteString(fmt.Sprintf("• [查看詳情](%s)\n", alert.GeneratorURL))
 					}
 				}
@@ -491,14 +503,14 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 					message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(alert.Labels["pod"])))
 					message.WriteString(fmt.Sprintf("• 開始時間: %s\n", escapeText(h.formatTime(alert.StartsAt))))
 					message.WriteString(fmt.Sprintf("• 結束時間: %s\n", escapeText(h.formatTime(alert.EndsAt))))
-					if alert.GeneratorURL != "" {
+					if formatOptions.ShowGeneratorURL.Enabled && alert.GeneratorURL != "" {
 						message.WriteString(fmt.Sprintf("• [查看詳情](%s)\n", alert.GeneratorURL))
 					}
 				}
 			}
 		}
 		
-		if webhook.ExternalURL != "" {
+		if formatOptions.ShowExternalURL.Enabled && webhook.ExternalURL != "" {
 			message.WriteString(fmt.Sprintf("\n[查看所有警報詳情](%s)", webhook.ExternalURL))
 		}
 	} else {
@@ -535,7 +547,7 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 					if alert.EndsAt != "0001-01-01T00:00:00Z" {
 						message.WriteString(fmt.Sprintf("• Ended: %s\n", escapeText(h.formatTime(alert.EndsAt))))
 					}
-					if alert.GeneratorURL != "" {
+					if formatOptions.ShowGeneratorURL.Enabled && alert.GeneratorURL != "" {
 						message.WriteString(fmt.Sprintf("• [View Details](%s)\n", alert.GeneratorURL))
 					}
 				}
@@ -551,14 +563,14 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 					message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(alert.Labels["pod"])))
 					message.WriteString(fmt.Sprintf("• Started: %s\n", escapeText(h.formatTime(alert.StartsAt))))
 					message.WriteString(fmt.Sprintf("• Ended: %s\n", escapeText(h.formatTime(alert.EndsAt))))
-					if alert.GeneratorURL != "" {
+					if formatOptions.ShowGeneratorURL.Enabled && alert.GeneratorURL != "" {
 						message.WriteString(fmt.Sprintf("• [View Details](%s)\n", alert.GeneratorURL))
 					}
 				}
 			}
 		}
 		
-		if webhook.ExternalURL != "" {
+		if formatOptions.ShowExternalURL.Enabled && webhook.ExternalURL != "" {
 			message.WriteString(fmt.Sprintf("\n[View All Alert Details](%s)", webhook.ExternalURL))
 		}
 	}

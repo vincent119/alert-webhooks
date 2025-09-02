@@ -528,6 +528,11 @@ func (h *Handler) generateAlertManagerMessage(alertData json.RawMessage) (string
 				return h.generateBuiltInMessage(alertData)
 			}
 
+			// 套用模板引擎當前的 FormatOptions，與配置檔一致
+			if templateEngine != nil {
+				templateData.FormatOptions = templateEngine.GetCurrentFormatOptions()
+			}
+
 			// Use template engine to render message for Discord platform
 			message, err := templateEngine.RenderTemplateForPlatform(templateLanguage, "discord", *templateData)
 			if err != nil {
@@ -624,9 +629,12 @@ func (h *Handler) generateBuiltInMessage(alertData json.RawMessage) (string, err
 		}
 	}
 
-	// Add external URL
-	if req.ExternalURL != "" {
-		message.WriteString(fmt.Sprintf("\n🔗 [View Details](%s)", req.ExternalURL))
+	// Add external URL（遵守配置開關）
+	serviceManager := service.GetServiceManager()
+	if te := serviceManager.GetTemplateEngine(); te != nil {
+		if te.GetCurrentFormatOptions().ShowExternalURL.Enabled && req.ExternalURL != "" {
+			message.WriteString(fmt.Sprintf("\n🔗 [View Details](%s)", req.ExternalURL))
+		}
 	}
 
 	return message.String(), nil
