@@ -263,6 +263,15 @@ func (nm *NotificationManager) convertAlertManagerData(data *types.AlertManagerD
 		}
 	}
 
+	// 若 CommonLabels 無 namespace，回退到第一筆 alert 的 labels
+	if namespace == "" && len(data.Alerts) > 0 {
+		if labels, ok := data.Alerts[0]["labels"].(map[string]interface{}); ok {
+			if ns, ok := labels["namespace"].(string); ok && ns != "" {
+				namespace = ns
+			}
+		}
+	}
+
 	return &template.TemplateData{
 		Status:        data.Status,
 		AlertName:     alertName,
