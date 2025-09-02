@@ -649,7 +649,6 @@ func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
 		ResolvedCount: resolvedCount,
 		Alerts:        alertData,
 		ExternalURL:   req.ExternalURL,
-		FormatOptions: h.getFormatOptionsForSlack(),
 	}
 	
 	// 動態獲取最新的模板引擎（支援熱重載）
@@ -789,95 +788,14 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 	
 	// 添加外部連結
 	if req.ExternalURL != "" {
-		message.WriteString(fmt.Sprintf("\n🔗 <%s|查看詳情>", req.ExternalURL))
+		// 僅在配置允許時顯示外部連結（使用引擎當前配置）
+		serviceManager := service.GetServiceManager()
+		if te := serviceManager.GetTemplateEngine(); te != nil {
+			if te.GetCurrentFormatOptions().ShowExternalURL.Enabled {
+				message.WriteString(fmt.Sprintf("\n🔗 <%s|查看詳情>", req.ExternalURL))
+			}
+		}
 	}
 	
 	return message.String()
-}
-
-// getFormatOptionsForSlack 根據 Slack 配置返回對應的 FormatOptions
-func (h *Handler) getFormatOptionsForSlack() template.FormatOptions {
-	templateMode := config.Conf.Slack.TemplateMode
-	if templateMode == "" {
-		templateMode = "full" // Default to full mode
-	}
-	
-	// Debug: log the template mode being used
-	logger.Debug("Slack template mode configuration", "SlackHandler",
-		logger.String("templateMode", templateMode),
-		logger.String("templateLanguage", config.Conf.Slack.TemplateLanguage))
-	
-	if templateMode == "minimal" {
-		// 從 template engine 載入 minimal 配置，而不是硬編碼
-		serviceManager := service.GetServiceManager()
-		templateEngine := serviceManager.GetTemplateEngine()
-		if templateEngine != nil {
-			minimalConfig := templateEngine.GetMinimalDefaultConfig()
-			if minimalConfig != nil {
-				logger.Debug("Using minimal config FormatOptions for Slack", "SlackHandler",
-					logger.Bool("ShowEmoji", minimalConfig.FormatOptions.ShowEmoji.Enabled),
-					logger.Bool("ShowTimestamps", minimalConfig.FormatOptions.ShowTimestamps.Enabled),
-					logger.Bool("ShowGeneratorURL", minimalConfig.FormatOptions.ShowGeneratorURL.Enabled),
-					logger.Bool("ShowExternalURL", minimalConfig.FormatOptions.ShowExternalURL.Enabled))
-				return minimalConfig.FormatOptions
-			}
-		}
-		
-		// 回退到硬編碼配置（如果模板引擎不可用）
-		logger.Debug("Fallback to hardcoded minimal FormatOptions for Slack", "SlackHandler")
-		return template.FormatOptions{
-			ShowLinks: struct {
-				Enabled     bool   `yaml:"enabled"`
-				Description string `yaml:"description"`
-			}{Enabled: false, Description: "是否顯示超連結"},
-			ShowTimestamps: struct {
-				Enabled     bool   `yaml:"enabled"`
-				Description string `yaml:"description"`
-			}{Enabled: true, Description: "是否顯示時間戳"}, // 與 minimal config 一致
-			ShowExternalURL: struct {
-				Enabled     bool   `yaml:"enabled"`
-				Description string `yaml:"description"`
-			}{Enabled: false, Description: "是否顯示外部連結"},
-			ShowGeneratorURL: struct {
-				Enabled     bool   `yaml:"enabled"`
-				Description string `yaml:"description"`
-			}{Enabled: false, Description: "是否顯示生成器連結"},
-			ShowEmoji: struct {
-				Enabled     bool   `yaml:"enabled"`
-				Description string `yaml:"description"`
-			}{Enabled: true, Description: "是否顯示表情符號"}, // 與 minimal config 一致
-			CompactMode: struct {
-				Enabled     bool   `yaml:"enabled"`
-				Description string `yaml:"description"`
-			}{Enabled: true, Description: "緊湊模式（簡化顯示）"},
-		}
-	} else {
-		// Full mode: enable all options
-		return template.FormatOptions{
-			ShowLinks: struct {
-				Enabled     bool   `yaml:"enabled"`
-				Description string `yaml:"description"`
-			}{Enabled: true, Description: "是否顯示超連結"},
-			ShowTimestamps: struct {
-				Enabled     bool   `yaml:"enabled"`
-				Description string `yaml:"description"`
-			}{Enabled: true, Description: "是否顯示時間戳"},
-			ShowExternalURL: struct {
-				Enabled     bool   `yaml:"enabled"`
-				Description string `yaml:"description"`
-			}{Enabled: true, Description: "是否顯示外部連結"},
-			ShowGeneratorURL: struct {
-				Enabled     bool   `yaml:"enabled"`
-				Description string `yaml:"description"`
-			}{Enabled: true, Description: "是否顯示生成器連結"},
-			ShowEmoji: struct {
-				Enabled     bool   `yaml:"enabled"`
-				Description string `yaml:"description"`
-			}{Enabled: true, Description: "是否顯示表情符號"},
-			CompactMode: struct {
-				Enabled     bool   `yaml:"enabled"`
-				Description string `yaml:"description"`
-			}{Enabled: false, Description: "緊湊模式（簡化顯示）"},
-		}
-	}
 }
