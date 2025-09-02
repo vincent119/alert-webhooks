@@ -19,8 +19,8 @@ namePrefix: prod-
 # Image replacement
 images:
   - name: alert-webhooks
-    newName: 952149722289.dkr.ecr.ap-northeast-1.amazonaws.com/alert-webhooks
-    newTag: v1.0
+    newName: vincent119/alert-webhooks
+    newTag: v1.0.0
 
 # ConfigMap generator - generate ConfigMap from files
 configMapGenerator:

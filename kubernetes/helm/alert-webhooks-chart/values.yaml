@@ -13,7 +13,7 @@ replicaCount: 1
 
 # Container image configuration
 image:
-  repository: docker-replotory/alert-webhooks
+  repository: vincent119/alert-webhooks:v1.0.0
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion
   tag: "v1.0"
