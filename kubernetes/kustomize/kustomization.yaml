@@ -30,19 +30,6 @@ configMapGenerator:
     options:
       disableNameSuffixHash: true
 
-# Ingress patches - SSL certificate and domain configuration
-patches:
-  - target:
-      kind: Ingress
-      name: alert-webhooks-internal
-    patch: |-
-      - op: replace
-        path: /metadata/annotations/alb.ingress.kubernetes.io~1certificate-arn
-        value: arn:aws:acm:ap-northeast-1:952149722289:certificate/1d33a105-b941-4f82-b38b-d16f0a4addd4
-      - op: replace
-        path: /spec/rules/0/host
-        value: alert-webhooks.imdevs.net
-
 # Secret  generator（optional, recommend using kubectl create secret）
 # secretGenerator:
 #   - name: alert-webhooks-secrets
