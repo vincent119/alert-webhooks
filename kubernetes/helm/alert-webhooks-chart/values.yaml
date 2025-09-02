@@ -13,10 +13,10 @@ replicaCount: 1
 
 # Container image configuration
 image:
-  repository: vincent119/alert-webhooks:v1.0.0
+  repository: vincent119/alert-webhooks
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion
-  tag: "v1.0"
+  tag: "v1.0.0"
 
 # Image pull secrets for private registry
 imagePullSecrets: []
