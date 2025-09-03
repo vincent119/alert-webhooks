@@ -17,12 +17,12 @@ telegram:
   enable: true
   # token will be overridden by environment variables
   token: "default-token"
-  chat_ids0: "-1001234567890"
-  chat_ids1: "-1001234567891"
-  chat_ids2: "-1001234567892"
-  chat_ids3: "-1001234567893"
-  chat_ids4: "-1001234567894"
-  chat_ids5: "-1001234567895"
+  chat_ids0: "chat_id"
+  chat_ids1: "chat_id"
+  chat_ids2: "chat_id"
+  chat_ids3: "chat_id"
+  chat_ids4: "chat_id"
+  chat_ids5: "chat_id"
   template_mode: "full"
   template_language: "tw"
 
@@ -59,15 +59,15 @@ discord:
   enable: true
   # token will be overridden by environment variables
   token: "default-token"
-  guild_id: "1407990039605936168"
+  guild_id: "guild_id"
   channels:
     # Discord channel IDs mapped to alert levels
-    chat_ids0: "1407992959202492456"
-    chat_ids1: "1407993012717621349"
-    chat_ids2: "987654321098765434"
-    chat_ids3: "987654321098765435"
-    chat_ids4: "987654321098765436"
-    chat_ids5: "987654321098765437"
+    chat_ids0: "chat_id"
+    chat_ids1: "chat_id"
+    chat_ids2: "chat_id"
+    chat_ids3: "chat_id"
+    chat_ids4: "chat_id"
+    chat_ids5: "chat_id"
   username: "AlertBot"
   avatar_url: ""
   template_mode: "full"
