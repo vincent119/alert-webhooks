@@ -5,3 +5,11 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+
+configMapGenerator:
+  - name: alert-webhooks-config
+    files:
+      - ../../configs/alert_config.yaml
+      - ../../configs/alert_config.minimal.yaml
+    options:
+      disableNameSuffixHash: true
