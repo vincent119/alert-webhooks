@@ -19,29 +19,18 @@ namePrefix: prod-
 # Image replacement
 images:
   - name: alert-webhooks
-    newName: 952149722289.dkr.ecr.ap-northeast-1.amazonaws.com/alert-webhooks
-    newTag: v1.0
+    newName: vincent119/alert-webhooks
+    newTag: v1.0.0
 
 # ConfigMap generator - generate ConfigMap from files
 configMapGenerator:
   - name: alert-webhooks-config
     files:
       - configs/config.production.yaml
+      - configs/alert_config.yaml
+      - configs/alert_config.minimal.yaml
     options:
       disableNameSuffixHash: true
-
-# Ingress patches - SSL certificate and domain configuration
-patches:
-  - target:
-      kind: Ingress
-      name: alert-webhooks-internal
-    patch: |-
-      - op: replace
-        path: /metadata/annotations/alb.ingress.kubernetes.io~1certificate-arn
-        value: arn:aws:acm:ap-northeast-1:952149722289:certificate/1d33a105-b941-4f82-b38b-d16f0a4addd4
-      - op: replace
-        path: /spec/rules/0/host
-        value: alert-webhooks.imdevs.net
 
 # Secret  generator（optional, recommend using kubectl create secret）
 # secretGenerator:
