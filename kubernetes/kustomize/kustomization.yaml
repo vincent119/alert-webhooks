@@ -27,6 +27,8 @@ configMapGenerator:
   - name: alert-webhooks-config
     files:
       - configs/config.production.yaml
+      - configs/alert_config.yaml
+      - configs/alert_config.minimal.yaml
     options:
       disableNameSuffixHash: true
 

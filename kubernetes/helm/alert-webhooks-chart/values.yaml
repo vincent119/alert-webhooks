@@ -212,5 +212,91 @@ env:
   - name: SWAGGER_HOST
     value: "alert-webhooks.domain.com"
 
+# Optional: Inline template configs (if not using files/)
+# Provide the structure under template_config as in configs/alert_config*.yaml
+alertTemplateConfig:
+  template_config:
+    version: "1.0.0"
+    supported_languages:
+      - code: "eng"
+        name: "English"
+        description: "English template for alert notifications"
+        fallback: true
+      - code: "tw"
+        name: "繁體中文"
+        description: "Traditional Chinese template for alert notifications"
+        fallback: false
+      - code: "zh"
+        name: "简体中文"
+        description: "Simplified Chinese template for alert notifications"
+        fallback: false
+      - code: "ko"
+        name: "한국어"
+        description: "Korean template for alert notifications"
+        fallback: false
+      - code: "ja"
+        name: "日本語"
+        description: "Japanese template for alert notifications"
+        fallback: false
+    fallback_order: ["eng", "tw", "zh", "en"]
+    naming_convention:
+      prefix: "alert_template_"
+      supported_extensions: [".tmpl", ".j2"]
+      priority_order: [".tmpl", ".j2"]
+    format_options:
+      show_links: { enabled: true, description: "Whether to show hyperlinks" }
+      show_timestamps:
+        { enabled: true, description: "Whether to show timestamps" }
+      show_external_url:
+        { enabled: true, description: "Whether to show external URLs" }
+      show_generator_url:
+        { enabled: true, description: "Whether to show generator URLs" }
+      show_emoji: { enabled: true, description: "Whether to show emojis" }
+      compact_mode:
+        { enabled: false, description: "Compact mode (simplified display)" }
+      max_summary_length: { value: 200, description: "Maximum summary length" }
+
+alertTemplateConfigMinimal:
+  template_config:
+    version: "1.0.0"
+    supported_languages:
+      - code: "eng"
+        name: "English"
+        description: "English template for alert notifications"
+        fallback: true
+      - code: "tw"
+        name: "繁體中文"
+        description: "Traditional Chinese template for alert notifications"
+        fallback: false
+      - code: "zh"
+        name: "简体中文"
+        description: "Simplified Chinese template for alert notifications"
+        fallback: false
+      - code: "ko"
+        name: "한국어"
+        description: "Korean template for alert notifications"
+        fallback: false
+      - code: "ja"
+        name: "日本語"
+        description: "Japanese template for alert notifications"
+        fallback: false
+    fallback_order: ["eng", "tw", "zh"]
+    naming_convention:
+      prefix: "alert_template_"
+      supported_extensions: [".tmpl", ".j2"]
+      priority_order: [".tmpl", ".j2"]
+    format_options:
+      show_links: { enabled: false, description: "Whether to show hyperlinks" }
+      show_timestamps:
+        { enabled: true, description: "Whether to show timestamps" }
+      show_external_url:
+        { enabled: false, description: "Whether to show external URLs" }
+      show_generator_url:
+        { enabled: false, description: "Whether to show generator URLs" }
+      show_emoji: { enabled: true, description: "Whether to show emojis" }
+      compact_mode:
+        { enabled: true, description: "Compact mode (simplified display)" }
+      max_summary_length: { value: 100, description: "Maximum summary length" }
+
 # Init containers
 initContainers: []

@@ -66,3 +66,17 @@ data:
       avatar_url: {{ .Values.config.discord.avatar_url | quote }}
       template_mode: {{ .Values.config.discord.template_mode | quote }}
       template_language: {{ .Values.config.discord.template_language | quote }}
+
+  # Template engine configuration files
+  alert_config.yaml: |
+{{- if .Values.alertTemplateConfig }}
+{{ toYaml .Values.alertTemplateConfig | nindent 4 }}
+{{- else if (.Files.Glob "files/alert_config.yaml") }}
+{{ (.Files.Get "files/alert_config.yaml") | nindent 4 }}
+{{- end }}
+  alert_config.minimal.yaml: |
+{{- if .Values.alertTemplateConfigMinimal }}
+{{ toYaml .Values.alertTemplateConfigMinimal | nindent 4 }}
+{{- else if (.Files.Glob "files/alert_config.minimal.yaml") }}
+{{ (.Files.Get "files/alert_config.minimal.yaml") | nindent 4 }}
+{{- end }}
