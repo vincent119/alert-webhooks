@@ -10,6 +10,7 @@
 {{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "🚨 Firing Alerts:" }}{{ else }}{{ format_bold .Platform "Firing Alerts:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "firing" }}
 {{ format_bold $.Platform (printf "Alert %d:" (add $index 1)) }}
 • Summary: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+{{ if (index $alert.Annotations "description") }}• Description: {{ format_text $.Platform (index $alert.Annotations "description") }}{{ end }}
 • Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
 • Started: {{ format_time $.Platform $alert.StartsAt }}
 • Ended: {{ if ne $alert.EndsAt "0001-01-01T00:00:00Z" }}{{ format_time $.Platform $alert.EndsAt }}{{ else }}Ongoing{{ end }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
@@ -17,6 +18,7 @@
 {{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "✅ Resolved Alerts:" }}{{ else }}{{ format_bold .Platform "Resolved Alerts:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "resolved" }}
 {{ format_bold $.Platform (printf "Alert %d:" (add $index 1)) }}
 • Summary: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+{{ if (index $alert.Annotations "description") }}• Description: {{ format_text $.Platform (index $alert.Annotations "description") }}{{ end }}
 • Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
 • Started: {{ format_time $.Platform $alert.StartsAt }}
 • Ended: {{ format_time $.Platform $alert.EndsAt }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"alert-webhooks/config"
+	"alert-webhooks/pkg/alertmodel"
 	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/service"
 	"alert-webhooks/pkg/template"
@@ -173,18 +174,44 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		if templateLanguage == "" {
 			templateLanguage = config.Telegram.TemplateLanguage
 		}
-		// 如果還是沒有設定，預設使用英文
 		if templateLanguage == "" {
 			templateLanguage = "eng"
 		}
-		
-		logger.Info("Language selection debug", "telegram_handler",
-			logger.String("request_language", req.TemplateLanguage),
-			logger.String("config_language", config.Telegram.TemplateLanguage),
-			logger.String("config_mode", config.Telegram.TemplateMode),
-			logger.String("final_language", templateLanguage))
-		
-		// 分別發送觸發中和已解決的警報
+
+		// 使用共用 model 產生模板資料，並透過模板引擎渲染
+		var formatOptions template.FormatOptions
+		if h.templateEngine != nil {
+			formatOptions = h.templateEngine.GetCurrentFormatOptions()
+		} else {
+			formatOptions = h.getFormatOptionsForTelegram()
+		}
+
+		data := alertmodel.BuildTemplateData(
+			req.AlertManagerData.Status,
+			convertAlertSliceToMap(req.AlertManagerData.Alerts),
+			convertStringMapToInterface(req.AlertManagerData.GroupLabels),
+			convertStringMapToInterface(req.AlertManagerData.CommonLabels),
+			convertStringMapToInterface(req.AlertManagerData.CommonAnnotations),
+			req.AlertManagerData.ExternalURL,
+			formatOptions,
+		)
+
+		// 透過模板引擎渲染（含語言回退）
+		actualLanguage := templateLanguage
+		if h.templateEngine != nil {
+			actualLanguage = h.templateEngine.GetDefaultLanguage(templateLanguage)
+			msg, rerr := h.templateEngine.RenderTemplateForPlatform(actualLanguage, "telegram", data)
+			if rerr == nil {
+				if err := h.telegramService.SendMessage(level, msg); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to send message: " + err.Error()})
+					return
+				}
+				c.JSON(http.StatusOK, SendMessageResponse{Success: true, Message: "Successfully sent message to Telegram", Level: level})
+				return
+			}
+		}
+
+		// 若模板引擎不可用或渲染失敗，使用既有的分離發送備援
 		err = h.sendSeparateAlertMessages(req.AlertManagerData, templateLanguage, level)
 		if err != nil {
 			logger.Error("Failed to send alert messages", "telegram_handler",
@@ -219,6 +246,36 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		Level:   level,
 	})
 }
+// convertAlertSliceToMap 將 Alert 結構切片轉為通用 map 切片
+func convertAlertSliceToMap(alerts []Alert) []map[string]interface{} {
+    res := make([]map[string]interface{}, 0, len(alerts))
+    for _, a := range alerts {
+        m := map[string]interface{}{
+            "status":       a.Status,
+            "labels":       convertStringMapToInterface(a.Labels),
+            "annotations":  convertStringMapToInterface(a.Annotations),
+            "startsAt":     a.StartsAt,
+            "endsAt":       a.EndsAt,
+            "generatorURL": a.GeneratorURL,
+            "fingerprint":  a.Fingerprint,
+        }
+        res = append(res, m)
+    }
+    return res
+}
+
+// convertStringMapToInterface 將 map[string]string 轉為 map[string]interface{}
+func convertStringMapToInterface(m map[string]string) map[string]interface{} {
+    if m == nil {
+        return nil
+    }
+    res := make(map[string]interface{}, len(m))
+    for k, v := range m {
+        res[k] = v
+    }
+    return res
+}
+
 
 // GetBotInfo 獲取機器人資訊
 // @Summary 獲取機器人資訊
@@ -482,6 +539,10 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 				if alert.Status == "firing" {
 					message.WriteString(fmt.Sprintf("\n*警報 %d:*\n", i+1))
 					message.WriteString(fmt.Sprintf("• 摘要: %s\n", escapeText(alert.Annotations["summary"])))
+					// 若提供 description，則補充描述
+					if desc, ok := alert.Annotations["description"]; ok && desc != "" {
+						message.WriteString(fmt.Sprintf("• 描述: %s\n", escapeText(desc)))
+					}
 					message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(alert.Labels["pod"])))
 					message.WriteString(fmt.Sprintf("• 開始時間: %s\n", escapeText(h.formatTime(alert.StartsAt))))
 					if alert.EndsAt != "0001-01-01T00:00:00Z" {
@@ -500,6 +561,10 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 				if alert.Status == "resolved" {
 					message.WriteString(fmt.Sprintf("\n*警報 %d:*\n", i+1))
 					message.WriteString(fmt.Sprintf("• 摘要: %s\n", escapeText(alert.Annotations["summary"])))
+					// 若提供 description，則補充描述
+					if desc, ok := alert.Annotations["description"]; ok && desc != "" {
+						message.WriteString(fmt.Sprintf("• 描述: %s\n", escapeText(desc)))
+					}
 					message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(alert.Labels["pod"])))
 					message.WriteString(fmt.Sprintf("• 開始時間: %s\n", escapeText(h.formatTime(alert.StartsAt))))
 					message.WriteString(fmt.Sprintf("• 結束時間: %s\n", escapeText(h.formatTime(alert.EndsAt))))
@@ -542,6 +607,10 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 				if alert.Status == "firing" {
 					message.WriteString(fmt.Sprintf("\n*Alert %d:*\n", i+1))
 					message.WriteString(fmt.Sprintf("• Summary: %s\n", escapeText(alert.Annotations["summary"])))
+					// If description provided, add it
+					if desc, ok := alert.Annotations["description"]; ok && desc != "" {
+						message.WriteString(fmt.Sprintf("• Description: %s\n", escapeText(desc)))
+					}
 					message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(alert.Labels["pod"])))
 					message.WriteString(fmt.Sprintf("• Started: %s\n", escapeText(h.formatTime(alert.StartsAt))))
 					if alert.EndsAt != "0001-01-01T00:00:00Z" {
@@ -560,6 +629,10 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 				if alert.Status == "resolved" {
 					message.WriteString(fmt.Sprintf("\n*Alert %d:*\n", i+1))
 					message.WriteString(fmt.Sprintf("• Summary: %s\n", escapeText(alert.Annotations["summary"])))
+					// If description provided, add it
+					if desc, ok := alert.Annotations["description"]; ok && desc != "" {
+						message.WriteString(fmt.Sprintf("• Description: %s\n", escapeText(desc)))
+					}
 					message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(alert.Labels["pod"])))
 					message.WriteString(fmt.Sprintf("• Started: %s\n", escapeText(h.formatTime(alert.StartsAt))))
 					message.WriteString(fmt.Sprintf("• Ended: %s\n", escapeText(h.formatTime(alert.EndsAt))))
