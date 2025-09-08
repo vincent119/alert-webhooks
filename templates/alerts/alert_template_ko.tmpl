@@ -10,6 +10,7 @@
 {{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "🚨 발생중인 알림:" }}{{ else }}{{ format_bold .Platform "발생중인 알림:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "firing" }}
 {{ format_bold $.Platform (printf "알림 %d:" (add $index 1)) }}
 • 요약: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+{{ if (index $alert.Annotations "description") }}• 설명: {{ format_text $.Platform (index $alert.Annotations "description") }}{{ end }}
 • Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
 • 시작 시간: {{ format_time $.Platform $alert.StartsAt }}
 • 종료 시간: {{ if ne $alert.EndsAt "0001-01-01T00:00:00Z" }}{{ format_time $.Platform $alert.EndsAt }}{{ else }}진행 중{{ end }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
@@ -17,6 +18,7 @@
 {{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "✅ 해결된 알림:" }}{{ else }}{{ format_bold .Platform "해결된 알림:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "resolved" }}
 {{ format_bold $.Platform (printf "알림 %d:" (add $index 1)) }}
 • 요약: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+{{ if (index $alert.Annotations "description") }}• 설명: {{ format_text $.Platform (index $alert.Annotations "description") }}{{ end }}
 • Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
 • 시작 시간: {{ format_time $.Platform $alert.StartsAt }}
 • 종료 시간: {{ format_time $.Platform $alert.EndsAt }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}

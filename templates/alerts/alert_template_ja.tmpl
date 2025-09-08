@@ -10,6 +10,7 @@
 {{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "🚨 発生中のアラート:" }}{{ else }}{{ format_bold .Platform "発生中のアラート:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "firing" }}
 {{ format_bold $.Platform (printf "アラート %d:" (add $index 1)) }}
 • サマリー: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+{{ if (index $alert.Annotations "description") }}• 説明: {{ format_text $.Platform (index $alert.Annotations "description") }}{{ end }}
 • Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
 • 開始時刻: {{ format_time $.Platform $alert.StartsAt }}
 • 終了時刻: {{ if ne $alert.EndsAt "0001-01-01T00:00:00Z" }}{{ format_time $.Platform $alert.EndsAt }}{{ else }}進行中{{ end }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
@@ -17,6 +18,7 @@
 {{ if .FormatOptions.ShowEmoji.Enabled }}{{ format_bold .Platform "✅ 解決済みのアラート:" }}{{ else }}{{ format_bold .Platform "解決済みのアラート:" }}{{ end }}{{ range $index, $alert := .Alerts }}{{ if eq $alert.Status "resolved" }}
 {{ format_bold $.Platform (printf "アラート %d:" (add $index 1)) }}
 • サマリー: {{ format_text $.Platform (index $alert.Annotations "summary") }}
+{{ if (index $alert.Annotations "description") }}• 説明: {{ format_text $.Platform (index $alert.Annotations "description") }}{{ end }}
 • Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
 • 開始時刻: {{ format_time $.Platform $alert.StartsAt }}
 • 終了時刻: {{ format_time $.Platform $alert.EndsAt }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
