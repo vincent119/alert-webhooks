@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"alert-webhooks/config"
+	"alert-webhooks/pkg/alertmodel"
 	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/notification/types"
 	"alert-webhooks/pkg/service"
@@ -510,31 +511,28 @@ func (h *Handler) generateAlertManagerMessage(alertData json.RawMessage) (string
 		return h.generateBuiltInMessage(alertData)
 	}
 
-		// Try to use template engine if available
+	// Try to use template engine if available
 	serviceManager := service.GetServiceManager()
 	if serviceManager != nil {
 		templateEngine := serviceManager.GetTemplateEngine()
 		if templateEngine != nil {
-			// Get template configuration
-			templateLanguage := config.Conf.Discord.TemplateLanguage
-			if templateLanguage == "" {
-				templateLanguage = "tw" // Default to Traditional Chinese
-			}
+			formatOptions := templateEngine.GetCurrentFormatOptions()
+			data := alertmodel.BuildTemplateData(
+				req.Status,
+				req.Alerts,
+				req.GroupLabels,
+				req.CommonLabels,
+				req.CommonAnnotations,
+				req.ExternalURL,
+				formatOptions,
+			)
 
-			// Convert AlertManagerData to TemplateData
-			templateData, err := h.convertToTemplateData(req)
-			if err != nil {
-				logger.Error("Failed to convert AlertManager data to template data", "DiscordHandler", logger.String("error", err.Error()))
-				return h.generateBuiltInMessage(alertData)
+			language := config.Conf.Discord.TemplateLanguage
+			if language == "" {
+				language = "tw"
 			}
-
-			// 套用模板引擎當前的 FormatOptions，與配置檔一致
-			if templateEngine != nil {
-				templateData.FormatOptions = templateEngine.GetCurrentFormatOptions()
-			}
-
-			// Use template engine to render message for Discord platform
-			message, err := templateEngine.RenderTemplateForPlatform(templateLanguage, "discord", *templateData)
+			actual := templateEngine.GetDefaultLanguage(language)
+			message, err := templateEngine.RenderTemplateForPlatform(actual, "discord", data)
 			if err != nil {
 				logger.Error("Failed to render template, falling back to built-in", "DiscordHandler", logger.String("error", err.Error()))
 				return h.generateBuiltInMessage(alertData)

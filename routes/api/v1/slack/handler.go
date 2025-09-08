@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"alert-webhooks/config"
+	"alert-webhooks/pkg/alertmodel"
 	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/service"
 	"alert-webhooks/pkg/template"
@@ -257,8 +258,34 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 	if req.Message != "" {
 		message = req.Message
 	} else if isRawAlertManager {
-		// 處理原始 AlertManager JSON 格式
-		message = h.formatAlertManagerMessage(&req)
+		// 使用共用模型 + 模板引擎渲染 Slack 訊息
+		serviceManager := service.GetServiceManager()
+		te := serviceManager.GetTemplateEngine()
+		formatOptions := template.FormatOptions{}
+		if te != nil {
+			formatOptions = te.GetCurrentFormatOptions()
+		}
+		data := alertmodel.BuildTemplateData(
+			req.Status,
+			req.Alerts,
+			req.GroupLabels,
+			req.CommonLabels,
+			req.CommonAnnotations,
+			req.ExternalURL,
+			formatOptions,
+		)
+		lang := config.Slack.TemplateLanguage
+		if lang == "" { lang = "eng" }
+		if te != nil {
+			actual := te.GetDefaultLanguage(lang)
+			if msg, err := te.RenderTemplateForPlatform(actual, "slack", data); err == nil {
+				message = msg
+			} else {
+				message = h.generateBuiltInSlackMessage(&req, data.FiringCount, data.ResolvedCount, data.AlertName, data.Env, data.Severity, data.Namespace)
+			}
+		} else {
+			message = h.generateBuiltInSlackMessage(&req, data.FiringCount, data.ResolvedCount, data.AlertName, data.Env, data.Severity, data.Namespace)
+		}
 	} else {
 		// 處理包裝格式的 AlertManager 數據
 		message = "AlertManager notification (wrapped format - template integration pending)"
