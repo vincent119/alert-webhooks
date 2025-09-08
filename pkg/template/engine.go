@@ -583,6 +583,7 @@ func (te *TemplateEngine) convertJinja2ToGoTemplate(content string) string {
 	result = strings.ReplaceAll(result, "{{ loop.index }}", "{{ add $index 1 }}")
 	result = strings.ReplaceAll(result, "alert.status", "$alert.Status")
 	result = strings.ReplaceAll(result, "alert.annotations.summary", "index $alert.Annotations \"summary\"")
+	result = strings.ReplaceAll(result, "alert.annotations.description", "index $alert.Annotations \"description\"")
 	result = strings.ReplaceAll(result, "alert.labels.pod", "index $alert.Labels \"pod\"")
 	result = strings.ReplaceAll(result, "alert.startsAt", "$alert.StartsAt")
 	result = strings.ReplaceAll(result, "alert.endsAt", "$alert.EndsAt")
