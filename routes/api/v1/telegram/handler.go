@@ -1,3 +1,4 @@
+// Package telegram 提供 Telegram 相關的路由處理功能，包括訊息發送和機器人資訊查詢
 package telegram
 
 import (
@@ -143,19 +144,60 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		return
 	}
 	
+	// Debug 模式下記錄接收到的 JSON 數據
+	if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" {
+		logger.Debug("Received JSON request body", "telegram_handler",
+			logger.String("chatid", chatIDParam),
+			logger.String("level", levelStr),
+			logger.String("raw_body", string(body)),
+			logger.String("content_type", c.GetHeader("Content-Type")),
+			logger.String("user_agent", c.GetHeader("User-Agent")),
+			logger.String("remote_addr", c.ClientIP()))
+	}
+	
 	// 嘗試解析為標準格式
 	if parseErr := c.ShouldBindJSON(&req); parseErr != nil {
+		// Debug 模式下記錄標準格式解析失敗的情況
+		if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" {
+			logger.Debug("Standard format parsing failed, trying AlertManager format", "telegram_handler",
+				logger.String("parse_error", parseErr.Error()))
+		}
+		
 		// 如果標準格式解析失敗，嘗試解析為直接的 AlertManager 格式
 		var alertManagerData AlertManagerWebhook
 		if unmarshalErr := json.Unmarshal(body, &alertManagerData); unmarshalErr != nil {
+			// Debug 模式下記錄 AlertManager 格式解析失敗的情況
+			if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" {
+				logger.Debug("AlertManager format parsing also failed", "telegram_handler",
+					logger.String("unmarshal_error", unmarshalErr.Error()),
+					logger.String("body_preview", getBodyPreview(body)))
+			}
+			
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
 				"message": "Invalid request body format: " + unmarshalErr.Error(),
 			})
 			return
 		}
+		
+		// Debug 模式下記錄成功解析為 AlertManager 格式
+		if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" {
+			logger.Debug("Successfully parsed as AlertManager format", "telegram_handler",
+				logger.String("status", alertManagerData.Status),
+				logger.Int("alerts_count", len(alertManagerData.Alerts)),
+				logger.String("receiver", alertManagerData.Receiver))
+		}
+		
 		// 直接設置 AlertManager 數據
 		req.AlertManagerData = &alertManagerData
+	} else {
+		// Debug 模式下記錄成功解析為標準格式
+		if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" {
+			logger.Debug("Successfully parsed as standard format", "telegram_handler",
+				logger.String("message_length", fmt.Sprintf("%d", len(req.Message))),
+				logger.String("template_language", req.TemplateLanguage),
+				logger.Bool("has_alertmanager_data", req.AlertManagerData != nil))
+		}
 	}
 	
 	// 驗證訊息內容 - 允許 AlertManager 數據或普通訊息
@@ -202,8 +244,8 @@ func (h *Handler) SendMessage(c *gin.Context) {
 			actualLanguage = h.templateEngine.GetDefaultLanguage(templateLanguage)
 			msg, rerr := h.templateEngine.RenderTemplateForPlatform(actualLanguage, "telegram", data)
 			if rerr == nil {
-				if err := h.telegramService.SendMessage(level, msg); err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to send message: " + err.Error()})
+				if sendErr := h.telegramService.SendMessage(level, msg); sendErr != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to send message: " + sendErr.Error()})
 					return
 				}
 				c.JSON(http.StatusOK, SendMessageResponse{Success: true, Message: "Successfully sent message to Telegram", Level: level})
@@ -543,7 +585,9 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 					if desc, ok := alert.Annotations["description"]; ok && desc != "" {
 						message.WriteString(fmt.Sprintf("• 描述: %s\n", escapeText(desc)))
 					}
-					message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(alert.Labels["pod"])))
+					if pod := alert.Labels["pod"]; pod != "" {
+						message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(pod)))
+					}
 					message.WriteString(fmt.Sprintf("• 開始時間: %s\n", escapeText(h.formatTime(alert.StartsAt))))
 					if alert.EndsAt != "0001-01-01T00:00:00Z" {
 						message.WriteString(fmt.Sprintf("• 結束時間: %s\n", escapeText(h.formatTime(alert.EndsAt))))
@@ -565,7 +609,9 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 					if desc, ok := alert.Annotations["description"]; ok && desc != "" {
 						message.WriteString(fmt.Sprintf("• 描述: %s\n", escapeText(desc)))
 					}
-					message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(alert.Labels["pod"])))
+					if pod := alert.Labels["pod"]; pod != "" {
+						message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(pod)))
+					}
 					message.WriteString(fmt.Sprintf("• 開始時間: %s\n", escapeText(h.formatTime(alert.StartsAt))))
 					message.WriteString(fmt.Sprintf("• 結束時間: %s\n", escapeText(h.formatTime(alert.EndsAt))))
 					if formatOptions.ShowGeneratorURL.Enabled && alert.GeneratorURL != "" {
@@ -611,7 +657,9 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 					if desc, ok := alert.Annotations["description"]; ok && desc != "" {
 						message.WriteString(fmt.Sprintf("• Description: %s\n", escapeText(desc)))
 					}
-					message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(alert.Labels["pod"])))
+					if pod := alert.Labels["pod"]; pod != "" {
+						message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(pod)))
+					}
 					message.WriteString(fmt.Sprintf("• Started: %s\n", escapeText(h.formatTime(alert.StartsAt))))
 					if alert.EndsAt != "0001-01-01T00:00:00Z" {
 						message.WriteString(fmt.Sprintf("• Ended: %s\n", escapeText(h.formatTime(alert.EndsAt))))
@@ -633,7 +681,9 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 					if desc, ok := alert.Annotations["description"]; ok && desc != "" {
 						message.WriteString(fmt.Sprintf("• Description: %s\n", escapeText(desc)))
 					}
-					message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(alert.Labels["pod"])))
+					if pod := alert.Labels["pod"]; pod != "" {
+						message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(pod)))
+					}
 					message.WriteString(fmt.Sprintf("• Started: %s\n", escapeText(h.formatTime(alert.StartsAt))))
 					message.WriteString(fmt.Sprintf("• Ended: %s\n", escapeText(h.formatTime(alert.EndsAt))))
 					if formatOptions.ShowGeneratorURL.Enabled && alert.GeneratorURL != "" {
@@ -746,4 +796,13 @@ func (h *Handler) getFormatOptionsForTelegram() template.FormatOptions {
 			}{Enabled: false, Description: "緊湊模式（簡化顯示）"},
 		}
 	}
+}
+
+// getBodyPreview 取得請求體的預覽內容，限制長度避免日誌過長
+func getBodyPreview(body []byte) string {
+	const maxPreviewLength = 200
+	if len(body) <= maxPreviewLength {
+		return string(body)
+	}
+	return string(body[:maxPreviewLength]) + "..."
 }

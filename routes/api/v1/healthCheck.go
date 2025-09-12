@@ -1,3 +1,4 @@
+// Package v1 提供 API V1 路由處理功能，包括健康檢查和 API 路由註冊
 package v1
 
 import (
