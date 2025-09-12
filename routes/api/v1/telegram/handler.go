@@ -145,7 +145,21 @@ func (h *Handler) SendMessage(c *gin.Context) {
 	}
 	
 	// Debug 模式下記錄接收到的 JSON 數據
-	if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" {
+	// 檢查是否為開發環境或 debug 模式，並且日誌級別允許 debug 輸出
+	isDev := config.IsDevelopment()
+	isDebugMode := strings.ToLower(config.App.Mode) == "debug"
+	isDebugLevel := strings.ToLower(config.Log.Level) == "debug"
+	
+	// 先記錄條件判斷的結果用於調試
+	logger.Info("Debug condition check", "telegram_handler",
+		logger.Bool("is_development", isDev),
+		logger.Bool("is_debug_mode", isDebugMode),
+		logger.Bool("is_debug_level", isDebugLevel),
+		logger.String("app_mode", config.App.Mode),
+		logger.String("log_level", config.Log.Level))
+	
+	// 如果滿足任一條件就輸出 debug 日誌
+	if isDev || isDebugMode || isDebugLevel {
 		logger.Debug("Received JSON request body", "telegram_handler",
 			logger.String("chatid", chatIDParam),
 			logger.String("level", levelStr),
@@ -158,7 +172,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 	// 嘗試解析為標準格式
 	if parseErr := c.ShouldBindJSON(&req); parseErr != nil {
 		// Debug 模式下記錄標準格式解析失敗的情況
-		if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" {
+		if isDev || isDebugMode || isDebugLevel {
 			logger.Debug("Standard format parsing failed, trying AlertManager format", "telegram_handler",
 				logger.String("parse_error", parseErr.Error()))
 		}
@@ -167,7 +181,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		var alertManagerData AlertManagerWebhook
 		if unmarshalErr := json.Unmarshal(body, &alertManagerData); unmarshalErr != nil {
 			// Debug 模式下記錄 AlertManager 格式解析失敗的情況
-			if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" {
+			if isDev || isDebugMode || isDebugLevel {
 				logger.Debug("AlertManager format parsing also failed", "telegram_handler",
 					logger.String("unmarshal_error", unmarshalErr.Error()),
 					logger.String("body_preview", getBodyPreview(body)))
@@ -181,7 +195,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		}
 		
 		// Debug 模式下記錄成功解析為 AlertManager 格式
-		if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" {
+		if isDev || isDebugMode || isDebugLevel {
 			logger.Debug("Successfully parsed as AlertManager format", "telegram_handler",
 				logger.String("status", alertManagerData.Status),
 				logger.Int("alerts_count", len(alertManagerData.Alerts)),
@@ -192,7 +206,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		req.AlertManagerData = &alertManagerData
 	} else {
 		// Debug 模式下記錄成功解析為標準格式
-		if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" {
+		if isDev || isDebugMode || isDebugLevel {
 			logger.Debug("Successfully parsed as standard format", "telegram_handler",
 				logger.String("message_length", fmt.Sprintf("%d", len(req.Message))),
 				logger.String("template_language", req.TemplateLanguage),
