@@ -1,3 +1,4 @@
+// Package telegram 提供 Telegram 相關的路由處理功能，包括訊息發送和機器人資訊查詢
 package telegram
 
 import (

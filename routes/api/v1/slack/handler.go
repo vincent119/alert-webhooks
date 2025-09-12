@@ -772,7 +772,7 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 				
 				// 顯示標籤
 				if labels, ok := alert["labels"].(map[string]interface{}); ok {
-					if pod, ok := labels["pod"].(string); ok {
+					if pod, ok := labels["pod"].(string); ok && pod != "" {
 						message.WriteString(fmt.Sprintf("• Pod: %s\n", pod))
 					}
 				}
@@ -804,7 +804,7 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 				
 				// 顯示標籤
 				if labels, ok := alert["labels"].(map[string]interface{}); ok {
-					if pod, ok := labels["pod"].(string); ok {
+					if pod, ok := labels["pod"].(string); ok && pod != "" {
 						message.WriteString(fmt.Sprintf("• Pod: %s\n", pod))
 					}
 				}
