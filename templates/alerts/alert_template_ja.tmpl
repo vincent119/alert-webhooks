@@ -11,7 +11,7 @@
 {{ format_bold $.Platform (printf "アラート %d:" (add $index 1)) }}
 • サマリー: {{ format_text $.Platform (index $alert.Annotations "summary") }}
 {{ if (index $alert.Annotations "description") }}• 説明: {{ format_text $.Platform (index $alert.Annotations "description") }}{{ end }}
-• Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
+{{ if (index $alert.Labels "pod") }}• Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ end }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
 • 開始時刻: {{ format_time $.Platform $alert.StartsAt }}
 • 終了時刻: {{ if ne $alert.EndsAt "0001-01-01T00:00:00Z" }}{{ format_time $.Platform $alert.EndsAt }}{{ else }}進行中{{ end }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
 • {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "詳細を見る" }}{{ end }}{{ end }}{{ end }}{{ end }}{{ if gt .ResolvedCount 0 }}
@@ -19,7 +19,7 @@
 {{ format_bold $.Platform (printf "アラート %d:" (add $index 1)) }}
 • サマリー: {{ format_text $.Platform (index $alert.Annotations "summary") }}
 {{ if (index $alert.Annotations "description") }}• 説明: {{ format_text $.Platform (index $alert.Annotations "description") }}{{ end }}
-• Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
+{{ if (index $alert.Labels "pod") }}• Pod: {{ format_code $.Platform (index $alert.Labels "pod") }}{{ end }}{{ if $.FormatOptions.ShowTimestamps.Enabled }}
 • 開始時刻: {{ format_time $.Platform $alert.StartsAt }}
 • 終了時刻: {{ format_time $.Platform $alert.EndsAt }}{{ end }}{{ if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
 • {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "詳細を見る" }}{{ end }}{{ end }}{{ end }}{{ end }}{{ if and .FormatOptions.ShowExternalURL.Enabled .ExternalURL }}

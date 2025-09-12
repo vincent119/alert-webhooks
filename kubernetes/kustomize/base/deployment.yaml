@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: alert-webhooks
-          image: 952149722289.dkr.ecr.ap-northeast-1.amazonaws.com/alert-webhooks:v1.0
+          image: vincent119/alert-webhooks:v1.0.0
           ports:
             - containerPort: 9999
           env:

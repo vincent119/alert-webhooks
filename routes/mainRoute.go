@@ -1,3 +1,4 @@
+// Package routes 提供主路由配置和相關功能
 package routes
 
 import (
