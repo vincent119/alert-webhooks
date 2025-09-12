@@ -45,7 +45,12 @@ func (sm *ServiceManager) InitServices() error {
 		telegramService, err := NewTelegramService(config.Telegram.Token)
 		if err != nil {
 			logger.Error("Failed to initialize Telegram service", "service_manager", logger.Err(err))
-			// 不返回錯誤，讓其他服務繼續運行
+			logger.Warn("Telegram service will run in degraded mode - routes will be registered but may not work properly", "service_manager")
+			// 創建一個降級的服務實例，允許路由註冊但功能受限
+			sm.telegramService = &TelegramService{
+				bot:     nil, // bot 為 nil 表示降級模式
+				chatIDs: make(map[int]int64),
+			}
 		} else {
 			sm.telegramService = telegramService
 			logger.Info("Telegram service initialized successfully", "service_manager")

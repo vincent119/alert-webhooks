@@ -1,10 +1,13 @@
+// Package service 提供 Telegram 服務的實現
 package service
 
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"alert-webhooks/config"
 	"alert-webhooks/pkg/logger"
@@ -26,9 +29,50 @@ func NewTelegramService(token string) (*TelegramService, error) {
 		return nil, fmt.Errorf("telegram token is required")
 	}
 
-	b, err := bot.New(token)
+	// 創建自定義的 HTTP 客戶端，設置較長的超時時間
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second, // 增加超時時間到 30 秒
+	}
+
+	// 使用自定義 HTTP 客戶端創建 bot
+	opts := []bot.Option{
+		bot.WithHTTPClient(30*time.Second, httpClient),
+	}
+
+	logger.Info("Creating Telegram bot with extended timeout", "telegram_service",
+		logger.String("timeout", "30s"))
+
+	// 嘗試多次創建 bot，處理網絡連接問題
+	var b *bot.Bot
+	var err error
+	maxRetries := 3
+	
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		logger.Info("Attempting to create Telegram bot", "telegram_service",
+			logger.Int("attempt", attempt),
+			logger.Int("max_attempts", maxRetries))
+			
+		b, err = bot.New(token, opts...)
+		if err == nil {
+			logger.Info("Telegram bot created successfully", "telegram_service",
+				logger.Int("attempt", attempt))
+			break
+		}
+		
+		logger.Warn("Failed to create Telegram bot", "telegram_service",
+			logger.Int("attempt", attempt),
+			logger.Err(err))
+			
+		if attempt < maxRetries {
+			backoffTime := time.Duration(attempt) * 2 * time.Second
+			logger.Info("Retrying in", "telegram_service",
+				logger.String("backoff", backoffTime.String()))
+			time.Sleep(backoffTime)
+		}
+	}
+	
 	if err != nil {
-		return nil, fmt.Errorf("failed to create bot: %v", err)
+		return nil, fmt.Errorf("failed to create bot after %d attempts: %v", maxRetries, err)
 	}
 
 	// 從配置檔案讀取 chat_id 映射
@@ -113,9 +157,17 @@ func (ts *TelegramService) testConnection() error {
 // SendMessage send message to specified level chat
 func (ts *TelegramService) SendMessage(level int, message string) error {
 	ts.mu.RLock()
-	chatID, exists := ts.chatIDs[level]
-	ts.mu.RUnlock()
+	defer ts.mu.RUnlock()
+	
+	// 檢查是否為降級模式
+	if ts.bot == nil {
+		logger.Error("Telegram service is in degraded mode - bot not available", "telegram_service",
+			logger.Int("level", level),
+			logger.String("message_preview", getMessagePreview(message)))
+		return fmt.Errorf("telegram service is in degraded mode - bot initialization failed")
+	}
 
+	chatID, exists := ts.chatIDs[level]
 	if !exists {
 		return fmt.Errorf("no chat ID configured for level %d", level)
 	}
@@ -143,6 +195,15 @@ func (ts *TelegramService) SendMessage(level int, message string) error {
 		logger.String("message", message))
 
 	return nil
+}
+
+// getMessagePreview 取得消息的預覽內容，限制長度
+func getMessagePreview(message string) string {
+	const maxPreviewLength = 100
+	if len(message) <= maxPreviewLength {
+		return message
+	}
+	return message[:maxPreviewLength] + "..."
 }
 
 // SetChatID 設定指定等級的 chat_id
