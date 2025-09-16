@@ -179,20 +179,47 @@ func (ts *TelegramService) SendMessage(level int, message string) error {
 		ParseMode: models.ParseModeHTML, // 使用 HTML 格式支持連結
 	}
 
-	_, err := ts.bot.SendMessage(ctx, params)
-	if err != nil {
-		logger.Error("Failed to send Telegram message", "telegram",
+	// 在 debug 模式下記錄發送請求的詳細資訊
+	if config.IsDevelopment() || config.App.Mode == "debug" || config.Log.Level == "debug" {
+		logger.Debug("Sending Telegram message request", "telegram_service",
 			logger.Int("level", level),
 			logger.Int64("chat_id", chatID),
-			logger.String("message", message),
+			logger.String("parse_mode", string(models.ParseModeHTML)),
+			logger.String("message_length", fmt.Sprintf("%d", len(message))),
+			logger.String("message_preview", getMessagePreview(message)))
+	}
+
+	response, err := ts.bot.SendMessage(ctx, params)
+	if err != nil {
+		logger.Error("Failed to send Telegram message", "telegram_service",
+			logger.Int("level", level),
+			logger.Int64("chat_id", chatID),
+			logger.String("message_preview", getMessagePreview(message)),
 			logger.Err(err))
 		return err
 	}
 
-	logger.Info("Telegram message sent successfully", "telegram",
+	// 在 debug 模式下記錄 Telegram server 的詳細回應
+	if config.IsDevelopment() || config.App.Mode == "debug" || config.Log.Level == "debug" {
+		logger.Debug("Telegram server response received", "telegram_service",
+			logger.Int("level", level),
+			logger.Int64("chat_id", chatID),
+			logger.Int("message_id", response.ID),
+			logger.String("from_username", response.From.Username),
+			logger.String("from_first_name", response.From.FirstName),
+			logger.Bool("from_is_bot", response.From.IsBot),
+			logger.Int64("chat_id_response", response.Chat.ID),
+			logger.String("chat_type", string(response.Chat.Type)),
+			logger.String("chat_title", response.Chat.Title),
+			logger.Int("date", response.Date),
+			logger.String("response_text_preview", getMessagePreview(response.Text)))
+	}
+
+	logger.Info("Telegram message sent successfully", "telegram_service",
 		logger.Int("level", level),
 		logger.Int64("chat_id", chatID),
-		logger.String("message", message))
+		logger.Int("message_id", response.ID),
+		logger.String("message_preview", getMessagePreview(message)))
 
 	return nil
 }

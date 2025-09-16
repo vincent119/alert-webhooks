@@ -70,6 +70,26 @@ func (tp *TelegramProvider) SendMessage(ctx context.Context, req *types.Notifica
 		return fmt.Errorf("invalid level format: %v", err)
 	}
 	
+	// 在 debug 模式下記錄發送前的詳細資訊
+	if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" || strings.ToLower(config.Log.Level) == "debug" {
+		// 計算訊息預覽長度
+		previewLength := len(req.Message)
+		if previewLength > 100 {
+			previewLength = 100
+		}
+		messagePreview := req.Message[:previewLength]
+		if len(req.Message) > 100 {
+			messagePreview += "..."
+		}
+		
+		logger.Debug("Telegram provider sending message", "telegram_provider",
+			logger.String("level", req.Level),
+			logger.String("chat_id", req.ChatID),
+			logger.Int("parsed_level", level),
+			logger.String("message_length", fmt.Sprintf("%d", len(req.Message))),
+			logger.String("message_preview", messagePreview))
+	}
+	
 	// Send message
 	err = tp.telegramService.SendMessage(level, req.Message)
 	if err != nil {
@@ -85,7 +105,8 @@ func (tp *TelegramProvider) SendMessage(ctx context.Context, req *types.Notifica
 	tp.stats.LastMessageTime = time.Now().Unix()
 	
 	logger.Info("Telegram message sent successfully", "telegram_provider",
-		logger.Int("level", level))
+		logger.Int("level", level),
+		logger.Int64("messages_sent_total", tp.stats.MessagesSent))
 	
 	return nil
 }
