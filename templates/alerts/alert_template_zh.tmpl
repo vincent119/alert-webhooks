@@ -16,7 +16,6 @@
   {{- if .FormatOptions.ShowEmoji.Enabled }}✅ {{ end -}}
   {{- format_bold .Platform "警报已解决" }}
 {{- end }}
-
 {{/* 基本信息区块 */}}
 {{ format_bold .Platform "状态:" }} {{ format_text .Platform .Status }}
 {{ format_italic .Platform "警报名称:" }} {{ format_text .Platform .AlertName }}
@@ -26,12 +25,11 @@
 {{/* 统计信息区块 */}}
 {{ format_italic .Platform "总警报数:" }} {{ .TotalAlerts }}
 {{- if gt .FiringCount 0 }}
-{{ format_italic .Platform "触发中:" }} {{ .FiringCount }}
+{{ format_italic .Platform "触发中:" }} {{ .FiringCount -}}
 {{- end }}
 {{- if gt .ResolvedCount 0 }}
-{{ format_italic .Platform "已解决:" }} {{ .ResolvedCount }}
-{{- end }}
-
+{{ format_italic .Platform "已解决:" }} {{ .ResolvedCount -}}
+{{- end -}}
 {{/* 触发中的警报详情区块 */}}
 {{- if gt .FiringCount 0 }}
 {{- if .FormatOptions.ShowEmoji.Enabled }}
@@ -56,8 +54,7 @@
     {{- end }}
     
     {{- if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
-• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "查看详情" }}
-    {{- end }}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "查看详情" }}{{- end -}}
     
   {{- end }}
 {{- end }}
@@ -87,12 +84,11 @@
     {{- end }}
     
     {{- if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
-• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "查看详情" }}
-    {{- end }}
-  {{- end }}
-{{- end }}
-{{- end }}
-{{/* 外部链接区块 */}}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "查看详情" }}{{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- /* 外部链接区块 */ -}}
 {{- if and .FormatOptions.ShowExternalURL.Enabled .ExternalURL }}
-•{{ if .FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link .Platform .ExternalURL "查看所有警报详情" }}
+• {{ if .FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link .Platform .ExternalURL "查看所有警报详情" }}
 {{- end }}

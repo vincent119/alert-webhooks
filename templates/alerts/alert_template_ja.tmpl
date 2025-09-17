@@ -16,7 +16,6 @@
   {{- if .FormatOptions.ShowEmoji.Enabled }}✅ {{ end -}}
   {{- format_bold .Platform "アラート解決済み" }}
 {{- end }}
-
 {{/* 基本情報セクション */}}
 {{ format_bold .Platform "ステータス:" }} {{ format_text .Platform .Status }}
 {{ format_italic .Platform "アラート名:" }} {{ format_text .Platform .AlertName }}
@@ -26,12 +25,11 @@
 {{/* 統計情報セクション */}}
 {{ format_italic .Platform "アラート総数:" }} {{ .TotalAlerts }}
 {{- if gt .FiringCount 0 }}
-{{ format_italic .Platform "発生中:" }} {{ .FiringCount }}
+{{ format_italic .Platform "発生中:" }} {{ .FiringCount -}}
 {{- end }}
 {{- if gt .ResolvedCount 0 }}
-{{ format_italic .Platform "解決済み:" }} {{ .ResolvedCount }}
-{{- end }}
-
+{{ format_italic .Platform "解決済み:" }} {{ .ResolvedCount -}}
+{{- end -}}
 {{/* 発生中のアラート詳細セクション */}}
 {{- if gt .FiringCount 0 }}
 {{- if .FormatOptions.ShowEmoji.Enabled }}
@@ -56,8 +54,7 @@
     {{- end }}
     
     {{- if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
-• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "詳細を見る" }}
-    {{- end }}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "詳細を見る" }}{{- end -}}
     
   {{- end }}
 {{- end }}
@@ -87,12 +84,11 @@
     {{- end }}
     
     {{- if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
-• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "詳細を見る" }}
-    {{- end }}
-  {{- end }}
-{{- end }}
-{{- end }}
-{{/* 外部リンクセクション */}}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "詳細を見る" }}{{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- /* 外部リンクセクション */ -}}
 {{- if and .FormatOptions.ShowExternalURL.Enabled .ExternalURL }}
-•{{ if .FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link .Platform .ExternalURL "すべてのアラート詳細を見る" }}
+• {{ if .FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link .Platform .ExternalURL "すべてのアラート詳細を見る" }}
 {{- end }}

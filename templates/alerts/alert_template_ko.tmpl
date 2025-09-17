@@ -16,7 +16,6 @@
   {{- if .FormatOptions.ShowEmoji.Enabled }}✅ {{ end -}}
   {{- format_bold .Platform "알림 해결됨" }}
 {{- end }}
-
 {{/* 기본 정보 섹션 */}}
 {{ format_bold .Platform "상태:" }} {{ format_text .Platform .Status }}
 {{ format_italic .Platform "알림명:" }} {{ format_text .Platform .AlertName }}
@@ -26,12 +25,11 @@
 {{/* 통계 정보 섹션 */}}
 {{ format_italic .Platform "총 알림 수:" }} {{ .TotalAlerts }}
 {{- if gt .FiringCount 0 }}
-{{ format_italic .Platform "발생중:" }} {{ .FiringCount }}
+{{ format_italic .Platform "발생중:" }} {{ .FiringCount -}}
 {{- end }}
 {{- if gt .ResolvedCount 0 }}
-{{ format_italic .Platform "해결됨:" }} {{ .ResolvedCount }}
-{{- end }}
-
+{{ format_italic .Platform "해결됨:" }} {{ .ResolvedCount -}}
+{{- end -}}
 {{/* 발생중인 알림 상세 섹션 */}}
 {{- if gt .FiringCount 0 }}
 {{- if .FormatOptions.ShowEmoji.Enabled }}
@@ -56,8 +54,7 @@
     {{- end }}
     
     {{- if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
-• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "자세히 보기" }}
-    {{- end }}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "자세히 보기" }}{{- end -}}
     
   {{- end }}
 {{- end }}
@@ -87,12 +84,11 @@
     {{- end }}
     
     {{- if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
-• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "자세히 보기" }}
-    {{- end }}
-  {{- end }}
-{{- end }}
-{{- end }}
-{{/* 외부 링크 섹션 */}}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "자세히 보기" }}{{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- /* 외부 링크 섹션 */ -}}
 {{- if and .FormatOptions.ShowExternalURL.Enabled .ExternalURL }}
-•{{ if .FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link .Platform .ExternalURL "모든 알림 보기" }}
+• {{ if .FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link .Platform .ExternalURL "모든 알림 보기" }}
 {{- end }}

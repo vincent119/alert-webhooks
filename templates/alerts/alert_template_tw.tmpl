@@ -16,22 +16,19 @@
   {{- if .FormatOptions.ShowEmoji.Enabled }}✅ {{ end -}}
   {{- format_bold .Platform "警報已恢復" }}
 {{- end }}
-
 {{/* 基本資訊區塊 */}}
 {{ format_bold .Platform "狀態:" }} {{ format_text .Platform .Status }}
 {{ format_italic .Platform "警報名稱:" }} {{ format_text .Platform .AlertName }}
 {{ format_italic .Platform "環境:" }} {{ format_text .Platform .Env }}
 {{ format_italic .Platform "嚴重程度:" }} {{ format_text .Platform .Severity }}
 {{ format_italic .Platform "命名空間:" }} {{ format_text .Platform .Namespace }}
-{{/* 統計資訊區塊 */}}
-{{ format_italic .Platform "總警報數:" }} {{ .TotalAlerts }}
+{{/* 統計資訊區塊 */}}{{ format_italic .Platform "總警報數:" }} {{ .TotalAlerts }}
 {{- if gt .FiringCount 0 }}
-{{ format_italic .Platform "觸發中:" }} {{ .FiringCount }}
+{{ format_italic .Platform "觸發中:" }} {{ .FiringCount -}}
 {{- end }}
 {{- if gt .ResolvedCount 0 }}
-{{ format_italic .Platform "已恢復:" }} {{ .ResolvedCount }}
-{{- end }}
-
+{{ format_italic .Platform "已恢復:" }} {{ .ResolvedCount -}}
+{{- end -}}
 {{/* 觸發中的警報詳情區塊 */}}
 {{- if gt .FiringCount 0 }}
 {{- if .FormatOptions.ShowEmoji.Enabled }}
@@ -62,9 +59,7 @@
   {{- end }}
 {{- end }}
 {{- end }}
-
-{{/* 已恢復的警報詳情區塊 */}}
-{{- if gt .ResolvedCount 0 }}
+{{/* 已恢復的警報詳情區塊 */}}{{ if gt .ResolvedCount 0 }}
 {{- if .FormatOptions.ShowEmoji.Enabled }}
 {{ format_bold .Platform "✅ 已恢復的警報:" }}
 {{- else }}
@@ -87,12 +82,9 @@
     {{- end }}
     
     {{- if and $.FormatOptions.ShowGeneratorURL.Enabled $alert.GeneratorURL }}
-• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "查看詳情" }}
-    {{- end }}
-  {{- end }}
-{{- end }}
-{{- end }}
-{{/* 外部連結區塊 */}}
+• {{ if $.FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link $.Platform $alert.GeneratorURL "查看詳情" }}{{- end -}}
+  {{- end -}}{{- end -}}{{- end -}}
+{{- /* 外部連結區塊 */ -}}
 {{- if and .FormatOptions.ShowExternalURL.Enabled .ExternalURL }}
 • {{ if .FormatOptions.ShowEmoji.Enabled }}🔗 {{ end }}{{ format_link .Platform .ExternalURL "查看所有警報詳情" }}
 {{- end }}
