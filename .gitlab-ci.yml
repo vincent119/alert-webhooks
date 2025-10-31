@@ -4,17 +4,21 @@ stages:
 variables:
   TimeZone: "Asia/Taipei"
   DOCKER_BUILDKIT: "1"
+  GIT_DEPTH: "0"
+  GIT_STRATEGY: fetch
 
 build_and_push_ecr:
   stage: build_and_push
   tags:
-    - gitlab-runner1-1       
-  only:
-    - main
+    - gitlab-runner1-1
+  rules:
+    - if: "$CI_COMMIT_TAG"
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
   script: |
     set -euo pipefail
     echo "CI_PROJECT_NAME=${CI_PROJECT_NAME}"
-    TAGS="$(git tag --list | sort -V | tail -n1 | sed 's/ //g')"
+    TAGS="${CI_COMMIT_TAG:-$(git describe --tags --abbrev=0 --always)}"
     if [ -z "${TAGS}" ]; then TAGS="${CI_COMMIT_SHORT_SHA}"; fi
     echo "Resolved TAGS=${TAGS}"
 

@@ -256,7 +256,24 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		actualLanguage := templateLanguage
 		if h.templateEngine != nil {
 			actualLanguage = h.templateEngine.GetDefaultLanguage(templateLanguage)
+
+			logger.Debug("About to render template", "telegram_handler",
+				logger.String("language", actualLanguage),
+				logger.String("platform", "telegram"))
+
 			msg, rerr := h.templateEngine.RenderTemplateForPlatform(actualLanguage, "telegram", data)
+
+			// 立即記錄渲染結果
+			logger.Debug("Template render returned", "telegram_handler",
+				logger.Bool("success", rerr == nil),
+				logger.String("error", func() string {
+					if rerr != nil {
+						return rerr.Error()
+					}
+					return "nil"
+				}()),
+				logger.Int("message_length", len(msg)))
+
 			if rerr == nil {
 				logger.Debug("Template rendered successfully, attempting to send", "telegram_handler",
 					logger.Int("level", level),
@@ -280,6 +297,8 @@ func (h *Handler) SendMessage(c *gin.Context) {
 
 			logger.Warn("Template rendering failed, falling back to separate messages", "telegram_handler",
 				logger.String("render_error", rerr.Error()))
+		} else {
+			logger.Error("Template engine is nil", "telegram_handler")
 		}
 
 		// 若模板引擎不可用或渲染失敗，使用既有的分離發送備援
