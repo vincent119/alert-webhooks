@@ -46,23 +46,23 @@ func NewTelegramService(token string) (*TelegramService, error) {
 	var b *bot.Bot
 	var err error
 	maxRetries := 3
-	
+
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		logger.Info("Attempting to create Telegram bot", "telegram_service",
 			logger.Int("attempt", attempt),
 			logger.Int("max_attempts", maxRetries))
-			
+
 		b, err = bot.New(token, opts...)
 		if err == nil {
 			logger.Info("Telegram bot created successfully", "telegram_service",
 				logger.Int("attempt", attempt))
 			break
 		}
-		
+
 		logger.Warn("Failed to create Telegram bot", "telegram_service",
 			logger.Int("attempt", attempt),
 			logger.Err(err))
-			
+
 		if attempt < maxRetries {
 			backoffTime := time.Duration(attempt) * 2 * time.Second
 			logger.Info("Retrying in", "telegram_service",
@@ -70,14 +70,14 @@ func NewTelegramService(token string) (*TelegramService, error) {
 			time.Sleep(backoffTime)
 		}
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bot after %d attempts: %v", maxRetries, err)
 	}
 
 	// 從配置檔案讀取 chat_id 映射
 	chatIDs := make(map[int]int64)
-	
+
 	// 讀取 ChatIDs1-6
 	chatIDConfigs := []struct {
 		level int
@@ -90,7 +90,7 @@ func NewTelegramService(token string) (*TelegramService, error) {
 		{4, config.Telegram.ChatIDs5},
 		{5, config.Telegram.ChatIDs6},
 	}
-	
+
 	for _, cfg := range chatIDConfigs {
 		if cfg.value != "" {
 			chatID, err := strconv.ParseInt(cfg.value, 10, 64)
@@ -101,7 +101,7 @@ func NewTelegramService(token string) (*TelegramService, error) {
 					logger.Err(err))
 				continue
 			}
-			
+
 			chatIDs[cfg.level] = chatID
 			logger.Info("Loaded chat ID from config", "telegram",
 				logger.Int("level", cfg.level),
@@ -158,7 +158,7 @@ func (ts *TelegramService) testConnection() error {
 func (ts *TelegramService) SendMessage(level int, message string) error {
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
-	
+
 	// 檢查是否為降級模式
 	if ts.bot == nil {
 		logger.Error("Telegram service is in degraded mode - bot not available", "telegram_service",
@@ -169,8 +169,22 @@ func (ts *TelegramService) SendMessage(level int, message string) error {
 
 	chatID, exists := ts.chatIDs[level]
 	if !exists {
+		// 記錄所有已配置的 level
+		configuredLevels := make([]int, 0, len(ts.chatIDs))
+		for l := range ts.chatIDs {
+			configuredLevels = append(configuredLevels, l)
+		}
+
+		logger.Error("No chat ID configured for requested level", "telegram_service",
+			logger.Int("requested_level", level),
+			logger.Any("configured_levels", configuredLevels),
+			logger.Int("total_configured", len(ts.chatIDs)))
 		return fmt.Errorf("no chat ID configured for level %d", level)
 	}
+
+	logger.Debug("Found chat ID for level", "telegram_service",
+		logger.Int("level", level),
+		logger.Int64("chat_id", chatID))
 
 	ctx := context.Background()
 	params := &bot.SendMessageParams{
