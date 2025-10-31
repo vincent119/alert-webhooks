@@ -83,12 +83,12 @@ func NewTelegramService(token string) (*TelegramService, error) {
 		level int
 		value string
 	}{
-		{0, config.Telegram.ChatIDs1},
-		{1, config.Telegram.ChatIDs2},
-		{2, config.Telegram.ChatIDs3},
-		{3, config.Telegram.ChatIDs4},
-		{4, config.Telegram.ChatIDs5},
-		{5, config.Telegram.ChatIDs6},
+		{0, config.Telegram.ChatIDs0},
+		{1, config.Telegram.ChatIDs1},
+		{2, config.Telegram.ChatIDs2},
+		{3, config.Telegram.ChatIDs3},
+		{4, config.Telegram.ChatIDs4},
+		{5, config.Telegram.ChatIDs5},
 	}
 
 	for _, cfg := range chatIDConfigs {
