@@ -6,14 +6,14 @@ import (
 )
 
 // SetupRoutes configures Discord API routes
-func SetupRoutes(router *gin.RouterGroup) {
+func SetupRoutes(router *gin.RouterGroup, discordService *service.DiscordService) {
 	// Get Discord service from service manager
-	serviceManager := service.GetServiceManager()
-	if serviceManager == nil {
-		return // Service manager not initialized, skip route registration
-	}
+	//serviceManager := service.GetServiceManager()
+	//if serviceManager == nil {
+	//	return // Service manager not initialized, skip route registration
+	//}
 
-	discordService := serviceManager.GetDiscordService()
+	//discordService := serviceManager.GetDiscordService()
 	// Note: Create handler even if service is nil - handler will check service availability
 	handler := NewHandler(discordService)
 

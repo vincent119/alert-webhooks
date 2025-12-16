@@ -8,17 +8,17 @@ import (
 )
 
 // RegisterSlackRoutes 註冊 Slack 路由
-func RegisterSlackRoutes(r *gin.RouterGroup) {
+func RegisterSlackRoutes(r *gin.RouterGroup, slackService *service.SlackService) {
 	// 獲取服務管理器
-	serviceManager := service.GetServiceManager()
+	//serviceManager := service.GetServiceManager()
 	
 	// 檢查 Slack 服務是否可用
-	if !serviceManager.IsSlackServiceReady() {
-		return
-	}
+	//if !serviceManager.IsSlackServiceReady() {
+	//	return
+	//}
 	
 	// 創建處理器
-	handler := NewHandler(serviceManager.GetSlackService())
+	handler := NewHandler(slackService)
 
 	// Slack 路由群組
 	slackGroup := r.Group("/slack")

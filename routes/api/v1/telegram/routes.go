@@ -2,7 +2,7 @@
 package telegram
 
 import (
-	"alert-webhooks/pkg/logger"
+	//"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/middleware"
 	"alert-webhooks/pkg/service"
 
@@ -10,23 +10,23 @@ import (
 )
 
 // RegisterRoutes 註冊 Telegram 相關路由
-func RegisterRoutes(router *gin.RouterGroup) {
+func RegisterRoutes(router *gin.RouterGroup, telegramService *service.TelegramService) {
 	// 獲取服務管理器
-	serviceManager := service.GetServiceManager()
+	//serviceManager := service.GetServiceManager()
 	
 	// 檢查 Telegram 服務是否可用
-	if serviceManager.IsTelegramServiceReady() {
-		logger.Info("Telegram service is ready, creating handler", "telegram_routes")
+	//if serviceManager.IsTelegramServiceReady() {
+	//	logger.Info("Telegram service is ready, creating handler", "telegram_routes")
 		
 		// 創建 Telegram 路由處理器
-		handler := NewHandler(serviceManager.GetTelegramService())
+		handler := NewHandler(telegramService)
 		
 		// Telegram 相關路由（需要基本認證）
 		router.POST("/telegram/chatid_:chatid", middleware.BasicAuth(), handler.SendMessage)
 		router.GET("/telegram/info", middleware.BasicAuth(), handler.GetBotInfo)
 		
-		logger.Info("Telegram routes registered successfully", "telegram_routes")
-	} else {
-		logger.Warn("Telegram service not available, skipping Telegram routes", "telegram_routes")
-	}
+	// 	logger.Info("Telegram routes registered successfully", "telegram_routes")
+	// } else {
+	// 	logger.Warn("Telegram service not available, skipping Telegram routes", "telegram_routes")
+	// }
 }
