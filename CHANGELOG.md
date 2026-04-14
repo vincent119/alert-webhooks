@@ -1,5 +1,41 @@
 # Changelog
 
+## [v2.0.6] - 2026-04-14
+
+### Added
+- TraceConf 新增 `tlsSkipVerify` 欄位，支援 HTTPS + 跳過自簽憑證驗證場景
+- otelgin middleware 加入 `WithFilter`，過濾 `/`、`/healthz`、`/healthy` 不產生 trace span
+- Telegram `SendMessage` 傳遞 request context，使 Telegram API 呼叫成為 HTTP request span 的 child span
+- Helm Secret 加入 `trace-auth-user` / `trace-auth-passwd`，Deployment 注入 `TRACE_AUTH_USER` / `TRACE_AUTH_PASSWD` 環境變數
+- Helm ConfigMap 加入 `tlsSkipVerify` 欄位
+
+### Changed
+- OTLP exporter 改用 `WithEndpointURL` 明確帶上 `http://` 或 `https://` scheme，取代 `WithEndpoint` + `WithInsecure()` 組合，解決 insecure 設定不生效的問題
+
+### Fixed
+- 修正 OTLP HTTP exporter 在 `insecure: true` 時仍走 HTTPS 導致 `tls: failed to verify certificate` 錯誤
+- 修正 ELB health check（`GET /`）產生無用 trace span 的問題
+
+---
+
+## [v2.0.6] - 2026-04-14 (English)
+
+### Added
+- Added `tlsSkipVerify` field to TraceConf for HTTPS with self-signed certificate skip
+- Added `WithFilter` to otelgin middleware to exclude `/`, `/healthz`, `/healthy` from tracing
+- Telegram `SendMessage` now propagates request context for proper trace span chaining
+- Helm Secret includes `trace-auth-user` / `trace-auth-passwd`, Deployment injects `TRACE_AUTH_USER` / `TRACE_AUTH_PASSWD` env vars
+- Helm ConfigMap includes `tlsSkipVerify` field
+
+### Changed
+- OTLP exporter switched from `WithEndpoint` + `WithInsecure()` to `WithEndpointURL` with explicit `http://` or `https://` scheme to ensure correct protocol selection
+
+### Fixed
+- Fixed OTLP HTTP exporter using HTTPS despite `insecure: true`, causing `tls: failed to verify certificate` error
+- Fixed ELB health check (`GET /`) generating unnecessary trace spans
+
+---
+
 ## [v2.0.5] - 2026-04-14
 
 ### Added
