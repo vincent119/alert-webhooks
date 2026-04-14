@@ -7,6 +7,7 @@ import (
 	"alert-webhooks/pkg/middleware"
 	v1 "alert-webhooks/routes/api/v1"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -45,7 +46,7 @@ func setupSwaggerHost() {
 			host = ""
 		}
 	}
-	
+
 	// 動態設定 SwaggerInfo
 	if host != "" {
 		docs.SwaggerInfo.Host = host
@@ -59,7 +60,7 @@ func setupSwaggerHost() {
 // setupGinMode 設置 Gin 運行模式
 func setupGinMode() {
 	mode := strings.ToLower(config.App.Mode)
-	
+
 	switch mode {
 	case "release", "production":
 		gin.SetMode(gin.ReleaseMode)
@@ -79,10 +80,10 @@ func setupGinMode() {
 
 func DefaultRoute() *gin.Engine {
 	setupGinMode()
-	
+
 	// 動態設定 Swagger Host
 	setupSwaggerHost()
-	
+
 	// 設定 Gin 輸出
 	gin.ForceConsoleColor()
 	gin.DefaultWriter = io.MultiWriter(os.Stdout)
@@ -92,14 +93,24 @@ func DefaultRoute() *gin.Engine {
 
 	// 設定中介件
 	routes.Use(
-		otelgin.Middleware(config.App.AppName), // OpenTelemetry 追蹤
-		middleware.CORS(),                         
-		//middleware.RequestID(),                    
-		//middleware.Logger(), 
+		otelgin.Middleware(config.App.AppName,
+			otelgin.WithFilter(func(r *http.Request) bool {
+				// 回傳 false 表示不追蹤該請求
+				switch r.URL.Path {
+				case "/healthz", "/healthy", "/":
+					return false
+				default:
+					return true
+				}
+			}),
+		),
+		middleware.CORS(),
+		//middleware.RequestID(),
+		//middleware.Logger(),
 		middleware.LoggerWithSkipPaths(skipPathList),
-		//middleware.Recovery(),                     
+		//middleware.Recovery(),
 		gin.Recovery(),
-		gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: skipPathList}), 
+		gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: skipPathList}),
 
 		gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{
 			"/healthy",

@@ -5,6 +5,7 @@ import (
 	"alert-webhooks/config"
 	"alert-webhooks/pkg/logger"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 
@@ -29,6 +30,7 @@ func InitTracerProvider(ctx context.Context, cfg config.TraceConf, serviceName s
 		logger.String("url", cfg.Url),
 		logger.String("port", cfg.Port),
 		logger.Bool("insecure", cfg.Insecure),
+		logger.Bool("tlsSkipVerify", cfg.TlsSkipVerify),
 		logger.String("urlPath", cfg.UrlPath),
 		logger.Float64("sampleRate", cfg.SampleRate),
 	)
@@ -45,19 +47,35 @@ func InitTracerProvider(ctx context.Context, cfg config.TraceConf, serviceName s
 		endpoint = fmt.Sprintf("%s:%s", cfg.Url, cfg.Port)
 	}
 
-	// 建立 exporter options
+	// 決定 scheme：insecure=true 走 http，否則走 https
+	scheme := "https"
+	if cfg.Insecure {
+		scheme = "http"
+	}
+
+	// 組合完整 URL path
+	urlPath := cfg.UrlPath
+	if urlPath == "" {
+		urlPath = "/v1/traces"
+	}
+
+	// 使用 WithEndpointURL 明確帶上 scheme，避免 WithInsecure() 不生效的問題
+	endpointURL := fmt.Sprintf("%s://%s%s", scheme, endpoint, urlPath)
+
+	logger.Info("OTLP exporter endpoint URL", traceCategory,
+		logger.String("endpointURL", endpointURL),
+	)
+
 	opts := []otlptracehttp.Option{
-		otlptracehttp.WithEndpoint(endpoint),
+		otlptracehttp.WithEndpointURL(endpointURL),
 	}
 
-	// URL path
-	if cfg.UrlPath != "" {
-		opts = append(opts, otlptracehttp.WithURLPath(cfg.UrlPath))
-	}
-
-	// TLS 設定：預設走 HTTP，insecure=true 時走 HTTPS
-	if !cfg.Insecure {
-		opts = append(opts, otlptracehttp.WithInsecure())
+	// TLS 設定：insecure=false 且 tlsSkipVerify=true 時跳過憑證驗證（自簽憑證場景）
+	if !cfg.Insecure && cfg.TlsSkipVerify {
+		tlsCfg := &tls.Config{
+			InsecureSkipVerify: true, //nolint:gosec // 使用者明確設定跳過憑證驗證（自簽憑證場景）
+		}
+		opts = append(opts, otlptracehttp.WithTLSClientConfig(tlsCfg))
 	}
 
 	// Basic auth
@@ -112,7 +130,7 @@ func InitTracerProvider(ctx context.Context, cfg config.TraceConf, serviceName s
 	))
 
 	logger.Info("TracerProvider 初始化完成", traceCategory,
-		logger.String("endpoint", endpoint),
+		logger.String("endpointURL", endpointURL),
 		logger.String("serviceName", serviceName),
 		logger.Float64("sampleRate", cfg.SampleRate),
 	)

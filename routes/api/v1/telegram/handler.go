@@ -2,6 +2,7 @@
 package telegram
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -280,7 +281,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 					logger.String("language", actualLanguage),
 					logger.Int("message_length", len(msg)))
 
-				if sendErr := h.telegramService.SendMessage(level, msg); sendErr != nil {
+				if sendErr := h.telegramService.SendMessage(c.Request.Context(), level, msg); sendErr != nil {
 					logger.Error("Failed to send message via template engine path", "telegram_handler",
 						logger.Int("level", level),
 						logger.String("error_detail", sendErr.Error()),
@@ -302,7 +303,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		}
 
 		// 若模板引擎不可用或渲染失敗，使用既有的分離發送備援
-		err = h.sendSeparateAlertMessages(req.AlertManagerData, templateLanguage, level)
+		err = h.sendSeparateAlertMessages(c.Request.Context(), req.AlertManagerData, templateLanguage, level)
 		if err != nil {
 			logger.Error("Failed to send alert messages", "telegram_handler",
 				logger.Int("level", level),
@@ -315,7 +316,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		}
 	} else {
 		// 發送普通訊息
-		err = h.telegramService.SendMessage(level, req.Message)
+		err = h.telegramService.SendMessage(c.Request.Context(), level, req.Message)
 		if err != nil {
 			logger.Error("Failed to send Telegram message", "telegram_handler",
 				logger.Int("level", level),
@@ -516,7 +517,7 @@ func (h *Handler) generateAlertManagerMessage(webhook *AlertManagerWebhook, lang
 }
 
 // sendSeparateAlertMessages 分別發送觸發中和已解決的警報
-func (h *Handler) sendSeparateAlertMessages(webhook *AlertManagerWebhook, language string, level int) error {
+func (h *Handler) sendSeparateAlertMessages(ctx context.Context, webhook *AlertManagerWebhook, language string, level int) error {
 	// 分離觸發中和已解決的警報
 	var firingAlerts []Alert
 	var resolvedAlerts []Alert
@@ -555,7 +556,7 @@ func (h *Handler) sendSeparateAlertMessages(webhook *AlertManagerWebhook, langua
 			logger.Int("level", level),
 			logger.Int("message_length", len(firingMessage)))
 
-		if err := h.telegramService.SendMessage(level, firingMessage); err != nil {
+		if err := h.telegramService.SendMessage(ctx, level, firingMessage); err != nil {
 			logger.Error("Failed to send firing alerts message", "telegram_handler",
 				logger.Int("level", level),
 				logger.String("error_detail", err.Error()))
@@ -593,7 +594,7 @@ func (h *Handler) sendSeparateAlertMessages(webhook *AlertManagerWebhook, langua
 			logger.Int("level", level),
 			logger.Int("message_length", len(resolvedMessage)))
 
-		if err := h.telegramService.SendMessage(level, resolvedMessage); err != nil {
+		if err := h.telegramService.SendMessage(ctx, level, resolvedMessage); err != nil {
 			logger.Error("Failed to send resolved alerts message", "telegram_handler",
 				logger.Int("level", level),
 				logger.String("error_detail", err.Error()))

@@ -155,7 +155,7 @@ func (ts *TelegramService) testConnection() error {
 
 
 // SendMessage send message to specified level chat
-func (ts *TelegramService) SendMessage(level int, message string) error {
+func (ts *TelegramService) SendMessage(ctx context.Context, level int, message string) error {
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
 
@@ -186,7 +186,6 @@ func (ts *TelegramService) SendMessage(level int, message string) error {
 		logger.Int("level", level),
 		logger.Int64("chat_id", chatID))
 
-	ctx := context.Background()
 	params := &bot.SendMessageParams{
 		ChatID:    chatID,
 		Text:      message,

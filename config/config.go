@@ -41,14 +41,15 @@ type configStruct struct {
 }
 
 type TraceConf struct {
-	Enable     bool    `mapstructure:"enable"`
-	Url        string  `mapstructure:"url"`
-	Port       string  `mapstructure:"port"`
-	UrlPath    string  `mapstructure:"urlPath"`
-	Insecure   bool    `mapstructure:"insecure"`
-	AuthUser   string  `mapstructure:"authUser"`
-	AuthPasswd string  `mapstructure:"authPasswd"`
-	SampleRate float64 `mapstructure:"sampleRate"`
+	Enable        bool    `mapstructure:"enable"`
+	Url           string  `mapstructure:"url"`
+	Port          string  `mapstructure:"port"`
+	UrlPath       string  `mapstructure:"urlPath"`
+	Insecure      bool    `mapstructure:"insecure"`
+	TlsSkipVerify bool    `mapstructure:"tlsSkipVerify"`
+	AuthUser      string  `mapstructure:"authUser"`
+	AuthPasswd    string  `mapstructure:"authPasswd"`
+	SampleRate    float64 `mapstructure:"sampleRate"`
 }
 
 // Trace 是全局追蹤配置

@@ -18,7 +18,7 @@ import (
 
 // TelegramService 接口定義（避免循環依賴）
 type TelegramService interface {
-	SendMessage(level int, message string) error
+	SendMessage(ctx context.Context, level int, message string) error
 	GetBotInfo() (interface{}, error)
 }
 
@@ -104,7 +104,7 @@ func (tp *TelegramProvider) SendMessage(ctx context.Context, req *types.Notifica
 	}
 
 	// Send message
-	err = tp.telegramService.SendMessage(level, req.Message)
+	err = tp.telegramService.SendMessage(ctx, level, req.Message)
 	if err != nil {
 		tp.stats.MessagesError++
 		span.RecordError(err)
