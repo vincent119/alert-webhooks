@@ -16,8 +16,8 @@ import (
 
 // SlackService 接口定義（避免循環依賴）
 type SlackService interface {
-	SendMessage(channel, message string) error
-	SendMessageToLevel(level, message string) error
+	SendMessage(ctx context.Context, channel, message string) error
+	SendMessageToLevel(ctx context.Context, level, message string) error
 	TestConnection() error
 }
 
@@ -85,10 +85,10 @@ func (sp *SlackProvider) SendMessage(ctx context.Context, req *types.Notificatio
 		if !strings.HasPrefix(channel, "#") && !strings.HasPrefix(channel, "@") {
 			channel = "#" + channel
 		}
-		err = sp.slackService.SendMessage(channel, req.Message)
+		err = sp.slackService.SendMessage(ctx, channel, req.Message)
 	} else if req.Level != "" {
 		// 根據等級發送
-		err = sp.slackService.SendMessageToLevel(req.Level, req.Message)
+		err = sp.slackService.SendMessageToLevel(ctx, req.Level, req.Message)
 		channel = sp.getLevelChannel(req.Level)
 	} else {
 		// 使用預設頻道
@@ -96,7 +96,7 @@ func (sp *SlackProvider) SendMessage(ctx context.Context, req *types.Notificatio
 		if channel == "" {
 			channel = "#alerts" // 預設頻道
 		}
-		err = sp.slackService.SendMessage(channel, req.Message)
+		err = sp.slackService.SendMessage(ctx, channel, req.Message)
 	}
 
 	if err != nil {

@@ -24,11 +24,11 @@ type Handler struct {
 // NewHandler 創建新的 Slack 路由處理器
 func NewHandler(slackService *service.SlackService) *Handler {
 	logger.Info("Creating new Slack handler", "slack_handler")
-	
+
 	// 從 ServiceManager 獲取模板引擎
 	serviceManager := service.GetServiceManager()
 	templateEngine := serviceManager.GetTemplateEngine()
-	
+
 	if templateEngine == nil {
 		logger.Error("Template engine not available from service manager", "slack_handler")
 		return &Handler{
@@ -36,9 +36,9 @@ func NewHandler(slackService *service.SlackService) *Handler {
 			templateEngine: template.NewTemplateEngine(), // 後備方案
 		}
 	}
-	
+
 	logger.Info("Template engine obtained from service manager", "slack_handler")
-	
+
 	return &Handler{
 		slackService:   slackService,
 		templateEngine: templateEngine,
@@ -53,7 +53,7 @@ type SendMessageRequest struct {
 	IconURL          string                 `json:"icon_url,omitempty"`          // 自定義 Bot 頭像 URL
 	IconEmoji        string                 `json:"icon_emoji,omitempty"`        // 自定義 Bot 表情符號
 	ThreadTS         string                 `json:"thread_ts,omitempty"`         // 線程時間戳（回覆特定訊息）
-	
+
 	// 原始 AlertManager JSON 格式（直接接受）
 	Receiver          string                   `json:"receiver,omitempty"`
 	Status            string                   `json:"status,omitempty"`
@@ -183,7 +183,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 			logger.String("channel", channel),
 			logger.String("message", message),
 			logger.Err(err))
-		
+
 		c.JSON(http.StatusInternalServerError, SendMessageResponse{
 			Success: false,
 			Message: "Failed to send message: " + err.Error(),
@@ -292,12 +292,12 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 	}
 
 	// 發送訊息到指定等級
-	if err := h.slackService.SendMessageToLevel(level, message); err != nil {
+	if err := h.slackService.SendMessageToLevel(c.Request.Context(), level, message); err != nil {
 		logger.Error("Failed to send Slack message to level", "slack_handler",
 			logger.String("level", level),
 			logger.String("message", message),
 			logger.Err(err))
-		
+
 		c.JSON(http.StatusInternalServerError, SendMessageResponse{
 			Success: false,
 			Message: "Failed to send message: " + err.Error(),
@@ -380,7 +380,7 @@ func (h *Handler) SendRichMessage(c *gin.Context) {
 			logger.String("channel", channel),
 			logger.String("title", req.Title),
 			logger.Err(err))
-		
+
 		c.JSON(http.StatusInternalServerError, SendMessageResponse{
 			Success: false,
 			Message: "Failed to send rich message: " + err.Error(),
@@ -490,11 +490,11 @@ func (h *Handler) TestConnection(c *gin.Context) {
 	}
 
 	// 發送測試訊息
-	if err := h.slackService.SendMessage(testChannel, testMessage); err != nil {
+	if err := h.slackService.SendMessage(c.Request.Context(), testChannel, testMessage); err != nil {
 		logger.Error("Slack connection test failed", "slack_handler",
 			logger.String("channel", testChannel),
 			logger.Err(err))
-		
+
 		c.JSON(http.StatusInternalServerError, SendMessageResponse{
 			Success: false,
 			Message: "Connection test failed: " + err.Error(),
@@ -546,7 +546,7 @@ func (h *Handler) ValidateChannel(c *gin.Context) {
 	// 嘗試發送一個非常簡短的驗證訊息
 	testMessage := "✅ Bot 已加入此頻道"
 
-	if err := h.slackService.SendMessage(channel, testMessage); err != nil {
+	if err := h.slackService.SendMessage(c.Request.Context(), channel, testMessage); err != nil {
 		// 分析錯誤類型並提供具體指引
 		if strings.Contains(err.Error(), "not_in_channel") {
 			c.JSON(http.StatusBadRequest, SendMessageResponse{
@@ -580,7 +580,7 @@ func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
 	if templateLanguage == "" {
 		templateLanguage = "eng" // 預設使用英文
 	}
-	
+
 	// 統計警報
 	firingCount := 0
 	resolvedCount := 0
@@ -593,7 +593,7 @@ func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
 			}
 		}
 	}
-	
+
 	// 獲取基本信息
 	var alertName, env, severity, namespace string
 	if commonLabels := req.CommonLabels; commonLabels != nil {
@@ -610,7 +610,7 @@ func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
 			namespace = namespaceValue
 		}
 	}
-	
+
 	// 如果 commonLabels 中沒有 namespace，嘗試從第一個 alert 的 labels 中獲取
 	if namespace == "" && len(req.Alerts) > 0 {
 		if firstAlert := req.Alerts[0]; firstAlert != nil {
@@ -621,16 +621,16 @@ func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
 			}
 		}
 	}
-	
+
 	// 轉換警報數據為模板格式
 	var alertData []template.AlertData
 	for _, alert := range req.Alerts {
 		alertDataItem := template.AlertData{}
-		
+
 		if status, ok := alert["status"].(string); ok {
 			alertDataItem.Status = status
 		}
-		
+
 		if labels, ok := alert["labels"].(map[string]interface{}); ok {
 			alertDataItem.Labels = make(map[string]string)
 			for k, v := range labels {
@@ -639,7 +639,7 @@ func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
 				}
 			}
 		}
-		
+
 		if annotations, ok := alert["annotations"].(map[string]interface{}); ok {
 			alertDataItem.Annotations = make(map[string]string)
 			for k, v := range annotations {
@@ -648,22 +648,22 @@ func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
 				}
 			}
 		}
-		
+
 		if startsAt, ok := alert["startsAt"].(string); ok {
 			alertDataItem.StartsAt = startsAt
 		}
-		
+
 		if endsAt, ok := alert["endsAt"].(string); ok {
 			alertDataItem.EndsAt = endsAt
 		}
-		
+
 		if generatorURL, ok := alert["generatorURL"].(string); ok {
 			alertDataItem.GeneratorURL = generatorURL
 		}
-		
+
 		alertData = append(alertData, alertDataItem)
 	}
-	
+
 	// 準備模板數據
 	templateData := template.TemplateData{
 		Status:        req.Status,
@@ -677,11 +677,11 @@ func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
 		Alerts:        alertData,
 		ExternalURL:   req.ExternalURL,
 	}
-	
+
 	// 動態獲取最新的模板引擎（支援熱重載）
 	serviceManager := service.GetServiceManager()
 	currentTemplateEngine := serviceManager.GetTemplateEngine()
-	
+
 	// 嘗試使用模板引擎渲染
 	if currentTemplateEngine != nil {
 		// 獲取合適的語言（包含回退邏輯）
@@ -691,26 +691,26 @@ func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
 				logger.String("requested", templateLanguage),
 				logger.String("actual", actualLanguage))
 		}
-		
+
 		message, err := currentTemplateEngine.RenderTemplateForPlatform(actualLanguage, "slack", templateData)
 		if err == nil {
 			messagePreview := message
 			if len(message) > 100 {
 				messagePreview = message[:100] + "..."
 			}
-			logger.Info("Slack template rendered successfully", "slack_handler", 
+			logger.Info("Slack template rendered successfully", "slack_handler",
 				logger.String("language", actualLanguage),
 				logger.String("available_languages", fmt.Sprintf("%v", currentTemplateEngine.GetAvailableLanguages())),
 				logger.String("message_preview", messagePreview))
 			return message
 		}
-		logger.Warn("Failed to render Slack template, using built-in template", "slack_handler", 
+		logger.Warn("Failed to render Slack template, using built-in template", "slack_handler",
 			logger.String("language", actualLanguage),
 			logger.Err(err))
 	} else {
 		logger.Warn("Template engine is nil, using built-in template for Slack", "slack_handler")
 	}
-	
+
 	// 如果模板引擎失敗，使用內建的模板邏輯
 	return h.generateBuiltInSlackMessage(req, firingCount, resolvedCount, alertName, env, severity, namespace)
 }
@@ -718,7 +718,7 @@ func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
 // generateBuiltInSlackMessage 生成內建的 Slack 訊息格式（後備方案）
 func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCount, resolvedCount int, alertName, env, severity, namespace string) string {
 	var message strings.Builder
-	
+
 	// 警報標題和基本信息
 	if req.Status == "firing" && firingCount > 0 {
 		message.WriteString("🚨 *警報通知*\n")
@@ -727,7 +727,7 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 	} else {
 		message.WriteString("📊 *警報狀態更新*\n")
 	}
-	
+
 	if alertName != "" {
 		message.WriteString(fmt.Sprintf("*Alert Name:* %s\n", alertName))
 	}
@@ -740,7 +740,7 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 	if namespace != "" {
 		message.WriteString(fmt.Sprintf("*命名空間:* %s\n", namespace))
 	}
-	
+
 	message.WriteString(fmt.Sprintf("*總警報數:* %d\n", len(req.Alerts)))
 	if firingCount > 0 {
 		message.WriteString(fmt.Sprintf("*觸發中:* %d\n", firingCount))
@@ -748,7 +748,7 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 	if resolvedCount > 0 {
 		message.WriteString(fmt.Sprintf("*已解決:* %d\n", resolvedCount))
 	}
-	
+
 	// 觸發中的警報詳情
 	if firingCount > 0 {
 		message.WriteString("\n🔥 *觸發中的警報:*\n")
@@ -757,19 +757,19 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 			if status, ok := alert["status"].(string); ok && status == "firing" {
 				count++
 				message.WriteString(fmt.Sprintf("*警報 %d:*\n", count))
-				
+
 				// 顯示摘要
 				if annotations, ok := alert["annotations"].(map[string]interface{}); ok {
 					if summary, ok := annotations["summary"].(string); ok {
 						message.WriteString(fmt.Sprintf("• 摘要: %s\n", summary))
 					}
 				}
-				
+
 				// 顯示啟動時間
 				if startsAt, ok := alert["startsAt"].(string); ok && startsAt != "0001-01-01T00:00:00Z" {
 					message.WriteString(fmt.Sprintf("• 開始時間: %s\n", startsAt))
 				}
-				
+
 				// 顯示標籤
 				if labels, ok := alert["labels"].(map[string]interface{}); ok {
 					if pod, ok := labels["pod"].(string); ok && pod != "" {
@@ -780,7 +780,7 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 			}
 		}
 	}
-	
+
 	// 已解決的警報詳情
 	if resolvedCount > 0 {
 		message.WriteString("✅ *已解決的警報:*\n")
@@ -789,19 +789,19 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 			if status, ok := alert["status"].(string); ok && status == "resolved" {
 				count++
 				message.WriteString(fmt.Sprintf("*警報 %d:*\n", count))
-				
+
 				// 顯示摘要
 				if annotations, ok := alert["annotations"].(map[string]interface{}); ok {
 					if summary, ok := annotations["summary"].(string); ok {
 						message.WriteString(fmt.Sprintf("• 摘要: %s\n", summary))
 					}
 				}
-				
+
 				// 顯示結束時間
 				if endsAt, ok := alert["endsAt"].(string); ok && endsAt != "0001-01-01T00:00:00Z" {
 					message.WriteString(fmt.Sprintf("• 解決時間: %s\n", endsAt))
 				}
-				
+
 				// 顯示標籤
 				if labels, ok := alert["labels"].(map[string]interface{}); ok {
 					if pod, ok := labels["pod"].(string); ok && pod != "" {
@@ -812,7 +812,7 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 			}
 		}
 	}
-	
+
 	// 添加外部連結
 	if req.ExternalURL != "" {
 		// 僅在配置允許時顯示外部連結（使用引擎當前配置）
@@ -823,6 +823,6 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 			}
 		}
 	}
-	
+
 	return message.String()
 }

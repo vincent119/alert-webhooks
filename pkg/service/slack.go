@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,10 @@ import (
 
 	"alert-webhooks/config"
 	"alert-webhooks/pkg/logger"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // SlackService Slack 服務
@@ -80,7 +85,7 @@ func NewSlackService(token string) (*SlackService, error) {
 
 	// 從配置檔案讀取頻道映射
 	channels := make(map[string]string)
-	
+
 	// 如果有配置多頻道，使用多頻道配置
 	if len(config.Slack.Channels) > 0 {
 		channels = config.Slack.Channels
@@ -109,42 +114,55 @@ func NewSlackService(token string) (*SlackService, error) {
 // testConnection 測試 Slack 連接
 func (ss *SlackService) TestConnection() error {
 	url := "https://slack.com/api/auth.test"
-	
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
 	}
-	
+
 	req.Header.Set("Authorization", "Bearer "+ss.token)
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := ss.client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
-	
+
 	var slackResp SlackResponse
 	if err := json.Unmarshal(body, &slackResp); err != nil {
 		return err
 	}
-	
+
 	if !slackResp.OK {
 		return fmt.Errorf("slack auth test failed: %s", slackResp.Error)
 	}
-	
+
 	logger.Info("Slack connection test successful", "slack")
 	return nil
 }
 
 // SendMessage send message to specified channel
-func (ss *SlackService) SendMessage(channel, message string) error {
-	return ss.SendMessageWithOptions(channel, message, nil)
+func (ss *SlackService) SendMessage(ctx context.Context, channel, message string) error {
+	ctx, span := otel.Tracer("slack").Start(ctx, "SlackService.SendMessage")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("messaging.system", "slack"),
+		attribute.String("messaging.channel", channel),
+	)
+
+	err := ss.SendMessageWithOptions(channel, message, nil)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	}
+	return err
 }
 
 // SendMessageWithOptions send message to specified channel with options
@@ -198,11 +216,11 @@ func (ss *SlackService) SendMessageWithOptions(channel, message string, options 
 }
 
 // SendMessageToLevel send message to specified level channel
-func (ss *SlackService) SendMessageToLevel(level string, message string) error {
+func (ss *SlackService) SendMessageToLevel(ctx context.Context, level string, message string) error {
 	// 動態讀取最新的配置以支持熱重載
 	var channel string
 	var exists bool
-	
+
 	if len(config.Slack.Channels) > 0 {
 		// 將 "L0" 格式轉換為 "chat_ids0" 格式
 		var configKey string
@@ -213,15 +231,15 @@ func (ss *SlackService) SendMessageToLevel(level string, message string) error {
 		} else {
 			configKey = level
 		}
-		
+
 		// 嘗試使用轉換後的鍵
 		channel, exists = config.Slack.Channels[configKey]
-		
+
 		// 如果沒找到，嘗試原始格式作為備用
 		if !exists {
 			channel, exists = config.Slack.Channels[level]
 		}
-		
+
 		// 如果還是沒找到，嘗試小寫版本
 		if !exists {
 			lowerLevel := strings.ToLower(level)
@@ -238,7 +256,7 @@ func (ss *SlackService) SendMessageToLevel(level string, message string) error {
 		}
 	}
 
-	return ss.SendMessage(channel, message)
+	return ss.SendMessage(ctx, channel, message)
 }
 
 // SendRichMessage send rich text message
@@ -262,7 +280,7 @@ func (ss *SlackService) SendRichMessage(channel, title, message, color string, f
 // sendSlackMessage actually send Slack message
 func (ss *SlackService) sendSlackMessage(msg *SlackMessage) error {
 	url := "https://slack.com/api/chat.postMessage"
-	
+
 	jsonData, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("failed to marshal message: %v", err)
@@ -300,7 +318,7 @@ func (ss *SlackService) sendSlackMessage(msg *SlackMessage) error {
 		logger.Error("Slack API returned error", "slack",
 			logger.String("channel", msg.Channel),
 			logger.String("error", slackResp.Error))
-		
+
 		// Provide more friendly error message
 		var friendlyError string
 		switch slackResp.Error {
@@ -315,7 +333,7 @@ func (ss *SlackService) sendSlackMessage(msg *SlackMessage) error {
 		default:
 			friendlyError = fmt.Sprintf("Slack API error: %s", slackResp.Error)
 		}
-		
+
 		return fmt.Errorf("%s", friendlyError)
 	}
 
@@ -349,7 +367,7 @@ func (ss *SlackService) GetChannelForLevel(level string) (string, bool) {
 func (ss *SlackService) GetChannels() map[string]string {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
-	
+
 	channels := make(map[string]string)
 	for k, v := range ss.channels {
 		channels[k] = v
