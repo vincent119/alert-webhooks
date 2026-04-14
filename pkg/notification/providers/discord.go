@@ -14,9 +14,9 @@ import (
 
 // DiscordService interface to avoid circular dependencies
 type DiscordService interface {
-	SendMessage(level string, message string) error
+	SendMessage(ctx context.Context, level string, message string) error
 	SendMessageToChannel(channelID, message string) error
-	SendMessageToLevel(level string, message string) error
+	SendMessageToLevel(ctx context.Context, level string, message string) error
 	TestConnection() error
 	ValidateChannel(channelID string) error
 	GetBotInfo() (interface{}, error)
@@ -92,7 +92,7 @@ func (dp *DiscordProvider) SendMessage(ctx context.Context, req *types.Notificat
 		if req.Channel != "" {
 			err = dp.service.SendMessageToChannel(req.Channel, req.Message)
 		} else if req.Level != "" {
-			err = dp.service.SendMessage(req.Level, req.Message)
+			err = dp.service.SendMessage(ctx, req.Level, req.Message)
 		} else {
 			err = fmt.Errorf("either channel or level must be specified")
 		}
@@ -111,7 +111,7 @@ func (dp *DiscordProvider) SendMessage(ctx context.Context, req *types.Notificat
 		if req.Channel != "" {
 			err = dp.service.SendMessageToChannel(req.Channel, message)
 		} else if req.Level != "" {
-			err = dp.service.SendMessage(req.Level, message)
+			err = dp.service.SendMessage(ctx, req.Level, message)
 		} else {
 			err = fmt.Errorf("either channel or level must be specified")
 		}

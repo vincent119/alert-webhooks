@@ -33,7 +33,7 @@ func NewHandler(discordService *service.DiscordService) *Handler {
 type SendMessageRequest struct {
 	Message          string                 `json:"message,omitempty"`           // Simple text message
 	AlertManagerData map[string]interface{} `json:"alertmanager_data,omitempty"` // AlertManager webhook data (wrapped format)
-	
+
 	// Direct AlertManager JSON format (consistent with Slack/Telegram)
 	Receiver          string                   `json:"receiver,omitempty"`
 	Status            string                   `json:"status,omitempty"`
@@ -131,7 +131,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		message, err := h.generateAlertManagerMessage(alertDataBytes)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
@@ -172,7 +172,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 			GroupKey:          req.GroupKey,
 			TruncatedAlerts:   req.TruncatedAlerts,
 		}
-		
+
 		alertDataBytes, err := json.Marshal(alertManagerData)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
@@ -181,7 +181,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		message, err := h.generateAlertManagerMessage(alertDataBytes)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
@@ -258,7 +258,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 
 	// Handle direct message
 	if req.Message != "" {
-		err := h.discordService.SendMessage(levelKey, req.Message)
+		err := h.discordService.SendMessage(c.Request.Context(), levelKey, req.Message)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
 				Success: false,
@@ -285,7 +285,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		message, err := h.generateAlertManagerMessage(alertDataBytes)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
@@ -295,7 +295,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 			return
 		}
 
-		err = h.discordService.SendMessage(levelKey, message)
+		err = h.discordService.SendMessage(c.Request.Context(), levelKey, message)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
 				Success: false,
@@ -327,7 +327,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 			GroupKey:          req.GroupKey,
 			TruncatedAlerts:   req.TruncatedAlerts,
 		}
-		
+
 		alertDataBytes, err := json.Marshal(alertManagerData)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
@@ -336,7 +336,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		message, err := h.generateAlertManagerMessage(alertDataBytes)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
@@ -346,7 +346,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 			return
 		}
 
-		err = h.discordService.SendMessage(levelKey, message)
+		err = h.discordService.SendMessage(c.Request.Context(), levelKey, message)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
 				Success: false,
@@ -675,28 +675,28 @@ func (h *Handler) convertToTemplateData(req types.AlertManagerData) (*template.T
 	if templateMode == "" {
 		templateMode = "full" // Default to full mode
 	}
-	
+
 	// Debug: log the template mode being used
-	logger.Debug("Template mode configuration", "DiscordHandler", 
+	logger.Debug("Template mode configuration", "DiscordHandler",
 		logger.String("templateMode", templateMode),
 		logger.String("templateLanguage", config.Conf.Discord.TemplateLanguage))
-	
+
 	// Get FormatOptions from template engine based on mode
 	serviceManager := service.GetServiceManager()
 	if serviceManager == nil {
 		return nil, fmt.Errorf("service manager not available")
 	}
-	
+
 	templateEngine := serviceManager.GetTemplateEngine()
 	if templateEngine == nil {
 		return nil, fmt.Errorf("template engine not available")
 	}
-	
+
 	// Get FormatOptions from template engine based on mode (using config files)
 	var formatOptions template.FormatOptions
 	if templateMode == "minimal" {
 		formatOptions = templateEngine.GetMinimalDefaultConfig().FormatOptions
-		logger.Debug("Using minimal config FormatOptions", "DiscordHandler", 
+		logger.Debug("Using minimal config FormatOptions", "DiscordHandler",
 			logger.String("templateMode", templateMode),
 			logger.Bool("ShowEmoji", formatOptions.ShowEmoji.Enabled),
 			logger.Bool("ShowTimestamps", formatOptions.ShowTimestamps.Enabled),
@@ -704,7 +704,7 @@ func (h *Handler) convertToTemplateData(req types.AlertManagerData) (*template.T
 			logger.Bool("ShowExternalURL", formatOptions.ShowExternalURL.Enabled))
 	} else {
 		formatOptions = templateEngine.GetFullDefaultConfig().FormatOptions
-		logger.Debug("Using full config FormatOptions", "DiscordHandler", 
+		logger.Debug("Using full config FormatOptions", "DiscordHandler",
 			logger.String("templateMode", templateMode),
 			logger.Bool("ShowEmoji", formatOptions.ShowEmoji.Enabled),
 			logger.Bool("ShowTimestamps", formatOptions.ShowTimestamps.Enabled),
@@ -733,7 +733,7 @@ func (h *Handler) convertToTemplateData(req types.AlertManagerData) (*template.T
 	firingCount := 0
 	resolvedCount := 0
 	var templateAlerts []template.AlertData
-	
+
 	for _, alert := range req.Alerts {
 		status := h.getStringValue(alert["status"])
 		if status == "firing" {
@@ -794,10 +794,10 @@ func (h *Handler) getFormatOptionsForDiscord() template.FormatOptions {
 	if templateMode == "" {
 		templateMode = "full" // Default to full mode
 	}
-	
-	logger.Debug("getFormatOptionsForDiscord called", "DiscordHandler", 
+
+	logger.Debug("getFormatOptionsForDiscord called", "DiscordHandler",
 		logger.String("templateMode", templateMode))
-	
+
 	if templateMode == "minimal" {
 		// Minimal mode: disable most options
 		return template.FormatOptions{

@@ -1,12 +1,17 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	"github.com/bwmarrin/discordgo"
 	"alert-webhooks/config"
 	"alert-webhooks/pkg/logger"
+
+	"github.com/bwmarrin/discordgo"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // DiscordService provides Discord messaging functionality
@@ -48,8 +53,8 @@ func NewDiscordService(cfg config.DiscordConf) (*DiscordService, error) {
 		return nil, fmt.Errorf("failed to get bot user info: %w", err)
 	}
 
-	logger.Info("Discord service connected successfully", 
-		"DiscordService", 
+	logger.Info("Discord service connected successfully",
+		"DiscordService",
 		logger.String("bot_id", user.ID),
 		logger.String("bot_username", user.Username))
 
@@ -64,21 +69,45 @@ func NewDiscordService(cfg config.DiscordConf) (*DiscordService, error) {
 }
 
 // SendMessage send message to specified level chat
-func (ds *DiscordService) SendMessage(level string, message string) error {
+func (ds *DiscordService) SendMessage(ctx context.Context, level string, message string) error {
+	ctx, span := otel.Tracer("discord").Start(ctx, "DiscordService.SendMessage")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("messaging.system", "discord"),
+		attribute.String("messaging.level", level),
+	)
+
 	if !ds.config.Enable {
-		return fmt.Errorf("Discord service is disabled")
+		err := fmt.Errorf("Discord service is disabled")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return err
 	}
 
 	if ds.session == nil {
-		return fmt.Errorf("Discord session not initialized")
+		err := fmt.Errorf("Discord session not initialized")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return err
 	}
 
 	channelID, err := ds.getChannelForLevel(level)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
-	return ds.SendMessageToChannel(channelID, message)
+	span.SetAttributes(attribute.String("messaging.channel", channelID))
+
+	if sendErr := ds.SendMessageToChannel(channelID, message); sendErr != nil {
+		span.RecordError(sendErr)
+		span.SetStatus(codes.Error, sendErr.Error())
+		return sendErr
+	}
+
+	return nil
 }
 
 // SendMessageToChannel sends a message to a specific Discord channel
@@ -101,16 +130,16 @@ func (ds *DiscordService) SendMessageToChannel(channelID, message string) error 
 		return ds.handleDiscordError(err, channelID)
 	}
 
-	logger.Info("Discord message sent successfully", 
-		"DiscordService", 
+	logger.Info("Discord message sent successfully",
+		"DiscordService",
 		logger.String("channel_id", channelID))
 
 	return nil
 }
 
 // SendMessageToLevel sends message to specified level channel
-func (ds *DiscordService) SendMessageToLevel(level string, message string) error {
-	return ds.SendMessage(level, message)
+func (ds *DiscordService) SendMessageToLevel(ctx context.Context, level string, message string) error {
+	return ds.SendMessage(ctx, level, message)
 }
 
 // TestConnection tests the Discord connection and bot permissions
@@ -129,8 +158,8 @@ func (ds *DiscordService) TestConnection() error {
 		return fmt.Errorf("failed to get bot user info: %w", err)
 	}
 
-	logger.Info("Discord connection test successful", 
-		"DiscordService", 
+	logger.Info("Discord connection test successful",
+		"DiscordService",
 		logger.String("bot_id", user.ID),
 		logger.String("bot_username", user.Username))
 
@@ -169,8 +198,8 @@ func (ds *DiscordService) ValidateChannel(channelID string) error {
 		return fmt.Errorf("bot lacks Send Messages permission in channel %s", channelID)
 	}
 
-	logger.Info("Discord channel validation successful", 
-		"DiscordService", 
+	logger.Info("Discord channel validation successful",
+		"DiscordService",
 		logger.String("channel_id", channelID),
 		logger.String("channel_name", channel.Name))
 
@@ -215,7 +244,7 @@ func (ds *DiscordService) getChannelForLevel(level string) (string, error) {
 	if strings.HasPrefix(level, "L") {
 		levelKey = strings.TrimPrefix(level, "L")
 	}
-	
+
 	// Try with chat_ids prefix (e.g., "chat_ids0")
 	if channelID, exists := ds.channels["chat_ids"+levelKey]; exists && channelID != "" {
 		return channelID, nil
@@ -232,7 +261,7 @@ func (ds *DiscordService) getChannelForLevel(level string) (string, error) {
 // sendLongMessage splits and sends long messages that exceed Discord's 2000 character limit
 func (ds *DiscordService) sendLongMessage(channelID, message string) error {
 	const maxLength = 2000
-	
+
 	// Split message into chunks
 	chunks := make([]string, 0)
 	for len(message) > maxLength {
@@ -241,11 +270,11 @@ func (ds *DiscordService) sendLongMessage(channelID, message string) error {
 		if lastNewline := strings.LastIndex(message[:maxLength], "\n"); lastNewline > maxLength/2 {
 			splitIndex = lastNewline + 1
 		}
-		
+
 		chunks = append(chunks, message[:splitIndex])
 		message = message[splitIndex:]
 	}
-	
+
 	if len(message) > 0 {
 		chunks = append(chunks, message)
 	}
@@ -257,15 +286,15 @@ func (ds *DiscordService) sendLongMessage(channelID, message string) error {
 		} else if len(chunks) > 1 {
 			chunk = fmt.Sprintf("(Part 1/%d)\n%s", len(chunks), chunk)
 		}
-		
+
 		_, err := ds.session.ChannelMessageSend(channelID, chunk)
 		if err != nil {
 			return fmt.Errorf("failed to send message chunk %d: %w", i+1, err)
 		}
 	}
 
-	logger.Info("Discord long message sent successfully", 
-		"DiscordService", 
+	logger.Info("Discord long message sent successfully",
+		"DiscordService",
 		logger.String("channel_id", channelID),
 		logger.Int("chunks", len(chunks)))
 
@@ -275,7 +304,7 @@ func (ds *DiscordService) sendLongMessage(channelID, message string) error {
 // handleDiscordError provides user-friendly error messages for common Discord API errors
 func (ds *DiscordService) handleDiscordError(err error, channelID string) error {
 	errStr := err.Error()
-	
+
 	switch {
 	case strings.Contains(errStr, "Missing Permissions"):
 		return fmt.Errorf("bot lacks necessary permissions in channel %s. Please ensure the bot has 'Send Messages' permission", channelID)

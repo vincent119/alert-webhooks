@@ -14,6 +14,9 @@ import (
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // TelegramService Telegram 服務
@@ -156,15 +159,26 @@ func (ts *TelegramService) testConnection() error {
 
 // SendMessage send message to specified level chat
 func (ts *TelegramService) SendMessage(ctx context.Context, level int, message string) error {
+	ctx, span := otel.Tracer("telegram").Start(ctx, "TelegramService.SendMessage")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("messaging.system", "telegram"),
+		attribute.Int("messaging.level", level),
+	)
+
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
 
 	// 檢查是否為降級模式
 	if ts.bot == nil {
+		err := fmt.Errorf("telegram service is in degraded mode - bot initialization failed")
 		logger.Error("Telegram service is in degraded mode - bot not available", "telegram_service",
 			logger.Int("level", level),
 			logger.String("message_preview", getMessagePreview(message)))
-		return fmt.Errorf("telegram service is in degraded mode - bot initialization failed")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return err
 	}
 
 	chatID, exists := ts.chatIDs[level]
@@ -179,12 +193,17 @@ func (ts *TelegramService) SendMessage(ctx context.Context, level int, message s
 			logger.Int("requested_level", level),
 			logger.Any("configured_levels", configuredLevels),
 			logger.Int("total_configured", len(ts.chatIDs)))
-		return fmt.Errorf("no chat ID configured for level %d", level)
+		err := fmt.Errorf("no chat ID configured for level %d", level)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return err
 	}
 
 	logger.Debug("Found chat ID for level", "telegram_service",
 		logger.Int("level", level),
 		logger.Int64("chat_id", chatID))
+
+	span.SetAttributes(attribute.Int64("messaging.chat_id", chatID))
 
 	params := &bot.SendMessageParams{
 		ChatID:    chatID,
@@ -209,6 +228,8 @@ func (ts *TelegramService) SendMessage(ctx context.Context, level int, message s
 			logger.Int64("chat_id", chatID),
 			logger.String("message_preview", getMessagePreview(message)),
 			logger.Err(err))
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
