@@ -10,6 +10,10 @@ import (
 	"alert-webhooks/config"
 	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/notification/types"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // TelegramService 接口定義（避免循環依賴）
@@ -33,11 +37,11 @@ func NewTelegramProvider(telegramService TelegramService, templateEngine types.T
 	if telegramService == nil {
 		return nil, fmt.Errorf("telegram service not available")
 	}
-	
+
 	if templateEngine == nil {
 		return nil, fmt.Errorf("template engine not available")
 	}
-	
+
 	provider := &TelegramProvider{
 		telegramService: telegramService,
 		templateEngine:  templateEngine,
@@ -47,7 +51,7 @@ func NewTelegramProvider(telegramService TelegramService, templateEngine types.T
 			MessagesError: 0,
 		},
 	}
-	
+
 	logger.Info("Telegram provider initialized", "telegram_provider")
 	return provider, nil
 }
@@ -59,17 +63,26 @@ func (tp *TelegramProvider) GetName() string {
 
 // SendMessage send message
 func (tp *TelegramProvider) SendMessage(ctx context.Context, req *types.NotificationRequest) error {
+	ctx, span := otel.Tracer("telegram").Start(ctx, "TelegramProvider.SendMessage")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("messaging.system", "telegram"),
+		attribute.String("messaging.level", req.Level),
+		attribute.String("messaging.chat_id", req.ChatID),
+	)
+
 	logger.Info("Sending Telegram message", "telegram_provider",
 		logger.String("level", req.Level),
 		logger.String("chat_id", req.ChatID))
-	
+
 	// 解析等級
 	level, err := tp.parseLevelFromRequest(req)
 	if err != nil {
 		tp.stats.MessagesError++
 		return fmt.Errorf("invalid level format: %v", err)
 	}
-	
+
 	// 在 debug 模式下記錄發送前的詳細資訊
 	if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" || strings.ToLower(config.Log.Level) == "debug" {
 		// 計算訊息預覽長度
@@ -81,7 +94,7 @@ func (tp *TelegramProvider) SendMessage(ctx context.Context, req *types.Notifica
 		if len(req.Message) > 100 {
 			messagePreview += "..."
 		}
-		
+
 		logger.Debug("Telegram provider sending message", "telegram_provider",
 			logger.String("level", req.Level),
 			logger.String("chat_id", req.ChatID),
@@ -89,25 +102,27 @@ func (tp *TelegramProvider) SendMessage(ctx context.Context, req *types.Notifica
 			logger.String("message_length", fmt.Sprintf("%d", len(req.Message))),
 			logger.String("message_preview", messagePreview))
 	}
-	
+
 	// Send message
 	err = tp.telegramService.SendMessage(level, req.Message)
 	if err != nil {
 		tp.stats.MessagesError++
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		logger.Error("Failed to send Telegram message", "telegram_provider",
 			logger.Int("level", level),
 			logger.Err(err))
 		return err
 	}
-	
+
 	// 更新統計
 	tp.stats.MessagesSent++
 	tp.stats.LastMessageTime = time.Now().Unix()
-	
+
 	logger.Info("Telegram message sent successfully", "telegram_provider",
 		logger.Int("level", level),
 		logger.Int64("messages_sent_total", tp.stats.MessagesSent))
-	
+
 	return nil
 }
 
@@ -121,15 +136,15 @@ func (tp *TelegramProvider) parseLevelFromRequest(req *types.NotificationRequest
 		if err != nil {
 			return 0, fmt.Errorf("invalid level format: %s", req.Level)
 		}
-		
+
 		// 驗證等級範圍
 		if level < 0 || level > 6 {
 			return 0, fmt.Errorf("level out of range (0-6): %d", level)
 		}
-		
+
 		return level, nil
 	}
-	
+
 	// 如果沒有 Level，嘗試從 ChatID 解析
 	if req.ChatID != "" {
 		// 假設 ChatID 格式為 "L0", "L1" 等
@@ -141,7 +156,7 @@ func (tp *TelegramProvider) parseLevelFromRequest(req *types.NotificationRequest
 			}
 		}
 	}
-	
+
 	return 0, fmt.Errorf("no valid level found in request")
 }
 
@@ -150,25 +165,25 @@ func (tp *TelegramProvider) ValidateConfig() error {
 	if tp.config.Token == "" {
 		return fmt.Errorf("telegram token is required")
 	}
-	
+
 	// 檢查至少有一個聊天ID配置
 	hasValidChatID := false
 	chatIDs := []string{
 		tp.config.ChatIDs0, tp.config.ChatIDs1, tp.config.ChatIDs2,
 		tp.config.ChatIDs3, tp.config.ChatIDs4, tp.config.ChatIDs5, tp.config.ChatIDs6,
 	}
-	
+
 	for _, chatID := range chatIDs {
 		if chatID != "" {
 			hasValidChatID = true
 			break
 		}
 	}
-	
+
 	if !hasValidChatID {
 		return fmt.Errorf("at least one telegram chat ID must be configured")
 	}
-	
+
 	return nil
 }
 
@@ -184,7 +199,7 @@ func (tp *TelegramProvider) GetCapabilities() *types.ProviderCapabilities {
 	if tp.templateEngine != nil {
 		supportedLanguages = tp.templateEngine.GetSupportedLanguages()
 	}
-	
+
 	return &types.ProviderCapabilities{
 		SupportsLevels:     true,
 		SupportsChannels:   false, // Telegram 使用 ChatID，不是頻道概念
@@ -200,7 +215,7 @@ func (tp *TelegramProvider) GetStatus() *types.ProviderStatus {
 	// 測試連接
 	connected := false
 	lastError := ""
-	
+
 	if tp.telegramService != nil {
 		_, err := tp.telegramService.GetBotInfo()
 		if err != nil {
@@ -209,7 +224,7 @@ func (tp *TelegramProvider) GetStatus() *types.ProviderStatus {
 			connected = true
 		}
 	}
-	
+
 	// 構建頻道映射（這裡是聊天ID）
 	channels := make(map[string]string)
 	if tp.config.ChatIDs0 != "" {
@@ -233,7 +248,7 @@ func (tp *TelegramProvider) GetStatus() *types.ProviderStatus {
 	if tp.config.ChatIDs6 != "" {
 		channels["L6"] = tp.config.ChatIDs6
 	}
-	
+
 	return &types.ProviderStatus{
 		Name:       "telegram",
 		Enabled:    tp.config.Enable,
@@ -249,11 +264,11 @@ func (tp *TelegramProvider) TestConnection() error {
 	if tp.telegramService == nil {
 		return fmt.Errorf("telegram service not available")
 	}
-	
+
 	_, err := tp.telegramService.GetBotInfo()
 	if err != nil {
 		return fmt.Errorf("failed to connect to Telegram: %v", err)
 	}
-	
+
 	return nil
 }

@@ -6,6 +6,10 @@ import (
 	"strings"
 
 	"alert-webhooks/pkg/notification/types"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // DiscordService interface to avoid circular dependencies
@@ -73,36 +77,54 @@ func (dp *DiscordProvider) GetStatus() *types.ProviderStatus {
 
 // SendMessage sends a notification message
 func (dp *DiscordProvider) SendMessage(ctx context.Context, req *types.NotificationRequest) error {
+	ctx, span := otel.Tracer("discord").Start(ctx, "DiscordProvider.SendMessage")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("messaging.system", "discord"),
+		attribute.String("messaging.level", req.Level),
+		attribute.String("messaging.channel", req.Channel),
+	)
+
 	// Use direct message if provided
 	if req.Message != "" {
-		if req.Channel != "" {
-			return dp.service.SendMessageToChannel(req.Channel, req.Message)
-		} else if req.Level != "" {
-			return dp.service.SendMessage(req.Level, req.Message)
-		} else {
-			return fmt.Errorf("either channel or level must be specified")
-		}
-	} else if req.AlertData != nil {
-		// Render template message
-		var message string
 		var err error
 		if req.Channel != "" {
-			message, err = dp.renderAlertMessage(*req)
-			if err != nil {
-				return err
-			}
-			return dp.service.SendMessageToChannel(req.Channel, message)
+			err = dp.service.SendMessageToChannel(req.Channel, req.Message)
 		} else if req.Level != "" {
-			message, err = dp.renderAlertMessage(*req)
-			if err != nil {
-				return err
-			}
-			return dp.service.SendMessage(req.Level, message)
+			err = dp.service.SendMessage(req.Level, req.Message)
 		} else {
-			return fmt.Errorf("either channel or level must be specified")
+			err = fmt.Errorf("either channel or level must be specified")
 		}
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		return err
+	} else if req.AlertData != nil {
+		message, err := dp.renderAlertMessage(*req)
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return err
+		}
+		if req.Channel != "" {
+			err = dp.service.SendMessageToChannel(req.Channel, message)
+		} else if req.Level != "" {
+			err = dp.service.SendMessage(req.Level, message)
+		} else {
+			err = fmt.Errorf("either channel or level must be specified")
+		}
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		return err
 	} else {
-		return fmt.Errorf("either message or alert data must be provided")
+		err := fmt.Errorf("either message or alert data must be provided")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return err
 	}
 }
 
@@ -131,13 +153,13 @@ func (dp *DiscordProvider) renderAlertMessage(req types.NotificationRequest) (st
 // formatBasicMessage creates a basic Discord-formatted message from alert data
 func (dp *DiscordProvider) formatBasicMessage(alertData *types.AlertManagerData) string {
 	var message strings.Builder
-	
+
 	// Header
 	message.WriteString("🚨 **Alert Notification**\n\n")
-	
+
 	if len(alertData.Alerts) > 0 {
 		alert := alertData.Alerts[0]
-		
+
 		if labels, ok := alert["labels"].(map[string]interface{}); ok {
 			if alertName := getStringValue(labels["alertname"]); alertName != "" {
 				message.WriteString(fmt.Sprintf("**Alert Name:** %s\n", alertName))
@@ -152,10 +174,10 @@ func (dp *DiscordProvider) formatBasicMessage(alertData *types.AlertManagerData)
 				message.WriteString(fmt.Sprintf("**Namespace:** %s\n", namespace))
 			}
 		}
-		
+
 		message.WriteString(fmt.Sprintf("**Status:** %s\n", alertData.Status))
 		message.WriteString(fmt.Sprintf("**Total Alerts:** %d\n", len(alertData.Alerts)))
-		
+
 		// Count firing and resolved alerts
 		firingCount := 0
 		resolvedCount := 0
@@ -168,10 +190,10 @@ func (dp *DiscordProvider) formatBasicMessage(alertData *types.AlertManagerData)
 				}
 			}
 		}
-		
+
 		message.WriteString(fmt.Sprintf("**Firing:** %d\n", firingCount))
 		message.WriteString(fmt.Sprintf("**Resolved:** %d\n", resolvedCount))
-		
+
 		// Add summary of firing alerts
 		if firingCount > 0 {
 			message.WriteString("\n🔥 **Firing Alerts:**\n")
@@ -185,7 +207,7 @@ func (dp *DiscordProvider) formatBasicMessage(alertData *types.AlertManagerData)
 				}
 			}
 		}
-		
+
 		// Add summary of resolved alerts
 		if resolvedCount > 0 {
 			message.WriteString("\n✅ **Resolved Alerts:**\n")
@@ -199,13 +221,13 @@ func (dp *DiscordProvider) formatBasicMessage(alertData *types.AlertManagerData)
 				}
 			}
 		}
-		
+
 		// Add external URL if available
 		if alertData.ExternalURL != "" {
 			message.WriteString(fmt.Sprintf("\n🔗 [View Details](%s)", alertData.ExternalURL))
 		}
 	}
-	
+
 	return message.String()
 }
 

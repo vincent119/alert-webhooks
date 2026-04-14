@@ -18,25 +18,41 @@ var (
 
 // Conf 是全局配置的容器，為了保持向後兼容
 var Conf struct {
-	App    AppConf
-	Metric MetricConf
-	Log    LogConf
+	App      AppConf
+	Metric   MetricConf
+	Trace    TraceConf
+	Log      LogConf
 	Telegram TelegramConf
 	Webhooks WebhooksConf
-	Slack  SlackConf
-	Discord DiscordConf
+	Slack    SlackConf
+	Discord  DiscordConf
 }
 
 // 內部使用的配置結構體
 type configStruct struct {
-	App    AppConf    `mapstructure:"app" json:"app"`
-	Metric MetricConf `mapstructure:"metric" json:"metric"`
-	Log    LogConf    `mapstructure:"log" json:"log"`
+	App      AppConf      `mapstructure:"app" json:"app"`
+	Metric   MetricConf   `mapstructure:"metric" json:"metric"`
+	Trace    TraceConf    `mapstructure:"trace" json:"trace"`
+	Log      LogConf      `mapstructure:"log" json:"log"`
 	Telegram TelegramConf `mapstructure:"telegram" json:"telegram"`
 	Webhooks WebhooksConf `mapstructure:"webhooks" json:"webhooks"`
-	Slack  SlackConf  `mapstructure:"slack" json:"slack"`
-	Discord DiscordConf `mapstructure:"discord" json:"discord"`
+	Slack    SlackConf    `mapstructure:"slack" json:"slack"`
+	Discord  DiscordConf  `mapstructure:"discord" json:"discord"`
 }
+
+type TraceConf struct {
+	Enable     bool    `mapstructure:"enable"`
+	Url        string  `mapstructure:"url"`
+	Port       string  `mapstructure:"port"`
+	UrlPath    string  `mapstructure:"urlPath"`
+	Insecure   bool    `mapstructure:"insecure"`
+	AuthUser   string  `mapstructure:"authUser"`
+	AuthPasswd string  `mapstructure:"authPasswd"`
+	SampleRate float64 `mapstructure:"sampleRate"`
+}
+
+// Trace 是全局追蹤配置
+var Trace TraceConf
 
 // 存儲內部配置
 var (
@@ -91,7 +107,7 @@ func initConfig() {
 	} else {
 		log.Println("No valid configuration file found, using default values")
 	}
-	
+
 	// 調試：打印 Telegram 配置
 	fmt.Printf("Config loaded - template_language: %s, template_mode: %s, config_file: %s\n",
 		confInternal.Telegram.TemplateLanguage, confInternal.Telegram.TemplateMode, v.ConfigFileUsed())
@@ -114,9 +130,9 @@ func setupConfigPaths(v *viper.Viper) {
 
 	// 設定配置文件搜尋路徑
 	configPaths = []string{
-		".",                    // 當前目錄
-		"./config",            // config 子目錄
-		"./configs",           // configs 子目錄
+		".",                        // 當前目錄
+		"./config",                 // config 子目錄
+		"./configs",                // configs 子目錄
 		"./configs/" + environment, // 環境特定目錄
 	}
 
@@ -130,7 +146,7 @@ func setupConfigPaths(v *viper.Viper) {
 		// 嘗試載入 config.{env}.yaml
 		envConfigName := fmt.Sprintf("config.%s", environment)
 		v.SetConfigName(envConfigName)
-		
+
 		// 如果環境特定配置不存在，回退到預設配置
 		if err := v.ReadInConfig(); err != nil {
 			v.SetConfigName("config")
@@ -180,6 +196,16 @@ func overrideWithEnvVars() {
 		fmt.Printf("Override webhooks password from env var: [REDACTED]\n")
 	}
 
+	// Trace 配置
+	if authUser := os.Getenv("TRACE_AUTH_USER"); authUser != "" {
+		confInternal.Trace.AuthUser = authUser
+		fmt.Printf("Override trace auth user from env var: %s\n", authUser)
+	}
+	if authPasswd := os.Getenv("TRACE_AUTH_PASSWD"); authPasswd != "" {
+		confInternal.Trace.AuthPasswd = authPasswd
+		fmt.Printf("Override trace auth password from env var: [REDACTED]\n")
+	}
+
 	// Telegram 配置
 	if token := os.Getenv("TELEGRAM_TOKEN"); token != "" {
 		confInternal.Telegram.Token = token
@@ -199,7 +225,7 @@ func overrideWithEnvVars() {
 	}
 
 	// 記錄服務啟用狀態（確認預設值邏輯）
-	fmt.Printf("Service enable status - Webhooks: %t, Telegram: %t, Slack: %t, Discord: %t\n", 
+	fmt.Printf("Service enable status - Webhooks: %t, Telegram: %t, Slack: %t, Discord: %t\n",
 		confInternal.Webhooks.Enable, confInternal.Telegram.Enable, confInternal.Slack.Enable, confInternal.Discord.Enable)
 }
 
@@ -208,6 +234,7 @@ func updateGlobalConfigs() {
 	// 更新包級變數
 	App = confInternal.App
 	Metric = confInternal.Metric
+	Trace = confInternal.Trace
 	Log = confInternal.Log
 	Telegram = confInternal.Telegram
 	Webhooks = confInternal.Webhooks
@@ -216,6 +243,7 @@ func updateGlobalConfigs() {
 	// 更新 Conf 結構體
 	Conf.App = confInternal.App
 	Conf.Metric = confInternal.Metric
+	Conf.Trace = confInternal.Trace
 	Conf.Log = confInternal.Log
 	Conf.Telegram = confInternal.Telegram
 	Conf.Webhooks = confInternal.Webhooks
@@ -281,7 +309,7 @@ func MergeConfig(partialConfig map[string]interface{}) error {
 
 	// 合併配置
 	mergeConfigStruct(&confInternal, &tempConfig)
-	
+
 	// 更新全局變數
 	updateGlobalConfigs()
 	return nil
@@ -323,5 +351,3 @@ func getProjectRoot() string {
 
 	return wd
 }
-
-

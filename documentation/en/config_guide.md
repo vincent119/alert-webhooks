@@ -7,7 +7,7 @@ This guide provides detailed instructions for configuring the Alert Webhooks ser
 The service uses YAML configuration files located in the `configs/` directory:
 
 - `config.development.yaml` - Development environment configuration
-- `config.production.yaml` - Production environment configuration  
+- `config.production.yaml` - Production environment configuration
 - `config.test.yaml` - Test environment configuration
 - `telegram_config.yaml` - Default template formatting options
 - `telegram_config.minimal.yaml` - Minimal template formatting options
@@ -93,6 +93,44 @@ telegram:
   # ... configure other levels as needed
 ```
 
+### OpenTelemetry Tracing Configuration (`trace`)
+
+The service integrates OpenTelemetry to export trace data via OTLP over HTTP to backends such as Tempo or Jaeger.
+
+#### Configuration Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `enable` | bool | `false` | Enable tracing |
+| `url` | string | `""` | OTLP collector host address |
+| `port` | string | `""` | OTLP HTTP receiver port |
+| `urlPath` | string | `""` | Custom URL path (optional) |
+| `insecure` | bool | `false` | Default is HTTP; set to `true` for HTTPS |
+| `authUser` | string | `""` | Basic Auth username; empty disables auth |
+| `authPasswd` | string | `""` | Basic Auth password; empty disables auth |
+| `sampleRate` | float64 | `1.0` | Sampling rate: 1.0=100%, 0.1=10%, 0=none |
+
+#### Example
+
+```yaml
+trace:
+  enable: true
+  url: "tempo.observability.svc.cluster.local"
+  port: "4318"
+  insecure: false
+  authUser: ""
+  authPasswd: ""
+  sampleRate: 1.0
+```
+
+#### How It Works
+
+- Uses OTLP HTTP exporter to send trace data
+- Sampler uses `ParentBased` strategy: respects upstream sampling decisions when present
+- Basic Auth is enabled only when both `authUser` and `authPasswd` are non-empty
+- TracerProvider is gracefully flushed and shut down on application exit
+- Gin HTTP middleware (`otelgin`) automatically creates spans for each request
+
 ## 🎨 Template Configuration
 
 ### Template Modes
@@ -169,7 +207,7 @@ Use command-line flags to specify environment:
 # Development
 go run cmd/main.go -e development
 
-# Production  
+# Production
 go run cmd/main.go -e production
 
 # Test

@@ -16,7 +16,7 @@ image:
   repository: vincent119/alert-webhooks
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion
-  tag: "v1.0.0"
+  tag: "v1.0.1"
 
 # Image pull secrets for private registry
 imagePullSecrets: []
@@ -245,15 +245,11 @@ alertTemplateConfig:
       priority_order: [".tmpl", ".j2"]
     format_options:
       show_links: { enabled: true, description: "Whether to show hyperlinks" }
-      show_timestamps:
-        { enabled: true, description: "Whether to show timestamps" }
-      show_external_url:
-        { enabled: true, description: "Whether to show external URLs" }
-      show_generator_url:
-        { enabled: true, description: "Whether to show generator URLs" }
+      show_timestamps: { enabled: true, description: "Whether to show timestamps" }
+      show_external_url: { enabled: true, description: "Whether to show external URLs" }
+      show_generator_url: { enabled: true, description: "Whether to show generator URLs" }
       show_emoji: { enabled: true, description: "Whether to show emojis" }
-      compact_mode:
-        { enabled: false, description: "Compact mode (simplified display)" }
+      compact_mode: { enabled: false, description: "Compact mode (simplified display)" }
       max_summary_length: { value: 200, description: "Maximum summary length" }
 
 alertTemplateConfigMinimal:
@@ -287,15 +283,11 @@ alertTemplateConfigMinimal:
       priority_order: [".tmpl", ".j2"]
     format_options:
       show_links: { enabled: false, description: "Whether to show hyperlinks" }
-      show_timestamps:
-        { enabled: true, description: "Whether to show timestamps" }
-      show_external_url:
-        { enabled: false, description: "Whether to show external URLs" }
-      show_generator_url:
-        { enabled: false, description: "Whether to show generator URLs" }
+      show_timestamps: { enabled: true, description: "Whether to show timestamps" }
+      show_external_url: { enabled: false, description: "Whether to show external URLs" }
+      show_generator_url: { enabled: false, description: "Whether to show generator URLs" }
       show_emoji: { enabled: true, description: "Whether to show emojis" }
-      compact_mode:
-        { enabled: true, description: "Compact mode (simplified display)" }
+      compact_mode: { enabled: true, description: "Compact mode (simplified display)" }
       max_summary_length: { value: 100, description: "Maximum summary length" }
 
 # Init containers

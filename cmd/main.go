@@ -4,6 +4,7 @@ import (
 	"alert-webhooks/config"
 	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/service"
+	"alert-webhooks/pkg/trace"
 	"alert-webhooks/pkg/watcher"
 	"alert-webhooks/routes"
 	"context"
@@ -42,7 +43,6 @@ func waitForShutdownSignal(server *http.Server) {
 	logger.Info("Service exited", mainString)
 }
 
-
 // @title           Alert Webhooks API
 // @version         1.0
 // @description     這是 Alert Webhooks 的 Swagger 文件（由 swag 自動產生）。
@@ -59,27 +59,44 @@ func waitForShutdownSignal(server *http.Server) {
 func main() {
 	// 初始化配置
 	config.Init()
-	
+
 	// 初始化日誌系統
 	logger.InitLogger(config.Log.Level, config.IsDevelopment())
-	
+
+	// 初始化 OpenTelemetry TracerProvider
+	traceShutdown, err := trace.InitTracerProvider(
+		context.Background(),
+		config.Trace,
+		config.App.AppName,
+	)
+	if err != nil {
+		logger.Fatal("Failed to initialize TracerProvider", mainString, logger.Err(err))
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+		if err := traceShutdown(shutdownCtx); err != nil {
+			logger.Warn("Failed to shutdown TracerProvider", mainString, logger.Err(err))
+		}
+	}()
+
 	// 初始化服務
 	serviceManager := service.GetServiceManager()
 	if err := serviceManager.InitServices(); err != nil {
 		logger.Warn("Failed to initialize services, some features may not be available", mainString, logger.Err(err))
 	}
-	
+
 	// 啟動配置檔案監控器
 	configWatcher := watcher.NewConfigWatcher()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	
+
 	if err := configWatcher.Start(ctx); err != nil {
 		logger.Warn("Failed to start config watcher", mainString, logger.Err(err))
 	} else {
 		defer configWatcher.Stop()
 	}
-	
+
 	// 記錄應用啟動信息
 	logger.Info("Starting application...", mainString,
 		logger.String("mode", config.App.Mode),
@@ -89,8 +106,6 @@ func main() {
 	// 啟動HTTP服務
 	startHTTPServer()
 }
-
-
 
 // startHTTPServer 啟動HTTP服務並處理優雅關閉
 func startHTTPServer() {

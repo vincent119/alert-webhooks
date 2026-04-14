@@ -166,6 +166,44 @@ metric:
   password: "prod-password"
 ```
 
+### OpenTelemetry Tracing 配置 (`trace`)
+
+系統整合 OpenTelemetry，透過 OTLP over HTTP 將 trace 資料匯出至後端（如 Tempo、Jaeger）。
+
+#### 配置欄位說明
+
+| 欄位 | 類型 | 預設值 | 說明 |
+|------|------|--------|------|
+| `enable` | bool | `false` | 是否啟用 tracing |
+| `url` | string | `""` | OTLP collector 主機位址 |
+| `port` | string | `""` | OTLP HTTP receiver port |
+| `urlPath` | string | `""` | 自訂 URL path（選填） |
+| `insecure` | bool | `false` | 預設 HTTP；設為 `true` 走 HTTPS |
+| `authUser` | string | `""` | Basic Auth 帳號，空值不啟用認證 |
+| `authPasswd` | string | `""` | Basic Auth 密碼，空值不啟用認證 |
+| `sampleRate` | float64 | `1.0` | 取樣率：1.0=100%, 0.1=10%, 0=不取樣 |
+
+#### 配置範例
+
+```yaml
+trace:
+  enable: true
+  url: "tempo.observability.svc.cluster.local"
+  port: "4318"
+  insecure: false
+  authUser: ""
+  authPasswd: ""
+  sampleRate: 1.0
+```
+
+#### 運作機制
+
+- 使用 OTLP HTTP exporter 匯出 trace 資料
+- Sampler 採用 `ParentBased` 策略：若上游已有 sampling 決策則優先採用
+- `authUser` 和 `authPasswd` 同時有值時才啟用 Basic Auth
+- 應用關閉時會優雅地 flush 並關閉 TracerProvider
+- Gin HTTP middleware（`otelgin`）自動為每個請求建立 span
+
 ## 進階功能
 
 ### 1. 配置管理器

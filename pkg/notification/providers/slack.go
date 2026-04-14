@@ -8,6 +8,10 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // SlackService 接口定義（避免循環依賴）
@@ -32,11 +36,11 @@ func NewSlackProvider(slackService SlackService, templateEngine types.TemplateEn
 	if slackService == nil {
 		return nil, fmt.Errorf("slack service not available")
 	}
-	
+
 	if templateEngine == nil {
 		return nil, fmt.Errorf("template engine not available")
 	}
-	
+
 	provider := &SlackProvider{
 		slackService:   slackService,
 		templateEngine: templateEngine,
@@ -46,7 +50,7 @@ func NewSlackProvider(slackService SlackService, templateEngine types.TemplateEn
 			MessagesError: 0,
 		},
 	}
-	
+
 	logger.Info("Slack provider initialized", "slack_provider")
 	return provider, nil
 }
@@ -58,13 +62,22 @@ func (sp *SlackProvider) GetName() string {
 
 // SendMessage send message
 func (sp *SlackProvider) SendMessage(ctx context.Context, req *types.NotificationRequest) error {
+	ctx, span := otel.Tracer("slack").Start(ctx, "SlackProvider.SendMessage")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("messaging.system", "slack"),
+		attribute.String("messaging.level", req.Level),
+		attribute.String("messaging.channel", req.Channel),
+	)
+
 	logger.Info("Sending Slack message", "slack_provider",
 		logger.String("level", req.Level),
 		logger.String("channel", req.Channel))
-	
+
 	var channel string
 	var err error
-	
+
 	// 決定發送到哪個頻道
 	if req.Channel != "" {
 		// 直接指定頻道
@@ -85,22 +98,24 @@ func (sp *SlackProvider) SendMessage(ctx context.Context, req *types.Notificatio
 		}
 		err = sp.slackService.SendMessage(channel, req.Message)
 	}
-	
+
 	if err != nil {
 		sp.stats.MessagesError++
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		logger.Error("Failed to send Slack message", "slack_provider",
 			logger.String("channel", channel),
 			logger.Err(err))
 		return err
 	}
-	
+
 	// 更新統計
 	sp.stats.MessagesSent++
 	sp.stats.LastMessageTime = time.Now().Unix()
-	
+
 	logger.Info("Slack message sent successfully", "slack_provider",
 		logger.String("channel", channel))
-	
+
 	return nil
 }
 
@@ -111,7 +126,7 @@ func (sp *SlackProvider) getLevelChannel(level string) string {
 	if !strings.HasPrefix(normalizedLevel, "l") {
 		normalizedLevel = "l" + normalizedLevel
 	}
-	
+
 	// 從配置中查找
 	if sp.config.Channels != nil {
 		if channel, exists := sp.config.Channels[normalizedLevel]; exists {
@@ -129,12 +144,12 @@ func (sp *SlackProvider) getLevelChannel(level string) string {
 			}
 		}
 	}
-	
+
 	// 使用預設頻道
 	if sp.config.Channel != "" {
 		return sp.config.Channel
 	}
-	
+
 	return "#alerts"
 }
 
@@ -143,11 +158,11 @@ func (sp *SlackProvider) ValidateConfig() error {
 	if sp.config.Token == "" {
 		return fmt.Errorf("slack token is required")
 	}
-	
+
 	if sp.config.Channel == "" && len(sp.config.Channels) == 0 {
 		return fmt.Errorf("at least one slack channel must be configured")
 	}
-	
+
 	return nil
 }
 
@@ -163,7 +178,7 @@ func (sp *SlackProvider) GetCapabilities() *types.ProviderCapabilities {
 	if sp.templateEngine != nil {
 		supportedLanguages = sp.templateEngine.GetSupportedLanguages()
 	}
-	
+
 	return &types.ProviderCapabilities{
 		SupportsLevels:     true,
 		SupportsChannels:   true,
@@ -179,7 +194,7 @@ func (sp *SlackProvider) GetStatus() *types.ProviderStatus {
 	// 測試連接
 	connected := false
 	lastError := ""
-	
+
 	if sp.slackService != nil {
 		err := sp.slackService.TestConnection()
 		if err != nil {
@@ -188,22 +203,22 @@ func (sp *SlackProvider) GetStatus() *types.ProviderStatus {
 			connected = true
 		}
 	}
-	
+
 	// 構建頻道映射
 	channels := make(map[string]string)
-	
+
 	// 添加預設頻道
 	if sp.config.Channel != "" {
 		channels["default"] = sp.config.Channel
 	}
-	
+
 	// 添加等級頻道
 	if sp.config.Channels != nil {
 		for level, channel := range sp.config.Channels {
 			channels[level] = channel
 		}
 	}
-	
+
 	return &types.ProviderStatus{
 		Name:       "slack",
 		Enabled:    sp.config.Enable,
@@ -219,6 +234,6 @@ func (sp *SlackProvider) TestConnection() error {
 	if sp.slackService == nil {
 		return fmt.Errorf("slack service not available")
 	}
-	
+
 	return sp.slackService.TestConnection()
 }

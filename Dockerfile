@@ -1,6 +1,10 @@
 ARG ALPINE_VERSION=3.22.1
 ARG GOLANG_VERSION=1.25.0
-FROM golang:${GOLANG_VERSION}-alpine3.22 AS builder
+
+# -----------------------------------------------------------------------------
+# Stage 1: Builder（使用本機架構編譯，Go cross-compile 產出目標平台 binary）
+# -----------------------------------------------------------------------------
+FROM --platform=$BUILDPLATFORM golang:${GOLANG_VERSION}-alpine3.22 AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -26,22 +30,23 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Copy source code
 COPY . .
 
-# Build the application
+# Cross-compile for linux/amd64（Go 原生支援，不需要 QEMU）
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -trimpath -ldflags="-s -w" -o /build/alert-webhooks ./cmd/main.go
 
 # Verify the binary
 RUN file /build/alert-webhooks && ls -la /build/alert-webhooks
 
 # -----------------------------------------------------------------------------
-# Stage 2: Runtime stage
+# Stage 2: Runtime（使用目標平台架構）
 # -----------------------------------------------------------------------------
-FROM  alpine:${ALPINE_VERSION} AS runtime
+FROM alpine:${ALPINE_VERSION} AS runtime
 
 ARG timezone=UTC
-
 ENV TZ=${timezone}
+
 # Install runtime dependencies
 RUN apk add --no-cache \
     ca-certificates \
