@@ -119,6 +119,18 @@ config:
     level: "info"
     format: "json"
 
+  # OpenTelemetry Tracing 配置
+  trace:
+    enable: false
+    url: ""
+    port: ""
+    urlPath: ""
+    insecure: false
+    tlsSkipVerify: false
+    authUser: ""
+    authPasswd: ""
+    sampleRate: 1.0
+
   # Telegram configuration
   telegram:
     enable: true
@@ -178,7 +190,9 @@ secrets:
   metric:
     user: "admin"
     password: "admin"
-
+  trace:
+    authUser: ""
+    authPasswd: ""
   # Webhooks authentication
   webhooks:
     user: "admin"

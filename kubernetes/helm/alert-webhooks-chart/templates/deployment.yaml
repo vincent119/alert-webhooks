@@ -60,7 +60,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "alert-webhooks-chart.fullname" . }}-secrets
                   key: metric-password
-            
+
             # Webhooks authentication
             - name: WEBHOOKS_USER
               valueFrom:
@@ -72,7 +72,19 @@ spec:
                 secretKeyRef:
                   name: {{ include "alert-webhooks-chart.fullname" . }}-secrets
                   key: webhooks-password
-            
+
+            # Trace authentication
+            - name: TRACE_AUTH_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "alert-webhooks-chart.fullname" . }}-secrets
+                  key: trace-auth-user
+            - name: TRACE_AUTH_PASSWD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "alert-webhooks-chart.fullname" . }}-secrets
+                  key: trace-auth-passwd
+
             # Service tokens
             - name: TELEGRAM_TOKEN
               valueFrom:
@@ -89,18 +101,18 @@ spec:
                 secretKeyRef:
                   name: {{ include "alert-webhooks-chart.fullname" . }}-secrets
                   key: discord-token
-            
+
             # Application environment
             - name: APP_ENV
               value: {{ .Values.app.environment | quote }}
             - name: CONFIG_PATH
               value: "/app/configs/config.production.yaml"
-            
+
             {{- range .Values.env }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
-          
+
           volumeMounts:
             - name: config-volume
               mountPath: /app/configs
@@ -108,7 +120,7 @@ spec:
             {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          
+
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -121,7 +133,7 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      
+
       volumes:
         - name: config-volume
           configMap:
@@ -129,7 +141,7 @@ spec:
         {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

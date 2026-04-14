@@ -8,6 +8,7 @@ data:
   config.production.yaml: |
     app:
       version: {{ .Values.config.app.version | quote }}
+      app_name: {{ .Values.app.name | quote }}
       mode: {{ .Values.config.app.mode | quote }}
       port: {{ .Values.config.app.port | quote }}
 
@@ -15,6 +16,17 @@ data:
       # These values will be overridden by environment variables
       user: "default-user"
       password: "default-password"
+
+    trace:
+      enable: {{ .Values.config.trace.enable }}
+      url: {{ .Values.config.trace.url | quote }}
+      port: {{ .Values.config.trace.port | quote }}
+      urlPath: {{ .Values.config.trace.urlPath | quote }}
+      insecure: {{ .Values.config.trace.insecure }}
+      tlsSkipVerify: {{ .Values.config.trace.tlsSkipVerify | default false }}
+      authUser: {{ .Values.config.trace.authUser | quote }}
+      authPasswd: {{ .Values.config.trace.authPasswd | quote }}
+      sampleRate: {{ .Values.config.trace.sampleRate }}
 
     log:
       level: {{ .Values.config.log.level | quote }}
