@@ -186,6 +186,73 @@ make lint             # 代碼質量檢查
 | `GET` | `/api/v1/healthz` | 健康檢查 | ❌            |
 | `GET` | `/swagger/*`      | API 文檔 | ✅ Basic Auth |
 
+### 可觀測性
+
+#### 📊 Prometheus Metrics
+
+服務在 `/api/v1/metrics` 提供 Prometheus 指標。
+
+| 方法  | 路徑               | 描述             | 認證                    |
+| ----- | ------------------ | ---------------- | ----------------------- |
+| `GET` | `/api/v1/metrics`  | Prometheus 指標  | 可選 Basic Auth         |
+
+當 `metric.user` 和 `metric.password` 同時設定時，該端點需要 Basic Auth 認證。否則為公開存取。
+
+```yaml
+# config.yaml - Metrics 配置
+metric:
+  user: "prometheus"
+  password: "secret"
+```
+
+環境變數覆蓋：`METRIC_USER`、`METRIC_PASSWORD`
+
+Prometheus 抓取範例：
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: "alert-webhooks"
+    metrics_path: "/api/v1/metrics"
+    basic_auth:
+      username: "prometheus"
+      password: "secret"
+    static_configs:
+      - targets: ["localhost:9999"]
+```
+
+#### 🔭 OpenTelemetry Tracing
+
+服務支援透過 OpenTelemetry（OTLP over HTTP）進行分散式追蹤。啟用後，所有 HTTP 請求和通知發送（Telegram、Slack、Discord）都會自動追蹤。
+
+```yaml
+# config.yaml - Trace 配置
+trace:
+  enable: true
+  url: "otel-collector.monitoring.svc.cluster.local"
+  port: "4318"
+  urlPath: "/v1/traces"
+  insecure: true          # true = HTTP，false = HTTPS
+  tlsSkipVerify: false    # 跳過 TLS 憑證驗證（自簽憑證）
+  authUser: ""            # OTLP collector 的 Basic Auth
+  authPasswd: ""
+  sampleRate: 1.0         # 1.0 = 100%，0.5 = 50%，0.0 = 停用
+```
+
+| 欄位            | 說明                                         | 預設值        |
+| --------------- | -------------------------------------------- | ------------- |
+| `enable`        | 啟用/停用追蹤                                | `false`       |
+| `url`           | OTLP collector 主機位址                      | `""`          |
+| `port`          | OTLP HTTP receiver port                      | `"4318"`      |
+| `urlPath`       | OTLP 端點路徑                                | `/v1/traces`  |
+| `insecure`      | `true` = HTTP，`false` = HTTPS               | `true`        |
+| `tlsSkipVerify` | 跳過 TLS 憑證驗證                            | `false`       |
+| `authUser`      | collector 的 Basic Auth 帳號                 | `""`          |
+| `authPasswd`    | collector 的 Basic Auth 密碼                 | `""`          |
+| `sampleRate`    | 取樣率（0.0 ~ 1.0）                         | `1.0`         |
+
+環境變數覆蓋：`TRACE_AUTH_USER`、`TRACE_AUTH_PASSWD`
+
 ### AlertManager 整合範例
 
 #### 📱 Telegram 通知設定

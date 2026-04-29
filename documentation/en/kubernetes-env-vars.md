@@ -19,9 +19,13 @@ The system uses two independent authentication systems:
    - Only affects access to monitoring metrics
 
 2. **Webhooks Authentication** (`webhooks.base_auth_user/password`):
-   - Used for all Telegram/Slack API endpoints
+   - Used for all Telegram/Slack/Discord API endpoints
    - Controls access to alert notification APIs
    - Authentication is only enabled when `webhooks.enable: true`
+
+3. **Trace Authentication** (`trace.authUser/authPasswd`):
+   - Used for OTLP trace collector Basic Auth
+   - Only applies when both values are non-empty
 
 ### Supported Environment Variables List
 
@@ -33,6 +37,9 @@ The system uses two independent authentication systems:
 | `WEBHOOKS_PASSWORD`  | `webhooks.base_auth_password` | Password for Telegram/Slack API endpoints authentication |
 | `TELEGRAM_TOKEN`     | `telegram.token`              | Telegram Bot API Token                                   |
 | `SLACK_TOKEN`        | `slack.token`                 | Slack Bot API Token                                      |
+| `DISCORD_TOKEN`      | `discord.token`               | Discord Bot API Token                                    |
+| `TRACE_AUTH_USER`    | `trace.authUser`              | Basic Auth username for OTLP trace collector             |
+| `TRACE_AUTH_PASSWD`  | `trace.authPasswd`            | Basic Auth password for OTLP trace collector             |
 
 ## Kubernetes Deployment Example
 
@@ -47,6 +54,9 @@ kubectl create secret generic alert-webhooks-secrets \
   --from-literal=webhooks-password="your-webhook-password" \
   --from-literal=telegram-token="your-telegram-bot-token" \
   --from-literal=slack-token="your-slack-bot-token" \
+  --from-literal=discord-token="your-discord-bot-token" \
+  --from-literal=trace-auth-user="your-trace-auth-user" \
+  --from-literal=trace-auth-passwd="your-trace-auth-passwd" \
   --namespace monitoring
 
 # Method 2: Manual encoding and apply YAML
@@ -107,6 +117,20 @@ slack:
   enable: true
   # Default value used when SLACK_TOKEN environment variable is not set
   token: "default-token"
+
+discord:
+  # enable field defaults to false, set to true explicitly to enable
+  enable: true
+  # Default value used when DISCORD_TOKEN environment variable is not set
+  token: "default-token"
+
+trace:
+  enable: true
+  url: "otel-collector.monitoring.svc.cluster.local"
+  port: "4318"
+  # Default values used when TRACE_AUTH_USER / TRACE_AUTH_PASSWD are not set
+  authUser: ""
+  authPasswd: ""
 ```
 
 ## Service Enable Logic
@@ -144,8 +168,11 @@ Override metric user from env var: your-user
 Override metric password from env var: [REDACTED]
 Override telegram token from env var: [REDACTED]
 Override slack token from env var: [REDACTED]
+Override discord token from env var: [REDACTED]
 Override webhooks user from env var: your-user
 Override webhooks password from env var: [REDACTED]
+Override trace auth user from env var: your-user
+Override trace auth password from env var: [REDACTED]
 ```
 
 ## Troubleshooting
@@ -154,7 +181,7 @@ Override webhooks password from env var: [REDACTED]
 
 1. Check if Secret exists: `kubectl get secrets -n monitoring`
 2. Check Secret contents: `kubectl describe secret alert-webhooks-secrets -n monitoring`
-3. Check Pod environment variables: `kubectl exec -it <pod-name> -- env | grep -E "(METRIC|WEBHOOK|TELEGRAM|SLACK)"`
+3. Check Pod environment variables: `kubectl exec -it <pod-name> -- env | grep -E "(METRIC|WEBHOOK|TELEGRAM|SLACK|DISCORD|TRACE)"`
 
 ### Pod Cannot Start
 

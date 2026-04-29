@@ -34,10 +34,32 @@ log:
   add_stacktrace: true
 
 metric:
-  # metric username (leave empty to read from k8s or docker env)
+  # prometheus metrics endpoint: /api/v1/metrics
+  # if both user and password are set, the endpoint requires Basic Auth
+  # if either is empty, the endpoint is publicly accessible (a warning will be logged)
+  # environment variable override: METRIC_USER, METRIC_PASSWORD
   user: ""
-  # metric password (leave empty to read from k8s or docker env)
   password: ""
+
+trace:
+  # enable OpenTelemetry tracing (OTLP over HTTP)
+  enable: false
+  # OTLP collector host (e.g. "localhost", "otel-collector.monitoring.svc.cluster.local")
+  url: ""
+  # OTLP collector port (e.g. "4318" for HTTP receiver)
+  port: "4318"
+  # OTLP URL path (default: /v1/traces)
+  urlPath: "/v1/traces"
+  # true = use HTTP (insecure), false = use HTTPS
+  insecure: true
+  # skip TLS certificate verification (useful for self-signed certificates)
+  tlsSkipVerify: false
+  # Basic Auth for OTLP collector (leave empty to disable auth)
+  # environment variable override: TRACE_AUTH_USER, TRACE_AUTH_PASSWD
+  authUser: ""
+  authPasswd: ""
+  # sampling rate: 1.0 = 100%, 0.5 = 50%, 0.0 = disabled
+  sampleRate: 1.0
 
 webhooks:
   enable: true

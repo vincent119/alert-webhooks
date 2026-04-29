@@ -178,7 +178,8 @@ metric:
 | `url` | string | `""` | OTLP collector 主機位址 |
 | `port` | string | `""` | OTLP HTTP receiver port |
 | `urlPath` | string | `""` | 自訂 URL path（選填） |
-| `insecure` | bool | `false` | 預設 HTTP；設為 `true` 走 HTTPS |
+| `insecure` | bool | `true` | `true` = HTTP，`false` = HTTPS |
+| `tlsSkipVerify` | bool | `false` | 跳過 TLS 憑證驗證（適用於自簽憑證） |
 | `authUser` | string | `""` | Basic Auth 帳號，空值不啟用認證 |
 | `authPasswd` | string | `""` | Basic Auth 密碼，空值不啟用認證 |
 | `sampleRate` | float64 | `1.0` | 取樣率：1.0=100%, 0.1=10%, 0=不取樣 |
@@ -190,7 +191,8 @@ trace:
   enable: true
   url: "tempo.observability.svc.cluster.local"
   port: "4318"
-  insecure: false
+  insecure: true
+  tlsSkipVerify: false
   authUser: ""
   authPasswd: ""
   sampleRate: 1.0

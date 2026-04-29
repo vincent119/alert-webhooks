@@ -18,9 +18,13 @@
    - 只影響監控指標的存取權限
 
 2. **Webhooks 認證** (`webhooks.base_auth_user/password`)：
-   - 用於所有 Telegram/Slack API 端點
+   - 用於所有 Telegram/Slack/Discord API 端點
    - 控制警報通知 API 的存取權限
    - 只有在 `webhooks.enable: true` 時才啟用認證
+
+3. **Trace 認證** (`trace.authUser/authPasswd`)：
+   - 用於 OTLP trace collector 的 Basic Auth 認證
+   - 兩個值同時非空時才啟用
 
 ### 支援的環境變數列表
 
@@ -28,10 +32,13 @@
 | ------------------- | ----------------------------- | --------------------------------------- |
 | `METRIC_USER`       | `metric.user`                 | Prometheus metrics 端點的認證用戶名     |
 | `METRIC_PASSWORD`   | `metric.password`             | Prometheus metrics 端點的認證密碼       |
-| `WEBHOOKS_USER`     | `webhooks.base_auth_user`     | Telegram/Slack API 端點的認證用戶名     |
-| `WEBHOOKS_PASSWORD` | `webhooks.base_auth_password` | Telegram/Slack API 端點的認證密碼       |
+| `WEBHOOKS_USER`     | `webhooks.base_auth_user`     | Telegram/Slack/Discord API 端點的認證用戶名 |
+| `WEBHOOKS_PASSWORD` | `webhooks.base_auth_password` | Telegram/Slack/Discord API 端點的認證密碼   |
 | `TELEGRAM_TOKEN`    | `telegram.token`              | Telegram Bot 的 API Token               |
 | `SLACK_TOKEN`       | `slack.token`                 | Slack Bot 的 API Token                  |
+| `DISCORD_TOKEN`     | `discord.token`               | Discord Bot 的 API Token                |
+| `TRACE_AUTH_USER`   | `trace.authUser`              | OTLP trace collector 的 Basic Auth 帳號 |
+| `TRACE_AUTH_PASSWD` | `trace.authPasswd`            | OTLP trace collector 的 Basic Auth 密碼 |
 
 ## Kubernetes 部署示例
 
@@ -46,6 +53,9 @@ kubectl create secret generic alert-webhooks-secrets \
   --from-literal=webhooks-password="your-webhook-password" \
   --from-literal=telegram-token="your-telegram-bot-token" \
   --from-literal=slack-token="your-slack-bot-token" \
+  --from-literal=discord-token="your-discord-bot-token" \
+  --from-literal=trace-auth-user="your-trace-auth-user" \
+  --from-literal=trace-auth-passwd="your-trace-auth-passwd" \
   --namespace monitoring
 
 # 方法 2：手動編碼並應用 YAML
@@ -106,6 +116,20 @@ slack:
   enable: true
   # 如果沒有設定 SLACK_TOKEN 環境變數，會使用以下預設值
   token: "default-token"
+
+discord:
+  # enable 欄位預設為 false，如果要啟用請明確設定為 true
+  enable: true
+  # 如果沒有設定 DISCORD_TOKEN 環境變數，會使用以下預設值
+  token: "default-token"
+
+trace:
+  enable: true
+  url: "otel-collector.monitoring.svc.cluster.local"
+  port: "4318"
+  # 如果沒有設定 TRACE_AUTH_USER / TRACE_AUTH_PASSWD 環境變數，會使用以下預設值
+  authUser: ""
+  authPasswd: ""
 ```
 
 ## 服務啟用邏輯
@@ -143,8 +167,11 @@ Override metric user from env var: your-user
 Override metric password from env var: [REDACTED]
 Override telegram token from env var: [REDACTED]
 Override slack token from env var: [REDACTED]
+Override discord token from env var: [REDACTED]
 Override webhooks user from env var: your-user
 Override webhooks password from env var: [REDACTED]
+Override trace auth user from env var: your-user
+Override trace auth password from env var: [REDACTED]
 ```
 
 ## 故障排除
@@ -153,7 +180,7 @@ Override webhooks password from env var: [REDACTED]
 
 1. 檢查 Secret 是否存在：`kubectl get secrets -n monitoring`
 2. 檢查 Secret 的內容：`kubectl describe secret alert-webhooks-secrets -n monitoring`
-3. 檢查 Pod 的環境變數：`kubectl exec -it <pod-name> -- env | grep -E "(METRIC|WEBHOOK|TELEGRAM|SLACK)"`
+3. 檢查 Pod 的環境變數：`kubectl exec -it <pod-name> -- env | grep -E "(METRIC|WEBHOOK|TELEGRAM|SLACK|DISCORD|TRACE)"`
 
 ### Pod 無法啟動
 

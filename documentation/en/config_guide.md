@@ -105,7 +105,8 @@ The service integrates OpenTelemetry to export trace data via OTLP over HTTP to 
 | `url` | string | `""` | OTLP collector host address |
 | `port` | string | `""` | OTLP HTTP receiver port |
 | `urlPath` | string | `""` | Custom URL path (optional) |
-| `insecure` | bool | `false` | Default is HTTP; set to `true` for HTTPS |
+| `insecure` | bool | `true` | `true` = HTTP, `false` = HTTPS |
+| `tlsSkipVerify` | bool | `false` | Skip TLS certificate verification (useful for self-signed certs) |
 | `authUser` | string | `""` | Basic Auth username; empty disables auth |
 | `authPasswd` | string | `""` | Basic Auth password; empty disables auth |
 | `sampleRate` | float64 | `1.0` | Sampling rate: 1.0=100%, 0.1=10%, 0=none |
@@ -117,7 +118,8 @@ trace:
   enable: true
   url: "tempo.observability.svc.cluster.local"
   port: "4318"
-  insecure: false
+  insecure: true
+  tlsSkipVerify: false
   authUser: ""
   authPasswd: ""
   sampleRate: 1.0

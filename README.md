@@ -186,6 +186,73 @@ make lint             # Code quality check
 | `GET`  | `/api/v1/healthz` | Health check      | ❌             |
 | `GET`  | `/swagger/*`      | API documentation | ✅ Basic Auth  |
 
+### Observability
+
+#### 📊 Prometheus Metrics
+
+The service exposes Prometheus metrics at `/api/v1/metrics`.
+
+| Method | Path               | Description        | Authentication          |
+| ------ | ------------------ | ------------------ | ----------------------- |
+| `GET`  | `/api/v1/metrics`  | Prometheus metrics | Optional Basic Auth     |
+
+If both `metric.user` and `metric.password` are configured, the endpoint requires Basic Auth. Otherwise it is publicly accessible.
+
+```yaml
+# config.yaml - Metrics configuration
+metric:
+  user: "prometheus"
+  password: "secret"
+```
+
+Environment variable overrides: `METRIC_USER`, `METRIC_PASSWORD`
+
+Prometheus scrape example:
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: "alert-webhooks"
+    metrics_path: "/api/v1/metrics"
+    basic_auth:
+      username: "prometheus"
+      password: "secret"
+    static_configs:
+      - targets: ["localhost:9999"]
+```
+
+#### 🔭 OpenTelemetry Tracing
+
+The service supports distributed tracing via OpenTelemetry (OTLP over HTTP). When enabled, all HTTP requests and notification sends (Telegram, Slack, Discord) are traced automatically.
+
+```yaml
+# config.yaml - Trace configuration
+trace:
+  enable: true
+  url: "otel-collector.monitoring.svc.cluster.local"
+  port: "4318"
+  urlPath: "/v1/traces"
+  insecure: true          # true = HTTP, false = HTTPS
+  tlsSkipVerify: false    # skip TLS cert verification (self-signed certs)
+  authUser: ""            # Basic Auth for OTLP collector
+  authPasswd: ""
+  sampleRate: 1.0         # 1.0 = 100%, 0.5 = 50%, 0.0 = disabled
+```
+
+| Field           | Description                                      | Default       |
+| --------------- | ------------------------------------------------ | ------------- |
+| `enable`        | Enable/disable tracing                           | `false`       |
+| `url`           | OTLP collector host                              | `""`          |
+| `port`          | OTLP HTTP receiver port                          | `"4318"`      |
+| `urlPath`       | OTLP endpoint path                               | `/v1/traces`  |
+| `insecure`      | `true` = HTTP, `false` = HTTPS                   | `true`        |
+| `tlsSkipVerify` | Skip TLS certificate verification                | `false`       |
+| `authUser`      | Basic Auth username for collector                 | `""`          |
+| `authPasswd`    | Basic Auth password for collector                 | `""`          |
+| `sampleRate`    | Sampling rate (0.0 ~ 1.0)                        | `1.0`         |
+
+Environment variable overrides: `TRACE_AUTH_USER`, `TRACE_AUTH_PASSWD`
+
 ### AlertManager Integration Example
 
 #### 📱 Telegram Notification Setup
