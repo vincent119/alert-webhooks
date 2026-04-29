@@ -33,7 +33,9 @@ kubectl create secret generic alert-webhooks-secrets \
   --from-literal=webhooks-password="admin" \
   --from-literal=telegram-token="your-telegram-token" \
   --from-literal=slack-token="your-slack-token" \
-  --from-literal=discord-token="your-discord-token"
+  --from-literal=discord-token="your-discord-token" \
+  --from-literal=trace-auth-user="your-trace-auth-user" \
+  --from-literal=trace-auth-passwd="your-trace-auth-passwd"
 ```
 
 ```bash

@@ -43,6 +43,8 @@ configMapGenerator:
 #       - telegram-token=your-token
 #       - slack-token=your-token
 #       - discord-token=your-token
+#       - trace-auth-user=your-trace-user
+#       - trace-auth-passwd=your-trace-passwd
 #     options:
 #       disableNameSuffixHash: true
 

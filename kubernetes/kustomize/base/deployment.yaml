@@ -66,6 +66,18 @@ spec:
                   name: alert-webhooks-secrets
                   key: discord-token
 
+            # Trace Auth - from alert-webhooks-secrets
+            - name: TRACE_AUTH_USER
+              valueFrom:
+                secretKeyRef:
+                  name: alert-webhooks-secrets
+                  key: trace-auth-user
+            - name: TRACE_AUTH_PASSWD
+              valueFrom:
+                secretKeyRef:
+                  name: alert-webhooks-secrets
+                  key: trace-auth-passwd
+
             # 應用環境設定
             - name: APP_ENV
               value: "production"

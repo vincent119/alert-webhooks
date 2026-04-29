@@ -8,6 +8,18 @@ metric:
   user: "default-user"
   password: "default-password"
 
+trace:
+  enable: false
+  url: ""
+  port: "4318"
+  urlPath: "/v1/traces"
+  insecure: true
+  tlsSkipVerify: false
+  # these values will be overridden by environment variables
+  authUser: ""
+  authPasswd: ""
+  sampleRate: 1.0
+
 log:
   level: "info"
   format: "json"
