@@ -158,7 +158,7 @@ func (ss *SlackService) SendMessage(ctx context.Context, channel, message string
 		attribute.String("messaging.channel", channel),
 	)
 
-	err := ss.SendMessageWithOptions(channel, message, nil)
+	err := ss.SendMessageWithOptions(ctx, channel, message, nil)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -167,9 +167,7 @@ func (ss *SlackService) SendMessage(ctx context.Context, channel, message string
 }
 
 // SendMessageWithOptions send message to specified channel with options
-func (ss *SlackService) SendMessageWithOptions(channel, message string, options *SlackMessage) error {
-	ss.mu.RLock()
-	defer ss.mu.RUnlock()
+func (ss *SlackService) SendMessageWithOptions(ctx context.Context, channel, message string, options *SlackMessage) error {
 	cfg := config.Current()
 
 	// Build message
@@ -214,7 +212,7 @@ func (ss *SlackService) SendMessageWithOptions(channel, message string, options 
 		}
 	}
 
-	return ss.sendSlackMessage(msg)
+	return ss.sendSlackMessage(ctx, msg)
 }
 
 // SendMessageToLevel send message to specified level channel
@@ -263,7 +261,7 @@ func (ss *SlackService) SendMessageToLevel(ctx context.Context, level string, me
 }
 
 // SendRichMessage send rich text message
-func (ss *SlackService) SendRichMessage(channel, title, message, color string, fields []Field) error {
+func (ss *SlackService) SendRichMessage(ctx context.Context, channel, title, message, color string, fields []Field) error {
 	attachment := Attachment{
 		Color:  color,
 		Title:  title,
@@ -277,11 +275,11 @@ func (ss *SlackService) SendRichMessage(channel, title, message, color string, f
 		Attachments: []Attachment{attachment},
 	}
 
-	return ss.SendMessageWithOptions(channel, "", options)
+	return ss.SendMessageWithOptions(ctx, channel, "", options)
 }
 
 // sendSlackMessage actually send Slack message
-func (ss *SlackService) sendSlackMessage(msg *SlackMessage) error {
+func (ss *SlackService) sendSlackMessage(ctx context.Context, msg *SlackMessage) error {
 	url := "https://slack.com/api/chat.postMessage"
 
 	jsonData, err := json.Marshal(msg)
@@ -289,7 +287,7 @@ func (ss *SlackService) sendSlackMessage(msg *SlackMessage) error {
 		return fmt.Errorf("failed to marshal message: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
@@ -303,7 +301,7 @@ func (ss *SlackService) sendSlackMessage(msg *SlackMessage) error {
 			logger.String("channel", msg.Channel),
 			logger.String("text", msg.Text),
 			logger.Err(err))
-		return fmt.Errorf("failed to send request: %v", err)
+		return fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
