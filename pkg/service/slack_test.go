@@ -106,6 +106,56 @@ func TestSlackSendMessagePreservesPayloadAndHeaders(t *testing.T) {
 	}
 }
 
+func TestSlackTestConnectionClosesResponseBody(t *testing.T) {
+	body := &closeTrackingReadCloser{Reader: strings.NewReader(`{"ok":true}`)}
+	service := newSlackServiceForTest("test-token", roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return slackTestResponseWithBody(body), nil
+	}))
+
+	if err := service.TestConnection(); err != nil {
+		t.Fatalf("Slack 連線測試失敗：%v", err)
+	}
+	if got, want := body.closeCount, 1; got != want {
+		t.Fatalf("response body 關閉次數不正確：got %d, want %d", got, want)
+	}
+}
+
+func TestSlackSendMessageClosesResponseBody(t *testing.T) {
+	body := &closeTrackingReadCloser{Reader: strings.NewReader(`{"ok":true}`)}
+	service := newSlackServiceForTest("test-token", roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return slackTestResponseWithBody(body), nil
+	}))
+
+	if err := service.SendMessageWithOptions(context.Background(), "#alerts", "測試訊息", nil); err != nil {
+		t.Fatalf("Slack 傳送失敗：%v", err)
+	}
+	if got, want := body.closeCount, 1; got != want {
+		t.Fatalf("response body 關閉次數不正確：got %d, want %d", got, want)
+	}
+}
+
+func TestSlackSendMessagePreservesAPIErrorWhenResponseBodyCloseFails(t *testing.T) {
+	closeErr := errors.New("response body close failed")
+	body := &closeTrackingReadCloser{
+		Reader:   strings.NewReader(`{"ok":false,"error":"invalid_auth"}`),
+		closeErr: closeErr,
+	}
+	service := newSlackServiceForTest("test-token", roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return slackTestResponseWithBody(body), nil
+	}))
+
+	err := service.SendMessageWithOptions(context.Background(), "#alerts", "測試訊息", nil)
+	if err == nil {
+		t.Fatal("Slack API 回應失敗時預期應回傳錯誤")
+	}
+	if got, want := err.Error(), "Invalid Slack token. Please check if the token in configuration is correct"; got != want {
+		t.Fatalf("主要錯誤被 cleanup error 改變：got %q, want %q", got, want)
+	}
+	if got, want := body.closeCount, 1; got != want {
+		t.Fatalf("response body 關閉次數不正確：got %d, want %d", got, want)
+	}
+}
+
 func newSlackServiceForTest(token string, transport http.RoundTripper) *SlackService {
 	return &SlackService{
 		token:    token,
@@ -115,11 +165,26 @@ func newSlackServiceForTest(token string, transport http.RoundTripper) *SlackSer
 }
 
 func slackTestResponse(body string) *http.Response {
+	return slackTestResponseWithBody(io.NopCloser(strings.NewReader(body)))
+}
+
+func slackTestResponseWithBody(body io.ReadCloser) *http.Response {
 	return &http.Response{
 		StatusCode: http.StatusOK,
-		Body:       io.NopCloser(strings.NewReader(body)),
+		Body:       body,
 		Header:     make(http.Header),
 	}
+}
+
+type closeTrackingReadCloser struct {
+	io.Reader
+	closeErr   error
+	closeCount int
+}
+
+func (r *closeTrackingReadCloser) Close() error {
+	r.closeCount++
+	return r.closeErr
 }
 
 type roundTripperFunc func(*http.Request) (*http.Response, error)
