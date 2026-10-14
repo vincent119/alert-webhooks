@@ -128,7 +128,7 @@ func (ss *SlackService) TestConnection() error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer closeSlackResponseBody(resp.Body, "test_connection")
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -303,7 +303,7 @@ func (ss *SlackService) sendSlackMessage(ctx context.Context, msg *SlackMessage)
 			logger.Err(err))
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer closeSlackResponseBody(resp.Body, "send_message")
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -343,6 +343,14 @@ func (ss *SlackService) sendSlackMessage(ctx context.Context, msg *SlackMessage)
 		logger.String("text", msg.Text))
 
 	return nil
+}
+
+func closeSlackResponseBody(body io.Closer, operation string) {
+	if err := body.Close(); err != nil {
+		logger.Warn("Failed to close Slack response body", "slack",
+			logger.String("operation", operation),
+			logger.Err(err))
+	}
 }
 
 // SetChannelForLevel 設定指定等級的頻道
