@@ -33,13 +33,14 @@ var mainRouteString = "main-route"
 
 // setupSwaggerHost 動態設定 Swagger Host
 func setupSwaggerHost() {
+	cfg := config.Current()
 	// 從請求頭或環境變數動態獲取 host
 	host := os.Getenv("SWAGGER_HOST")
 	if host == "" {
 		// 根據環境設定預設值
-		switch strings.ToLower(config.App.Mode) {
+		switch strings.ToLower(cfg.App.Mode) {
 		case "development", "debug":
-			host = "localhost:" + config.App.Port
+			host = "localhost:" + cfg.App.Port
 		case "production", "release":
 			host = "" // 生產環境讓瀏覽器自動決定
 		default:
@@ -59,7 +60,7 @@ func setupSwaggerHost() {
 
 // setupGinMode 設置 Gin 運行模式
 func setupGinMode() {
-	mode := strings.ToLower(config.App.Mode)
+	mode := strings.ToLower(config.Current().App.Mode)
 
 	switch mode {
 	case "release", "production":
@@ -78,6 +79,7 @@ func setupGinMode() {
 }
 
 func DefaultRoute() *gin.Engine {
+	cfg := config.Current()
 	setupGinMode()
 
 	// 動態設定 Swagger Host
@@ -93,7 +95,7 @@ func DefaultRoute() *gin.Engine {
 	// 設定中介件
 	routes.Use(
 		middleware.RequestBodyLimit(middleware.DefaultRequestBodyLimit),
-		otelgin.Middleware(config.App.AppName,
+		otelgin.Middleware(cfg.App.AppName,
 			otelgin.WithFilter(func(r *http.Request) bool {
 				// 回傳 false 表示不追蹤該請求
 				switch r.URL.Path {
@@ -157,14 +159,15 @@ func DefaultRoute() *gin.Engine {
 
 // setupTrustedProxies 設置信任代理
 func setupTrustedProxies(r *gin.Engine) error {
+	cfg := config.Current()
 	var trustedProxies []string
 
 	// 從配置中讀取信任代理
-	if proxyConfig := config.App.TrustedProxies; len(proxyConfig) > 0 {
+	if proxyConfig := cfg.App.TrustedProxies; len(proxyConfig) > 0 {
 		trustedProxies = strings.Split(proxyConfig, ",")
 	} else {
 		// 預設值
-		if config.Conf.App.Mode == "production" {
+		if cfg.App.Mode == "production" {
 			trustedProxies = []string{"127.0.0.1", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}
 		} else {
 			trustedProxies = []string{"127.0.0.1"}
@@ -177,14 +180,15 @@ func setupTrustedProxies(r *gin.Engine) error {
 
 // setupPrometheus 設置 Prometheus 監控
 func setupPrometheus(r *gin.Engine) {
+	cfg := config.Current()
 	p := ginprometheus.NewPrometheus("gin")
 
 	// 設定 Prometheus 指標路徑
 	p.MetricsPath = "/api/v1/metrics"
 
 	// 如果配置了用戶名和密碼，則使用身份驗證
-	metricUser := config.Metric.User
-	metricPassword := config.Metric.Password
+	metricUser := cfg.Metric.User
+	metricPassword := cfg.Metric.Password
 
 	if metricUser != "" && metricPassword != "" {
 		logger.Info("Authentication has been enabled for Prometheus metrics", mainRouteString)
@@ -198,8 +202,9 @@ func setupPrometheus(r *gin.Engine) {
 }
 
 func HealthCheck(c *gin.Context) {
+	cfg := config.Current()
 	c.JSON(200, gin.H{
 		"status":  "ok",
-		"version": config.App.Version,
+		"version": cfg.App.Version,
 	})
 }

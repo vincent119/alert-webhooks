@@ -38,6 +38,7 @@ func GetNotificationManager() *NotificationManager {
 func (nm *NotificationManager) Initialize(templateEngine *template.TemplateEngine, telegramService providers.TelegramService, slackService providers.SlackService, discordService providers.DiscordService) error {
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
+	cfg := config.Current()
 	
 	logger.Info("Initializing notification manager", "notification_manager")
 	
@@ -48,7 +49,7 @@ func (nm *NotificationManager) Initialize(templateEngine *template.TemplateEngin
 	nm.providers = make(map[string]types.NotificationProvider)
 	
 	// 註冊 Telegram 提供者
-	if config.Telegram.Enable && telegramService != nil {
+	if cfg.Telegram.Enable && telegramService != nil {
 		telegramProvider, err := providers.NewTelegramProvider(telegramService, templateEngine)
 		if err != nil {
 			logger.Error("Failed to initialize Telegram provider", "notification_manager", logger.Err(err))
@@ -59,7 +60,7 @@ func (nm *NotificationManager) Initialize(templateEngine *template.TemplateEngin
 	}
 	
 	// 註冊 Slack 提供者
-	if config.Slack.Enable && slackService != nil {
+	if cfg.Slack.Enable && slackService != nil {
 		slackProvider, err := providers.NewSlackProvider(slackService, templateEngine)
 		if err != nil {
 			logger.Error("Failed to initialize Slack provider", "notification_manager", logger.Err(err))
@@ -70,7 +71,7 @@ func (nm *NotificationManager) Initialize(templateEngine *template.TemplateEngin
 	}
 	
 	// 註冊 Discord 提供者
-	if config.Conf.Discord.Enable && discordService != nil {
+	if cfg.Discord.Enable && discordService != nil {
 		discordProvider := providers.NewDiscordProvider(discordService, templateEngine)
 		nm.providers["discord"] = discordProvider
 		logger.Info("Discord provider registered", "notification_manager")
@@ -172,6 +173,7 @@ func (nm *NotificationManager) preprocessRequest(req *types.NotificationRequest,
 
 // getProviderTemplateLanguage 獲取提供者特定的模板語言
 func (nm *NotificationManager) getProviderTemplateLanguage(providerName, requestLanguage string) string {
+	cfg := config.Current()
 	// 優先使用請求中指定的語言
 	if requestLanguage != "" {
 		return requestLanguage
@@ -180,9 +182,9 @@ func (nm *NotificationManager) getProviderTemplateLanguage(providerName, request
 	// 根據提供者獲取配置的語言
 	switch providerName {
 	case "telegram":
-		return config.Telegram.TemplateLanguage
+		return cfg.Telegram.TemplateLanguage
 	case "slack":
-		return config.Slack.TemplateLanguage
+		return cfg.Slack.TemplateLanguage
 	default:
 		return "eng" // 預設英文
 	}

@@ -162,17 +162,14 @@ func (cw *ConfigWatcher) reloadMainConfig() {
 
 	// 強制重新載入配置（繞過 sync.Once）
 	logger.Info("Calling config.ForceReload()", "config_watcher")
-	config.ForceReload()
-	logger.Info("Main config force reloaded", "config_watcher")
-
-	// 重新初始化服務
-	serviceManager := service.GetServiceManager()
-	if err := serviceManager.InitServices(); err != nil {
-		logger.Error("Failed to reinitialize services", "config_watcher", logger.Err(err))
+	if err := config.ForceReload(); err != nil {
+		logger.Error("Failed to reload main config", "config_watcher", logger.Err(err))
 		return
 	}
+	logger.Info("Main config force reloaded", "config_watcher")
 
-	logger.Info("Main config reloaded successfully", "config_watcher")
+	// 服務實例的安全替換與舊資源釋放由 R-05 處理；此處只發布設定快照。
+	logger.Info("Main config snapshot reloaded successfully", "config_watcher")
 }
 
 // reloadTemplateConfig 重新載入模板配置
@@ -180,10 +177,10 @@ func (cw *ConfigWatcher) reloadTemplateConfig() {
 	logger.Info("Reloading template config", "config_watcher")
 
 	serviceManager := service.GetServiceManager()
-	
+
 	// 重新載入模板引擎
 	serviceManager.ReloadTemplateEngine()
-	
+
 	logger.Info("Template config reloaded successfully", "config_watcher")
 }
 

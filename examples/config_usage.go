@@ -12,7 +12,9 @@ import (
 func main() {
 	// 範例 1: 基本配置載入
 	fmt.Println("=== 基本配置載入 ===")
-	config.Init()
+	if err := config.Init(); err != nil {
+		log.Fatalf("載入設定失敗: %v", err)
+	}
 	
 	fmt.Printf("當前環境: %s\n", config.GetEnvironment())
 	fmt.Printf("應用版本: %s\n", config.App.Version)
@@ -82,7 +84,9 @@ func main() {
 	os.Setenv("LOG_LEVEL", "warn")
 	
 	// 重新初始化配置以讀取環境變數
-	config.Init()
+	if err := config.Init(); err != nil {
+		log.Fatalf("載入設定失敗: %v", err)
+	}
 	
 	fmt.Printf("環境變數覆蓋後端口: %s\n", config.App.Port)
 	fmt.Printf("環境變數覆蓋後日誌級別: %s\n", config.Log.Level)

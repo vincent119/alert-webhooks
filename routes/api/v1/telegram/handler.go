@@ -111,6 +111,7 @@ type SendMessageResponse struct {
 // @Failure 500 {object} map[string]interface{}
 // @Router /telegram/chatid_{chatid} [post]
 func (h *Handler) SendMessage(c *gin.Context) {
+	cfg := config.Current()
 	// 從 URL 參數獲取 chatid
 	chatIDParam := c.Param("chatid")
 
@@ -147,17 +148,17 @@ func (h *Handler) SendMessage(c *gin.Context) {
 
 	// Debug 模式下記錄接收到的 JSON 數據
 	// 檢查是否為開發環境或 debug 模式，並且日誌級別允許 debug 輸出
-	isDev := config.IsDevelopment()
-	isDebugMode := strings.ToLower(config.App.Mode) == "debug"
-	isDebugLevel := strings.ToLower(config.Log.Level) == "debug"
+	isDev := cfg.App.Mode == "development"
+	isDebugMode := strings.ToLower(cfg.App.Mode) == "debug"
+	isDebugLevel := strings.ToLower(cfg.Log.Level) == "debug"
 
 	// 先記錄條件判斷的結果用於調試
 	logger.Info("Debug condition check", "telegram_handler",
 		logger.Bool("is_development", isDev),
 		logger.Bool("is_debug_mode", isDebugMode),
 		logger.Bool("is_debug_level", isDebugLevel),
-		logger.String("app_mode", config.App.Mode),
-		logger.String("log_level", config.Log.Level))
+		logger.String("app_mode", cfg.App.Mode),
+		logger.String("log_level", cfg.Log.Level))
 
 	// 如果滿足任一條件就輸出 debug 日誌
 	if isDev || isDebugMode || isDebugLevel {
@@ -229,7 +230,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		// 使用請求中的模板語言，如果沒有則使用配置檔案中的預設語言
 		templateLanguage := req.TemplateLanguage
 		if templateLanguage == "" {
-			templateLanguage = config.Telegram.TemplateLanguage
+			templateLanguage = cfg.Telegram.TemplateLanguage
 		}
 		if templateLanguage == "" {
 			templateLanguage = "eng"
@@ -803,7 +804,7 @@ func (h *Handler) formatTime(timeStr string) string {
 
 // getFormatOptionsForTelegram 根據 Telegram 配置返回對應的 FormatOptions
 func (h *Handler) getFormatOptionsForTelegram() template.FormatOptions {
-	templateMode := config.Conf.Telegram.TemplateMode
+	templateMode := config.Current().Telegram.TemplateMode
 	if templateMode == "" {
 		templateMode = "full" // Default to full mode
 	}
