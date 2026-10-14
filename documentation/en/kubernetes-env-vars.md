@@ -35,6 +35,7 @@ The system uses two independent authentication systems:
 | `METRIC_PASSWORD`    | `metric.password`             | Password for Prometheus metrics endpoint authentication  |
 | `WEBHOOKS_USER`      | `webhooks.base_auth_user`     | Username for Telegram/Slack API endpoints authentication |
 | `WEBHOOKS_PASSWORD`  | `webhooks.base_auth_password` | Password for Telegram/Slack API endpoints authentication |
+| `WEBHOOKS_CORS_ALLOWED_ORIGINS` | `webhooks.cors_allowed_origins` | Comma-separated exact origins permitted for browser CORS requests; empty denies CORS |
 | `TELEGRAM_TOKEN`     | `telegram.token`              | Telegram Bot API Token                                   |
 | `SLACK_TOKEN`        | `slack.token`                 | Slack Bot API Token                                      |
 | `DISCORD_TOKEN`      | `discord.token`               | Discord Bot API Token                                    |
