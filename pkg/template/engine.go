@@ -3,6 +3,8 @@ package template
 import (
 	"bytes"
 	"fmt"
+	"html"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -793,7 +795,7 @@ func (te *TemplateEngine) formatBoldForPlatform(platform, text string) string {
 	switch platform {
 	case "telegram":
 		// Telegram HTML 格式
-		return "<b>" + text + "</b>"
+		return "<b>" + html.EscapeString(text) + "</b>"
 	default:
 		// 其他平台使用標準 Markdown 粗體格式
 		return "*" + text + "*"
@@ -805,7 +807,7 @@ func (te *TemplateEngine) formatItalicForPlatform(platform, text string) string 
 	switch platform {
 	case "telegram":
 		// Telegram HTML 格式
-		return "<i>" + text + "</i>"
+		return "<i>" + html.EscapeString(text) + "</i>"
 	default:
 		// 其他平台使用標準 Markdown 斜體格式
 		return "_" + text + "_"
@@ -817,7 +819,7 @@ func (te *TemplateEngine) formatCodeForPlatform(platform, text string) string {
 	switch platform {
 	case "telegram":
 		// Telegram HTML 格式
-		return "<code>" + text + "</code>"
+		return "<code>" + html.EscapeString(text) + "</code>"
 	default:
 		// 其他平台使用標準 Markdown 代碼格式
 		return "`" + text + "`"
@@ -833,11 +835,10 @@ func (te *TemplateEngine) formatLinkForPlatform(platform, url, text string) stri
 	switch platform {
 	case "telegram":
 		// Telegram HTML 格式：<a href="url">text</a>
-		// HTML 實體轉義 URL 中的特殊字符
-		escapedURL := strings.ReplaceAll(url, "&", "&amp;")
-		escapedURL = strings.ReplaceAll(escapedURL, "<", "&lt;")
-		escapedURL = strings.ReplaceAll(escapedURL, ">", "&gt;")
-		return "<a href=\"" + escapedURL + "\">" + text + "</a>"
+		if !isTelegramExternalURL(url) {
+			return html.EscapeString(text)
+		}
+		return "<a href=\"" + html.EscapeString(url) + "\">" + html.EscapeString(text) + "</a>"
 	case "slack":
 		// Slack 格式：<url|text>
 		return "<" + url + "|" + text + ">"
@@ -848,6 +849,16 @@ func (te *TemplateEngine) formatLinkForPlatform(platform, url, text string) stri
 		// 預設使用標準 Markdown
 		return "[" + text + "](" + url + ")"
 	}
+}
+
+// isTelegramExternalURL 只允許可安全呈現為 Telegram 外部連結的 HTTP(S) URL。
+func isTelegramExternalURL(rawURL string) bool {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil || !parsedURL.IsAbs() || parsedURL.Host == "" {
+		return false
+	}
+
+	return parsedURL.Scheme == "http" || parsedURL.Scheme == "https"
 }
 
 // escapeMarkdownV2Text 轉義 MarkdownV2 文字中的特殊字符
