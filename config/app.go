@@ -1,5 +1,6 @@
 package config
 
+// AppConf 定義應用程式的基本設定。
 type AppConf struct {
 	Version        string `mapstructure:"version" json:"version"`
 	AppName        string `mapstructure:"app_name" json:"app_name"`
@@ -11,4 +12,5 @@ type AppConf struct {
 	TrustedProxies string `mapstructure:"trusted_proxies" json:"trusted_proxies"`
 }
 
+// App 保存目前應用程式設定的相容存取入口。
 var App AppConf

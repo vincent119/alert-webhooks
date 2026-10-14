@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// CORS 只允許目前設定 allowlist 中的 origin 使用跨來源請求。
 func CORS() gin.HandlerFunc {
 	return corsWithOriginProvider(func() []string {
 		return config.Current().Webhooks.CORSAllowedOrigins

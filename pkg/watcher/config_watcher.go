@@ -1,3 +1,4 @@
+// Package watcher 提供設定檔變更的監聽與重載協調。
 package watcher
 
 import (
