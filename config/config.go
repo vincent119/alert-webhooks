@@ -2,9 +2,9 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"sync"
+	"sync/atomic"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -29,7 +29,7 @@ var Conf struct {
 }
 
 // 內部使用的配置結構體
-type configStruct struct {
+type Config struct {
 	App      AppConf      `mapstructure:"app" json:"app"`
 	Metric   MetricConf   `mapstructure:"metric" json:"metric"`
 	Trace    TraceConf    `mapstructure:"trace" json:"trace"`
@@ -57,25 +57,27 @@ var Trace TraceConf
 
 // 存儲內部配置
 var (
-	confInternal configStruct
-	once         sync.Once
-	configPaths  []string
+	once        sync.Once
+	initErr     error
+	configPaths []string
+	configStore atomic.Pointer[Config]
 )
 
 // Init 初始化配置
-func Init() {
+func Init() error {
 	once.Do(func() {
-		initConfig()
+		initErr = initConfig(true)
 	})
+	return initErr
 }
 
 // ForceReload 強制重新載入配置（用於熱加載）
-func ForceReload() {
-	initConfig()
+func ForceReload() error {
+	return initConfig(false)
 }
 
 // initConfig 實際的配置初始化邏輯
-func initConfig() {
+func initConfig(updateLegacyGlobals bool) error {
 	// 解析命令行參數
 	pflag.Parse()
 
@@ -88,30 +90,32 @@ func initConfig() {
 
 	// Load configuration
 	if err := v.ReadInConfig(); err != nil {
-		log.Fatalf("Failed to read configuration file: %v", err)
+		return fmt.Errorf("讀取設定檔失敗: %w", err)
 	}
 
 	// Parse configuration into struct
-	if err := v.Unmarshal(&confInternal); err != nil {
-		log.Fatalf("Failed to parse configuration file: %v", err)
+	var candidate Config
+	if err := v.Unmarshal(&candidate); err != nil {
+		return fmt.Errorf("解析設定檔失敗: %w", err)
 	}
 
 	// 從環境變數覆蓋敏感配置
-	overrideWithEnvVars()
+	overrideWithEnvVars(&candidate)
 
-	// 更新所有全局配置變數
-	updateGlobalConfigs()
+	publish(candidate, updateLegacyGlobals)
 
 	// 確保加載成功
 	if v.ConfigFileUsed() != "" {
 		fmt.Printf("Successfully loaded config: %s\n", v.ConfigFileUsed())
 	} else {
-		log.Println("No valid configuration file found, using default values")
+		fmt.Println("No valid configuration file found, using default values")
 	}
 
 	// 調試：打印 Telegram 配置
 	fmt.Printf("Config loaded - template_language: %s, template_mode: %s, config_file: %s\n",
-		confInternal.Telegram.TemplateLanguage, confInternal.Telegram.TemplateMode, v.ConfigFileUsed())
+		candidate.Telegram.TemplateLanguage, candidate.Telegram.TemplateMode, v.ConfigFileUsed())
+
+	return nil
 }
 
 // setupConfigPaths 設定配置檔案路徑，支援多設定檔
@@ -176,85 +180,131 @@ func getEnvironment() string {
 }
 
 // overrideWithEnvVars 從環境變數覆蓋敏感配置
-func overrideWithEnvVars() {
+func overrideWithEnvVars(candidate *Config) {
 	// Metric 配置
 	if user := os.Getenv("METRIC_USER"); user != "" {
-		confInternal.Metric.User = user
+		candidate.Metric.User = user
 		fmt.Printf("Override metric user from env var: %s\n", user)
 	}
 	if password := os.Getenv("METRIC_PASSWORD"); password != "" {
-		confInternal.Metric.Password = password
+		candidate.Metric.Password = password
 		fmt.Printf("Override metric password from env var: [REDACTED]\n")
 	}
 
 	// Webhooks 配置
 	if user := os.Getenv("WEBHOOKS_USER"); user != "" {
-		confInternal.Webhooks.BaseAuthUser = user
+		candidate.Webhooks.BaseAuthUser = user
 		fmt.Printf("Override webhooks user from env var: %s\n", user)
 	}
 	if password := os.Getenv("WEBHOOKS_PASSWORD"); password != "" {
-		confInternal.Webhooks.BaseAuthPassword = password
+		candidate.Webhooks.BaseAuthPassword = password
 		fmt.Printf("Override webhooks password from env var: [REDACTED]\n")
 	}
 
 	// Trace 配置
 	if authUser := os.Getenv("TRACE_AUTH_USER"); authUser != "" {
-		confInternal.Trace.AuthUser = authUser
+		candidate.Trace.AuthUser = authUser
 		fmt.Printf("Override trace auth user from env var: %s\n", authUser)
 	}
 	if authPasswd := os.Getenv("TRACE_AUTH_PASSWD"); authPasswd != "" {
-		confInternal.Trace.AuthPasswd = authPasswd
+		candidate.Trace.AuthPasswd = authPasswd
 		fmt.Printf("Override trace auth password from env var: [REDACTED]\n")
 	}
 
 	// Telegram 配置
 	if token := os.Getenv("TELEGRAM_TOKEN"); token != "" {
-		confInternal.Telegram.Token = token
+		candidate.Telegram.Token = token
 		fmt.Printf("Override telegram token from env var: [REDACTED]\n")
 	}
 
 	// Slack 配置
 	if token := os.Getenv("SLACK_TOKEN"); token != "" {
-		confInternal.Slack.Token = token
+		candidate.Slack.Token = token
 		fmt.Printf("Override slack token from env var: [REDACTED]\n")
 	}
 
 	// Discord 配置
 	if token := os.Getenv("DISCORD_TOKEN"); token != "" {
-		confInternal.Discord.Token = token
+		candidate.Discord.Token = token
 		fmt.Printf("Override discord token from env var: [REDACTED]\n")
 	}
 
 	// 記錄服務啟用狀態（確認預設值邏輯）
 	fmt.Printf("Service enable status - Webhooks: %t, Telegram: %t, Slack: %t, Discord: %t\n",
-		confInternal.Webhooks.Enable, confInternal.Telegram.Enable, confInternal.Slack.Enable, confInternal.Discord.Enable)
+		candidate.Webhooks.Enable, candidate.Telegram.Enable, candidate.Slack.Enable, candidate.Discord.Enable)
 }
 
-// updateGlobalConfigs 更新所有全局配置變數
-func updateGlobalConfigs() {
+// publish 只在候選設定完整載入與覆蓋完成後，才原子發布設定快照。
+func publish(candidate Config, updateLegacyGlobals bool) {
+	immutable := cloneConfig(candidate)
+	configStore.Store(&immutable)
+
+	if !updateLegacyGlobals {
+		return
+	}
+
+	// 舊欄位僅於啟動階段設定，避免熱重載與讀取端並行寫入。
 	// 更新包級變數
-	App = confInternal.App
-	Metric = confInternal.Metric
-	Trace = confInternal.Trace
-	Log = confInternal.Log
-	Telegram = confInternal.Telegram
-	Webhooks = confInternal.Webhooks
-	Slack = confInternal.Slack
+	App = immutable.App
+	Metric = immutable.Metric
+	Trace = immutable.Trace
+	Log = immutable.Log
+	Telegram = immutable.Telegram
+	Webhooks = immutable.Webhooks
+	Slack = immutable.Slack
 
 	// 更新 Conf 結構體
-	Conf.App = confInternal.App
-	Conf.Metric = confInternal.Metric
-	Conf.Trace = confInternal.Trace
-	Conf.Log = confInternal.Log
-	Conf.Telegram = confInternal.Telegram
-	Conf.Webhooks = confInternal.Webhooks
-	Conf.Slack = confInternal.Slack
-	Conf.Discord = confInternal.Discord
+	Conf.App = immutable.App
+	Conf.Metric = immutable.Metric
+	Conf.Trace = immutable.Trace
+	Conf.Log = immutable.Log
+	Conf.Telegram = immutable.Telegram
+	Conf.Webhooks = immutable.Webhooks
+	Conf.Slack = immutable.Slack
+	Conf.Discord = immutable.Discord
 }
 
-// GetFullConfig 返回完整配置，對於需要訪問完整配置的情況
-func GetFullConfig() configStruct {
-	return confInternal
+// Current 回傳防禦性複製，確保呼叫端不會修改已發布的快照。
+func Current() Config {
+	current := configStore.Load()
+	if current == nil {
+		// 初始化前保留既有測試與範例的讀取行為；正式啟動完成後不再讀取舊全域欄位。
+		return cloneConfig(Config{
+			App:      App,
+			Metric:   Metric,
+			Trace:    Trace,
+			Log:      Log,
+			Telegram: Telegram,
+			Webhooks: Webhooks,
+			Slack:    Slack,
+			Discord:  Conf.Discord,
+		})
+	}
+	return cloneConfig(*current)
+}
+
+func cloneConfig(source Config) Config {
+	cloned := source
+	cloned.Slack.Channels = cloneStringMap(source.Slack.Channels)
+	cloned.Discord.Channels = cloneStringMap(source.Discord.Channels)
+	cloned.Discord.MentionRoles = append([]string(nil), source.Discord.MentionRoles...)
+	return cloned
+}
+
+func cloneStringMap(source map[string]string) map[string]string {
+	if source == nil {
+		return nil
+	}
+	cloned := make(map[string]string, len(source))
+	for key, value := range source {
+		cloned[key] = value
+	}
+	return cloned
+}
+
+// GetFullConfig 保留既有完整設定讀取介面。
+func GetFullConfig() Config {
+	return Current()
 }
 
 // GetEnvironment 獲取當前環境
@@ -264,17 +314,17 @@ func GetEnvironment() string {
 
 // IsDevelopment 檢查是否為開發環境
 func IsDevelopment() bool {
-	return getEnvironment() == "development"
+	return Current().App.Mode == "development"
 }
 
 // IsProduction 檢查是否為生產環境
 func IsProduction() bool {
-	return getEnvironment() == "production"
+	return Current().App.Mode == "production"
 }
 
 // IsTest 檢查是否為測試環境
 func IsTest() bool {
-	return getEnvironment() == "test"
+	return Current().App.Mode == "test"
 }
 
 // LoadConfigFromFile 從指定檔案載入配置（用於測試或動態配置）
@@ -284,14 +334,15 @@ func LoadConfigFromFile(filePath string) error {
 	v.SetConfigType("yaml")
 
 	if err := v.ReadInConfig(); err != nil {
-		return fmt.Errorf("failed to read config file %s: %v", filePath, err)
+		return fmt.Errorf("讀取設定檔 %s 失敗: %w", filePath, err)
 	}
 
-	if err := v.Unmarshal(&confInternal); err != nil {
-		return fmt.Errorf("failed to parse config file %s: %v", filePath, err)
+	var candidate Config
+	if err := v.Unmarshal(&candidate); err != nil {
+		return fmt.Errorf("解析設定檔 %s 失敗: %w", filePath, err)
 	}
 
-	updateGlobalConfigs()
+	publish(candidate, false)
 	return nil
 }
 
@@ -303,21 +354,22 @@ func MergeConfig(partialConfig map[string]interface{}) error {
 		tempViper.Set(key, value)
 	}
 
-	var tempConfig configStruct
+	var tempConfig Config
 	if err := tempViper.Unmarshal(&tempConfig); err != nil {
-		return fmt.Errorf("failed to parse partial config: %v", err)
+		return fmt.Errorf("解析部分設定失敗: %w", err)
 	}
 
 	// 合併配置
-	mergeConfigStruct(&confInternal, &tempConfig)
+	current := Current()
+	mergeConfigStruct(&current, &tempConfig)
 
 	// 更新全局變數
-	updateGlobalConfigs()
+	publish(current, false)
 	return nil
 }
 
 // mergeConfigStruct 合併兩個配置結構體
-func mergeConfigStruct(target, source *configStruct) {
+func mergeConfigStruct(target, source *Config) {
 	// 這裡可以實現更複雜的合併邏輯
 	// 目前使用簡單的覆蓋策略
 	if source.App.Version != "" {

@@ -7,16 +7,14 @@ import (
 
 // BasicAuth 基本認證中間件
 func BasicAuth() gin.HandlerFunc {
-	// 檢查是否啟用 webhooks 認證
-	if !config.Webhooks.Enable {
-		// 如果未啟用，返回空的中間件（不進行認證）
-		return func(c *gin.Context) {
-			c.Next()
-		}
-	}
-	
-	// 如果啟用，使用自定義的基本認證
 	return func(c *gin.Context) {
+		webhooks := config.Current().Webhooks
+		// 每個請求取得完整快照，避免認證設定跨欄位讀到不同版本。
+		if !webhooks.Enable {
+			c.Next()
+			return
+		}
+
 		// 檢查 Authorization header
 		auth := c.GetHeader("Authorization")
 		if auth == "" {
@@ -44,7 +42,7 @@ func BasicAuth() gin.HandlerFunc {
 		}
 
 		// 驗證用戶名和密碼
-		if username != config.Webhooks.BaseAuthUser || password != config.Webhooks.BaseAuthPassword {
+		if username != webhooks.BaseAuthUser || password != webhooks.BaseAuthPassword {
 			c.Header("WWW-Authenticate", "Basic realm=Authorization Required")
 			c.JSON(401, gin.H{
 				"error":   "Unauthorized",

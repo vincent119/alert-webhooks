@@ -40,16 +40,20 @@ var mainString = "main"
 // @security  BasicAuth
 func main() {
 	// 初始化配置
-	config.Init()
+	if err := config.Init(); err != nil {
+		logger.Error("初始化設定失敗", mainString, logger.Err(err))
+		return
+	}
+	cfg := config.Current()
 
 	// 初始化日誌系統
-	logger.InitLogger(config.Log.Level, config.IsDevelopment())
+	logger.InitLogger(cfg.Log.Level, cfg.App.Mode == "development")
 
 	// 初始化 OpenTelemetry TracerProvider
 	traceShutdown, err := trace.InitTracerProvider(
 		context.Background(),
-		config.Trace,
-		config.App.AppName,
+		cfg.Trace,
+		cfg.App.AppName,
 	)
 	if err != nil {
 		logger.Fatal("Failed to initialize TracerProvider", mainString, logger.Err(err))
@@ -66,7 +70,8 @@ func main() {
 
 // startHTTPServer 啟動HTTP服務並處理優雅關閉
 func startHTTPServer(traceShutdown func(context.Context) error) {
-	port := config.App.Port
+	cfg := config.Current()
+	port := cfg.App.Port
 	serverAddr := ":" + port
 	router := routes.DefaultRoute()
 	server := newHTTPServer(serverAddr, router)
@@ -79,8 +84,8 @@ func startHTTPServer(traceShutdown func(context.Context) error) {
 			}
 
 			logger.Info("Starting application...", mainString,
-				logger.String("mode", config.App.Mode),
-				logger.String("version", config.App.Version),
+				logger.String("mode", cfg.App.Mode),
+				logger.String("version", cfg.App.Version),
 			)
 			logger.Info("Service started", mainString, logger.String("Address", serverAddr))
 
