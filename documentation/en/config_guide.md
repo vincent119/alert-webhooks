@@ -41,7 +41,12 @@ webhooks:
   enable: true           # Enable/disable webhook authentication
   username: "admin"      # Basic Auth username
   password: "admin"      # Basic Auth password
+  cors_allowed_origins: [] # Exact browser origins; empty denies CORS
 ```
+
+`cors_allowed_origins` must contain complete origins such as `https://console.example.com`. Wildcards, partial domains, and `null` are not supported. CORS is denied by default; add only browser origins that require cross-origin API access.
+
+Set `WEBHOOKS_CORS_ALLOWED_ORIGINS` to a comma-separated list to override the configuration file. This environment variable takes precedence and ignores empty items and `*`.
 
 ### Telegram Configuration (`telegram`)
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 	"testing"
 )
@@ -75,4 +76,32 @@ func TestCurrentIsSafeDuringConcurrentPublish(t *testing.T) {
 
 	writers.Wait()
 	readers.Wait()
+}
+
+func TestOverrideWithEnvVarsCORSAllowedOrigins(t *testing.T) {
+	t.Setenv("WEBHOOKS_CORS_ALLOWED_ORIGINS", " https://console.example.com, ,*,https://admin.example.com ")
+	candidate := Config{
+		Webhooks: WebhooksConf{
+			CORSAllowedOrigins: []string{"https://from-config.example.com"},
+		},
+	}
+
+	overrideWithEnvVars(&candidate)
+
+	want := []string{"https://console.example.com", "https://admin.example.com"}
+	if !reflect.DeepEqual(candidate.Webhooks.CORSAllowedOrigins, want) {
+		t.Fatalf("CORS origins = %v，預期 %v", candidate.Webhooks.CORSAllowedOrigins, want)
+	}
+}
+
+func TestCurrentCopiesCORSAllowedOrigins(t *testing.T) {
+	original := Current()
+	t.Cleanup(func() { publish(original, false) })
+	publish(Config{Webhooks: WebhooksConf{CORSAllowedOrigins: []string{"https://console.example.com"}}}, false)
+
+	current := Current()
+	current.Webhooks.CORSAllowedOrigins[0] = "https://changed.example.com"
+	if got := Current().Webhooks.CORSAllowedOrigins[0]; got != "https://console.example.com" {
+		t.Fatalf("Current 回傳的 CORS origin 可修改已發布快照: %q", got)
+	}
 }
