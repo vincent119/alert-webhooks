@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// DefaultRequestBodyLimit 是入站 request body 的預設上限，為 1 MiB。
 const DefaultRequestBodyLimit int64 = 1 << 20
 
 // RequestBodyLimit 在 JSON 解析前限制入站 request body，避免未受限讀取耗盡服務資源。

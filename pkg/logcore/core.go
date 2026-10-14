@@ -1,3 +1,4 @@
+// Package logcore 提供應用程式的結構化日誌核心實作。
 package logcore
 
 import (

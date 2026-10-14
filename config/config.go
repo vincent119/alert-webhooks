@@ -29,7 +29,7 @@ var Conf struct {
 	Discord  DiscordConf
 }
 
-// 內部使用的配置結構體
+// Config 表示完整的 typed 應用程式設定快照。
 type Config struct {
 	App      AppConf      `mapstructure:"app" json:"app"`
 	Metric   MetricConf   `mapstructure:"metric" json:"metric"`
@@ -41,6 +41,7 @@ type Config struct {
 	Discord  DiscordConf  `mapstructure:"discord" json:"discord"`
 }
 
+// TraceConf 定義追蹤匯出與驗證設定。
 type TraceConf struct {
 	Enable        bool    `mapstructure:"enable"`
 	Url           string  `mapstructure:"url"`
