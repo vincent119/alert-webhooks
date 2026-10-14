@@ -392,10 +392,16 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/discord.SendMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/discord.SendMessageResponse'
+      security:
+      - BasicAuth: []
       summary: Send message to Discord channel
       tags:
       - discord
@@ -427,10 +433,16 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/discord.SendMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/discord.SendMessageResponse'
+      security:
+      - BasicAuth: []
       summary: Send message to Discord level channel
       tags:
       - discord
@@ -444,10 +456,16 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/discord.StatusResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/discord.StatusResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/discord.StatusResponse'
+      security:
+      - BasicAuth: []
       summary: Get Discord service status
       tags:
       - discord
@@ -469,10 +487,16 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/discord.SendMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/discord.SendMessageResponse'
+      security:
+      - BasicAuth: []
       summary: Test Discord channel
       tags:
       - discord
@@ -494,10 +518,16 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/discord.SendMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/discord.SendMessageResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/discord.SendMessageResponse'
+      security:
+      - BasicAuth: []
       summary: Validate Discord channel
       tags:
       - discord

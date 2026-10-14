@@ -16,6 +16,14 @@ A Helm chart for Alert Webhooks - Monitoring notification service
 
 * <https://github.com/vincent119/alert-webhooks>
 
+## 安全設定
+
+Chart 不提供 webhook、metric 或通知服務 Token 的預設值。安裝時必須以私有 values 檔提供 `secrets.metric.user`、`secrets.metric.password`、`secrets.webhooks.user` 與 `secrets.webhooks.password`。
+
+當 `config.telegram.enable`、`config.slack.enable` 或 `config.discord.enable` 為 `true` 時，必須分別提供對應的 `secrets.<service>.token`。Trace 認證維持選填。
+
+請勿將實際憑證提交至 repository，並避免在 shell history 或 CI log 以明文傳遞。可使用受控的私有 values 檔進行安裝。
+
 ## Values
 
 | Key | Type | Default | Description |
@@ -202,13 +210,13 @@ A Helm chart for Alert Webhooks - Monitoring notification service
 | resources.limits.memory | string | `"512Mi"` |  |
 | resources.requests.cpu | string | `"200m"` |  |
 | resources.requests.memory | string | `"256Mi"` |  |
-| secrets.discord.token | string | `"your-discord-token"` |  |
-| secrets.metric.password | string | `"admin"` |  |
-| secrets.metric.user | string | `"admin"` |  |
-| secrets.slack.token | string | `"your-slack-token"` |  |
-| secrets.telegram.token | string | `"your-telegram-token"` |  |
-| secrets.webhooks.password | string | `"admin"` |  |
-| secrets.webhooks.user | string | `"admin"` |  |
+| secrets.discord.token | string | `""` | 當 `config.discord.enable=true` 時必填 |
+| secrets.metric.password | string | `""` | 必填 |
+| secrets.metric.user | string | `""` | 必填 |
+| secrets.slack.token | string | `""` | 當 `config.slack.enable=true` 時必填 |
+| secrets.telegram.token | string | `""` | 當 `config.telegram.enable=true` 時必填 |
+| secrets.webhooks.password | string | `""` | 必填 |
+| secrets.webhooks.user | string | `""` | 必填 |
 | securityContext | object | `{}` |  |
 | service.port | int | `80` |  |
 | service.targetPort | int | `9999` |  |

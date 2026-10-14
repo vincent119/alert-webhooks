@@ -1,8 +1,10 @@
 package discord
 
 import (
-	"github.com/gin-gonic/gin"
+	"alert-webhooks/pkg/middleware"
 	"alert-webhooks/pkg/service"
+
+	"github.com/gin-gonic/gin"
 )
 
 // SetupRoutes configures Discord API routes
@@ -20,12 +22,14 @@ func SetupRoutes(router *gin.RouterGroup, discordService *service.DiscordService
 	// Discord routes (consistent with Telegram/Slack pattern)
 	discordRoutes := router.Group("/discord")
 	{
+		discordRoutes.Use(middleware.BasicAuth())
+
 		// Send message to specific channel
 		discordRoutes.POST("/channel/:channel", handler.SendMessageToChannel)
-		
+
 		// Send message to level-based channel (L0, L1, L2, etc.)
 		discordRoutes.POST("/chatid_L:level", handler.SendMessageToLevel)
-		
+
 		// Service status and validation
 		discordRoutes.GET("/status", handler.GetStatus)
 		discordRoutes.POST("/test/:channel", handler.TestChannel)
