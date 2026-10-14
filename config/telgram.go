@@ -1,5 +1,6 @@
 package config
 
+// TelegramConf 定義 Telegram 通知服務設定。
 type TelegramConf struct {
 	Enable           bool   `mapstructure:"enable" json:"enable"`
 	Token            string `mapstructure:"token" json:"token"`
@@ -14,4 +15,5 @@ type TelegramConf struct {
 	TemplateLanguage string `mapstructure:"template_language" json:"template_language"`
 }
 
+// Telegram 保存目前 Telegram 設定的相容存取入口。
 var Telegram TelegramConf

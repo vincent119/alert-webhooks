@@ -35,9 +35,16 @@ type Lease struct {
 	once   sync.Once
 }
 
+// Telegram 取得 lease 期間可安全使用的 Telegram 服務。
 func (l *Lease) Telegram() *TelegramService { return l.bundle.telegram }
-func (l *Lease) Slack() *SlackService       { return l.bundle.slack }
-func (l *Lease) Discord() *DiscordService   { return l.bundle.discord }
+
+// Slack 取得 lease 期間可安全使用的 Slack 服務。
+func (l *Lease) Slack() *SlackService { return l.bundle.slack }
+
+// Discord 取得 lease 期間可安全使用的 Discord 服務。
+func (l *Lease) Discord() *DiscordService { return l.bundle.discord }
+
+// Release 釋放 lease，使已退休服務在最後一個請求結束後可關閉。
 func (l *Lease) Release() {
 	if l != nil {
 		l.once.Do(l.bundle.release)
@@ -111,6 +118,7 @@ var (
 	once     sync.Once
 )
 
+// GetServiceManager 回傳管理目前服務組合的 singleton。
 func GetServiceManager() *ServiceManager {
 	once.Do(func() { instance = &ServiceManager{} })
 	return instance
@@ -174,6 +182,8 @@ func (sm *ServiceManager) retire(b *serviceBundle) {
 		}
 	}()
 }
+
+// Acquire 取得目前服務組合的 lease；沒有可用服務時回傳 nil。
 func (sm *ServiceManager) Acquire() *Lease {
 	sm.mu.RLock()
 	b := sm.current
@@ -203,6 +213,8 @@ func (sm *ServiceManager) Close(ctx context.Context) error {
 		return fmt.Errorf("等待服務組合關閉逾時: %w", ctx.Err())
 	}
 }
+
+// GetTelegramService 回傳目前 Telegram 服務，僅適用於不需跨呼叫保留 lease 的相容呼叫端。
 func (sm *ServiceManager) GetTelegramService() *TelegramService {
 	l := sm.Acquire()
 	if l == nil {
@@ -211,6 +223,8 @@ func (sm *ServiceManager) GetTelegramService() *TelegramService {
 	defer l.Release()
 	return l.Telegram()
 }
+
+// GetSlackService 回傳目前 Slack 服務，僅適用於不需跨呼叫保留 lease 的相容呼叫端。
 func (sm *ServiceManager) GetSlackService() *SlackService {
 	l := sm.Acquire()
 	if l == nil {
@@ -219,6 +233,8 @@ func (sm *ServiceManager) GetSlackService() *SlackService {
 	defer l.Release()
 	return l.Slack()
 }
+
+// GetDiscordService 回傳目前 Discord 服務，僅適用於不需跨呼叫保留 lease 的相容呼叫端。
 func (sm *ServiceManager) GetDiscordService() *DiscordService {
 	l := sm.Acquire()
 	if l == nil {
@@ -227,6 +243,8 @@ func (sm *ServiceManager) GetDiscordService() *DiscordService {
 	defer l.Release()
 	return l.Discord()
 }
+
+// IsTelegramServiceReady 回報目前 Telegram 服務是否可用。
 func (sm *ServiceManager) IsTelegramServiceReady() bool {
 	l := sm.Acquire()
 	if l == nil {
@@ -235,6 +253,8 @@ func (sm *ServiceManager) IsTelegramServiceReady() bool {
 	defer l.Release()
 	return l.Telegram() != nil
 }
+
+// IsSlackServiceReady 回報目前 Slack 服務是否可用。
 func (sm *ServiceManager) IsSlackServiceReady() bool {
 	l := sm.Acquire()
 	if l == nil {
@@ -243,6 +263,8 @@ func (sm *ServiceManager) IsSlackServiceReady() bool {
 	defer l.Release()
 	return l.Slack() != nil
 }
+
+// IsDiscordServiceReady 回報目前 Discord 服務是否可用。
 func (sm *ServiceManager) IsDiscordServiceReady() bool {
 	l := sm.Acquire()
 	if l == nil {
@@ -251,6 +273,8 @@ func (sm *ServiceManager) IsDiscordServiceReady() bool {
 	defer l.Release()
 	return l.Discord() != nil
 }
+
+// GetTemplateEngine 回傳目前模板引擎。
 func (sm *ServiceManager) GetTemplateEngine() *template.TemplateEngine {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
@@ -310,6 +334,8 @@ func newTemplateEngine() *template.TemplateEngine {
 	logger.Warn("Failed to load templates from all paths", "service_manager")
 	return e
 }
+
+// ReloadTemplateEngine 以新載入的模板引擎原子替換目前實例。
 func (sm *ServiceManager) ReloadTemplateEngine() {
 	sm.mu.Lock()
 	sm.templateEngine = newTemplateEngine()
