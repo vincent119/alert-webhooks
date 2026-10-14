@@ -22,8 +22,6 @@ type TelegramService interface {
 	GetBotInfo() (interface{}, error)
 }
 
-
-
 // TelegramProvider Telegram 通知提供者
 type TelegramProvider struct {
 	telegramService TelegramService
@@ -201,12 +199,12 @@ func (tp *TelegramProvider) GetCapabilities() *types.ProviderCapabilities {
 	}
 
 	return &types.ProviderCapabilities{
-		SupportsLevels:     true,
-		SupportsChannels:   false, // Telegram 使用 ChatID，不是頻道概念
-		SupportsRichText:   true,  // 支援 Markdown
+		SupportsLevels:      true,
+		SupportsChannels:    false, // Telegram 使用 ChatID，不是頻道概念
+		SupportsRichText:    true,  // 支援 Markdown
 		SupportsAttachments: false,
-		SupportedLanguages: supportedLanguages,
-		MaxMessageLength:   4096, // Telegram 限制
+		SupportedLanguages:  supportedLanguages,
+		MaxMessageLength:    4096, // Telegram 限制
 	}
 }
 

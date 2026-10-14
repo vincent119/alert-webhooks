@@ -21,8 +21,6 @@ type SlackService interface {
 	TestConnection() error
 }
 
-
-
 // SlackProvider Slack 通知提供者
 type SlackProvider struct {
 	slackService   SlackService
@@ -181,12 +179,12 @@ func (sp *SlackProvider) GetCapabilities() *types.ProviderCapabilities {
 	}
 
 	return &types.ProviderCapabilities{
-		SupportsLevels:     true,
-		SupportsChannels:   true,
-		SupportsRichText:   true,  // 支援 Markdown 和 Blocks
+		SupportsLevels:      true,
+		SupportsChannels:    true,
+		SupportsRichText:    true, // 支援 Markdown 和 Blocks
 		SupportsAttachments: true, // 支援附件
-		SupportedLanguages: supportedLanguages,
-		MaxMessageLength:   40000, // Slack 限制較大
+		SupportedLanguages:  supportedLanguages,
+		MaxMessageLength:    40000, // Slack 限制較大
 	}
 }
 

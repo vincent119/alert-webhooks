@@ -25,14 +25,14 @@ type AlertManagerData struct {
 
 // NotificationRequest 統一的通知請求結構
 type NotificationRequest struct {
-	ProviderName string // 例如 "telegram", "slack"
-	Level        string // 例如 "L0", "critical"
-	Channel      string // 例如 "#alerts", "-123456789"
-	ChatID       string // Telegram 專用
-	Message      string // Simple text message
-	AlertData    *AlertManagerData // AlertManager 數據
-	TemplateLanguage string // 模板語言
-	
+	ProviderName     string            // 例如 "telegram", "slack"
+	Level            string            // 例如 "L0", "critical"
+	Channel          string            // 例如 "#alerts", "-123456789"
+	ChatID           string            // Telegram 專用
+	Message          string            // Simple text message
+	AlertData        *AlertManagerData // AlertManager 數據
+	TemplateLanguage string            // 模板語言
+
 	// 針對特定提供者的額外選項
 	Options map[string]interface{}
 }
