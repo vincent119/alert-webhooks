@@ -28,6 +28,7 @@ type TelegramService struct {
 
 // NewTelegramService 創建新的 Telegram 服務
 func NewTelegramService(token string) (*TelegramService, error) {
+	cfg := config.Current()
 	if token == "" {
 		return nil, fmt.Errorf("telegram token is required")
 	}
@@ -86,12 +87,12 @@ func NewTelegramService(token string) (*TelegramService, error) {
 		level int
 		value string
 	}{
-		{0, config.Telegram.ChatIDs0},
-		{1, config.Telegram.ChatIDs1},
-		{2, config.Telegram.ChatIDs2},
-		{3, config.Telegram.ChatIDs3},
-		{4, config.Telegram.ChatIDs4},
-		{5, config.Telegram.ChatIDs5},
+		{0, cfg.Telegram.ChatIDs0},
+		{1, cfg.Telegram.ChatIDs1},
+		{2, cfg.Telegram.ChatIDs2},
+		{3, cfg.Telegram.ChatIDs3},
+		{4, cfg.Telegram.ChatIDs4},
+		{5, cfg.Telegram.ChatIDs5},
 	}
 
 	for _, cfg := range chatIDConfigs {
@@ -159,6 +160,7 @@ func (ts *TelegramService) testConnection() error {
 
 // SendMessage send message to specified level chat
 func (ts *TelegramService) SendMessage(ctx context.Context, level int, message string) error {
+	cfg := config.Current()
 	ctx, span := otel.Tracer("telegram").Start(ctx, "TelegramService.SendMessage")
 	defer span.End()
 
@@ -212,7 +214,7 @@ func (ts *TelegramService) SendMessage(ctx context.Context, level int, message s
 	}
 
 	// 在 debug 模式下記錄發送請求的詳細資訊
-	if config.IsDevelopment() || config.App.Mode == "debug" || config.Log.Level == "debug" {
+	if cfg.App.Mode == "development" || cfg.App.Mode == "debug" || cfg.Log.Level == "debug" {
 		logger.Debug("Sending Telegram message request", "telegram_service",
 			logger.Int("level", level),
 			logger.Int64("chat_id", chatID),
@@ -234,7 +236,7 @@ func (ts *TelegramService) SendMessage(ctx context.Context, level int, message s
 	}
 
 	// 在 debug 模式下記錄 Telegram server 的詳細回應
-	if config.IsDevelopment() || config.App.Mode == "debug" || config.Log.Level == "debug" {
+	if cfg.App.Mode == "development" || cfg.App.Mode == "debug" || cfg.Log.Level == "debug" {
 		logger.Debug("Telegram server response received", "telegram_service",
 			logger.Int("level", level),
 			logger.Int64("chat_id", chatID),

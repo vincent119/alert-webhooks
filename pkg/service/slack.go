@@ -75,6 +75,7 @@ type SlackResponse struct {
 
 // NewSlackService 創建新的 Slack 服務
 func NewSlackService(token string) (*SlackService, error) {
+	cfg := config.Current()
 	if token == "" {
 		return nil, fmt.Errorf("slack token is required")
 	}
@@ -87,11 +88,11 @@ func NewSlackService(token string) (*SlackService, error) {
 	channels := make(map[string]string)
 
 	// 如果有配置多頻道，使用多頻道配置
-	if len(config.Slack.Channels) > 0 {
-		channels = config.Slack.Channels
-	} else if config.Slack.Channel != "" {
+	if len(cfg.Slack.Channels) > 0 {
+		channels = cfg.Slack.Channels
+	} else if cfg.Slack.Channel != "" {
 		// 否則使用預設頻道
-		channels["default"] = config.Slack.Channel
+		channels["default"] = cfg.Slack.Channel
 	}
 
 	ss := &SlackService{
@@ -169,6 +170,7 @@ func (ss *SlackService) SendMessage(ctx context.Context, channel, message string
 func (ss *SlackService) SendMessageWithOptions(channel, message string, options *SlackMessage) error {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
+	cfg := config.Current()
 
 	// Build message
 	msg := &SlackMessage{
@@ -177,18 +179,18 @@ func (ss *SlackService) SendMessageWithOptions(channel, message string, options 
 	}
 
 	// 應用配置中的預設值
-	if config.Slack.Username != "" {
-		msg.Username = config.Slack.Username
+	if cfg.Slack.Username != "" {
+		msg.Username = cfg.Slack.Username
 	}
-	if config.Slack.IconURL != "" {
-		msg.IconURL = config.Slack.IconURL
+	if cfg.Slack.IconURL != "" {
+		msg.IconURL = cfg.Slack.IconURL
 	}
-	if config.Slack.IconEmoji != "" {
-		msg.IconEmoji = config.Slack.IconEmoji
+	if cfg.Slack.IconEmoji != "" {
+		msg.IconEmoji = cfg.Slack.IconEmoji
 	}
-	msg.LinkNames = config.Slack.LinkNames
-	msg.UnfurlLinks = config.Slack.UnfurlLinks
-	msg.UnfurlMedia = config.Slack.UnfurlMedia
+	msg.LinkNames = cfg.Slack.LinkNames
+	msg.UnfurlLinks = cfg.Slack.UnfurlLinks
+	msg.UnfurlMedia = cfg.Slack.UnfurlMedia
 
 	// 如果提供了選項，覆蓋預設值
 	if options != nil {
@@ -217,11 +219,12 @@ func (ss *SlackService) SendMessageWithOptions(channel, message string, options 
 
 // SendMessageToLevel send message to specified level channel
 func (ss *SlackService) SendMessageToLevel(ctx context.Context, level string, message string) error {
+	cfg := config.Current()
 	// 動態讀取最新的配置以支持熱重載
 	var channel string
 	var exists bool
 
-	if len(config.Slack.Channels) > 0 {
+	if len(cfg.Slack.Channels) > 0 {
 		// 將 "L0" 格式轉換為 "chat_ids0" 格式
 		var configKey string
 		if strings.HasPrefix(strings.ToUpper(level), "L") {
@@ -233,24 +236,24 @@ func (ss *SlackService) SendMessageToLevel(ctx context.Context, level string, me
 		}
 
 		// 嘗試使用轉換後的鍵
-		channel, exists = config.Slack.Channels[configKey]
+		channel, exists = cfg.Slack.Channels[configKey]
 
 		// 如果沒找到，嘗試原始格式作為備用
 		if !exists {
-			channel, exists = config.Slack.Channels[level]
+			channel, exists = cfg.Slack.Channels[level]
 		}
 
 		// 如果還是沒找到，嘗試小寫版本
 		if !exists {
 			lowerLevel := strings.ToLower(level)
-			channel, exists = config.Slack.Channels[lowerLevel]
+			channel, exists = cfg.Slack.Channels[lowerLevel]
 		}
 	}
 
 	if !exists {
 		// 如果沒有找到特定等級的頻道，使用預設頻道
-		if config.Slack.Channel != "" {
-			channel = config.Slack.Channel
+		if cfg.Slack.Channel != "" {
+			channel = cfg.Slack.Channel
 		} else {
 			return fmt.Errorf("no channel configured for level %s and no default channel", level)
 		}

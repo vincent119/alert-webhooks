@@ -514,6 +514,7 @@ func (h *Handler) ValidateChannel(c *gin.Context) {
 
 // generateAlertManagerMessage generates a formatted message from AlertManager data
 func (h *Handler) generateAlertManagerMessage(alertData json.RawMessage) (string, error) {
+	cfg := config.Current()
 	// Parse AlertManager JSON
 	var req types.AlertManagerData
 	if err := json.Unmarshal(alertData, &req); err != nil {
@@ -537,7 +538,7 @@ func (h *Handler) generateAlertManagerMessage(alertData json.RawMessage) (string
 				formatOptions,
 			)
 
-			language := config.Conf.Discord.TemplateLanguage
+			language := cfg.Discord.TemplateLanguage
 			if language == "" {
 				language = "tw"
 			}
@@ -680,8 +681,9 @@ func (h *Handler) getStringValue(value interface{}) string {
 
 // convertToTemplateData converts AlertManagerData to TemplateData for template engine
 func (h *Handler) convertToTemplateData(req types.AlertManagerData) (*template.TemplateData, error) {
+	cfg := config.Current()
 	// Get FormatOptions based on Discord template mode configuration
-	templateMode := config.Conf.Discord.TemplateMode
+	templateMode := cfg.Discord.TemplateMode
 	if templateMode == "" {
 		templateMode = "full" // Default to full mode
 	}
@@ -689,7 +691,7 @@ func (h *Handler) convertToTemplateData(req types.AlertManagerData) (*template.T
 	// Debug: log the template mode being used
 	logger.Debug("Template mode configuration", "DiscordHandler",
 		logger.String("templateMode", templateMode),
-		logger.String("templateLanguage", config.Conf.Discord.TemplateLanguage))
+		logger.String("templateLanguage", cfg.Discord.TemplateLanguage))
 
 	// Get FormatOptions from template engine based on mode
 	serviceManager := service.GetServiceManager()
@@ -800,7 +802,7 @@ func (h *Handler) convertToTemplateData(req types.AlertManagerData) (*template.T
 
 // getFormatOptionsForDiscord 根據 Discord 配置返回對應的 FormatOptions
 func (h *Handler) getFormatOptionsForDiscord() template.FormatOptions {
-	templateMode := config.Conf.Discord.TemplateMode
+	templateMode := config.Current().Discord.TemplateMode
 	if templateMode == "" {
 		templateMode = "full" // Default to full mode
 	}

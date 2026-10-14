@@ -29,51 +29,52 @@ func NewConfigManager() *ConfigManager {
 // LoadConfig 載入配置
 func (cm *ConfigManager) LoadConfig(configPath string) error {
 	cm.configFile = configPath
-	
+
 	// 設定配置文件
 	cm.viper.SetConfigFile(configPath)
 	cm.viper.SetConfigType("yaml")
-	
+
 	// 自動讀取環境變數
 	cm.viper.AutomaticEnv()
 	cm.viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	
+
 	// 讀取配置文件
 	if err := cm.viper.ReadInConfig(); err != nil {
-		return fmt.Errorf("failed to read config file: %v", err)
+		return fmt.Errorf("讀取設定檔失敗: %w", err)
 	}
-	
+
 	// 解析到結構體
-	if err := cm.viper.Unmarshal(&confInternal); err != nil {
-		return fmt.Errorf("failed to parse config: %v", err)
+	var candidate Config
+	if err := cm.viper.Unmarshal(&candidate); err != nil {
+		return fmt.Errorf("解析設定失敗: %w", err)
 	}
-	
-	// 更新全局配置
-	updateGlobalConfigs()
-	
+
+	overrideWithEnvVars(&candidate)
+	publish(candidate, false)
+
 	return nil
 }
 
 // WatchConfig 監聽配置文件變化
 func (cm *ConfigManager) WatchConfig() error {
 	if cm.configFile == "" {
-		return fmt.Errorf("no config file set")
+		return fmt.Errorf("未設定設定檔")
 	}
-	
+
 	// 創建文件監聽器
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return fmt.Errorf("failed to create file watcher: %v", err)
+		return fmt.Errorf("建立設定檔監控器失敗: %w", err)
 	}
-	
+
 	cm.watcher = watcher
-	
+
 	// 監聽配置文件目錄
 	configDir := filepath.Dir(cm.configFile)
 	if err := watcher.Add(configDir); err != nil {
-		return fmt.Errorf("failed to watch config directory: %v", err)
+		return fmt.Errorf("監控設定檔目錄失敗: %w", err)
 	}
-	
+
 	// 啟動監聽協程
 	go func() {
 		for {
@@ -82,23 +83,23 @@ func (cm *ConfigManager) WatchConfig() error {
 				if !ok {
 					return
 				}
-				
+
 				// 檢查是否是我們的配置文件
 				if event.Name == cm.configFile && (event.Op&fsnotify.Write == fsnotify.Write) {
 					fmt.Printf("Config file changed: %s\n", event.Name)
-					
+
 					// 重新載入配置
 					if err := cm.LoadConfig(cm.configFile); err != nil {
 						fmt.Printf("Failed to reload config: %v\n", err)
 						continue
 					}
-					
+
 					// 執行回調函數
 					for _, callback := range cm.callbacks {
 						callback()
 					}
 				}
-				
+
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
@@ -107,7 +108,7 @@ func (cm *ConfigManager) WatchConfig() error {
 			}
 		}
 	}()
-	
+
 	return nil
 }
 

@@ -212,6 +212,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 // @Failure 500 {object} SendMessageResponse
 // @Router /api/v1/slack/level/{level} [post]
 func (h *Handler) SendMessageToLevel(c *gin.Context) {
+	cfg := config.Current()
 	// 檢查 Slack 服務是否可用
 	if h.slackService == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
@@ -274,7 +275,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 			req.ExternalURL,
 			formatOptions,
 		)
-		lang := config.Slack.TemplateLanguage
+		lang := cfg.Slack.TemplateLanguage
 		if lang == "" { lang = "eng" }
 		if te != nil {
 			actual := te.GetDefaultLanguage(lang)
@@ -404,9 +405,10 @@ func (h *Handler) SendRichMessage(c *gin.Context) {
 // @Failure 401 {object} SendMessageResponse
 // @Router /slack/status [get]
 func (h *Handler) GetStatus(c *gin.Context) {
+	cfg := config.Current()
 	status := StatusResponse{
 		Success:   true,
-		Enabled:   config.Slack.Enable,
+		Enabled:   cfg.Slack.Enable,
 		Connected: h.slackService != nil,
 	}
 
@@ -455,6 +457,7 @@ func (h *Handler) GetChannels(c *gin.Context) {
 // @Failure 503 {object} SendMessageResponse
 // @Router /slack/test [post]
 func (h *Handler) TestConnection(c *gin.Context) {
+	cfg := config.Current()
 	if h.slackService == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
 			Success: false,
@@ -470,8 +473,8 @@ func (h *Handler) TestConnection(c *gin.Context) {
 
 	// 嘗試發送到預設頻道
 	var testChannel string
-	if config.Slack.Channel != "" {
-		testChannel = config.Slack.Channel
+	if cfg.Slack.Channel != "" {
+		testChannel = cfg.Slack.Channel
 	} else {
 		// 如果沒有預設頻道，使用第一個配置的頻道
 		channels := h.slackService.GetChannels()
@@ -575,8 +578,9 @@ func (h *Handler) ValidateChannel(c *gin.Context) {
 
 // formatAlertManagerMessage 格式化原始 AlertManager JSON 為 Slack 訊息
 func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
+	cfg := config.Current()
 	// 使用 Slack 配置中的模板語言
-	templateLanguage := config.Slack.TemplateLanguage
+	templateLanguage := cfg.Slack.TemplateLanguage
 	if templateLanguage == "" {
 		templateLanguage = "eng" // 預設使用英文
 	}

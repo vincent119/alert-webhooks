@@ -27,7 +27,6 @@ type SlackService interface {
 type SlackProvider struct {
 	slackService   SlackService
 	templateEngine types.TemplateEngine
-	config         *config.SlackConf
 	stats          *types.ProviderStats
 }
 
@@ -44,7 +43,6 @@ func NewSlackProvider(slackService SlackService, templateEngine types.TemplateEn
 	provider := &SlackProvider{
 		slackService:   slackService,
 		templateEngine: templateEngine,
-		config:         &config.Slack,
 		stats: &types.ProviderStats{
 			MessagesSent:  0,
 			MessagesError: 0,
@@ -62,6 +60,7 @@ func (sp *SlackProvider) GetName() string {
 
 // SendMessage send message
 func (sp *SlackProvider) SendMessage(ctx context.Context, req *types.NotificationRequest) error {
+	cfg := config.Current()
 	ctx, span := otel.Tracer("slack").Start(ctx, "SlackProvider.SendMessage")
 	defer span.End()
 
@@ -92,7 +91,7 @@ func (sp *SlackProvider) SendMessage(ctx context.Context, req *types.Notificatio
 		channel = sp.getLevelChannel(req.Level)
 	} else {
 		// 使用預設頻道
-		channel = sp.config.Channel
+		channel = cfg.Slack.Channel
 		if channel == "" {
 			channel = "#alerts" // 預設頻道
 		}
@@ -121,6 +120,7 @@ func (sp *SlackProvider) SendMessage(ctx context.Context, req *types.Notificatio
 
 // getLevelChannel 根據等級獲取頻道
 func (sp *SlackProvider) getLevelChannel(level string) string {
+	cfg := config.Current()
 	// 標準化等級格式
 	normalizedLevel := strings.ToLower(level)
 	if !strings.HasPrefix(normalizedLevel, "l") {
@@ -128,8 +128,8 @@ func (sp *SlackProvider) getLevelChannel(level string) string {
 	}
 
 	// 從配置中查找
-	if sp.config.Channels != nil {
-		if channel, exists := sp.config.Channels[normalizedLevel]; exists {
+	if cfg.Slack.Channels != nil {
+		if channel, exists := cfg.Slack.Channels[normalizedLevel]; exists {
 			return channel
 		}
 		// 嘗試不同的格式
@@ -139,15 +139,15 @@ func (sp *SlackProvider) getLevelChannel(level string) string {
 			strings.TrimPrefix(normalizedLevel, "l"),
 		}
 		for _, format := range levelFormats {
-			if channel, exists := sp.config.Channels[format]; exists {
+			if channel, exists := cfg.Slack.Channels[format]; exists {
 				return channel
 			}
 		}
 	}
 
 	// 使用預設頻道
-	if sp.config.Channel != "" {
-		return sp.config.Channel
+	if cfg.Slack.Channel != "" {
+		return cfg.Slack.Channel
 	}
 
 	return "#alerts"
@@ -155,11 +155,12 @@ func (sp *SlackProvider) getLevelChannel(level string) string {
 
 // ValidateConfig 驗證配置
 func (sp *SlackProvider) ValidateConfig() error {
-	if sp.config.Token == "" {
+	cfg := config.Current()
+	if cfg.Slack.Token == "" {
 		return fmt.Errorf("slack token is required")
 	}
 
-	if sp.config.Channel == "" && len(sp.config.Channels) == 0 {
+	if cfg.Slack.Channel == "" && len(cfg.Slack.Channels) == 0 {
 		return fmt.Errorf("at least one slack channel must be configured")
 	}
 
@@ -168,7 +169,7 @@ func (sp *SlackProvider) ValidateConfig() error {
 
 // IsEnabled 檢查是否啟用
 func (sp *SlackProvider) IsEnabled() bool {
-	return sp.config.Enable
+	return config.Current().Slack.Enable
 }
 
 // GetCapabilities 獲取能力描述
@@ -191,6 +192,7 @@ func (sp *SlackProvider) GetCapabilities() *types.ProviderCapabilities {
 
 // GetStatus 獲取服務狀態
 func (sp *SlackProvider) GetStatus() *types.ProviderStatus {
+	cfg := config.Current()
 	// 測試連接
 	connected := false
 	lastError := ""
@@ -208,20 +210,20 @@ func (sp *SlackProvider) GetStatus() *types.ProviderStatus {
 	channels := make(map[string]string)
 
 	// 添加預設頻道
-	if sp.config.Channel != "" {
-		channels["default"] = sp.config.Channel
+	if cfg.Slack.Channel != "" {
+		channels["default"] = cfg.Slack.Channel
 	}
 
 	// 添加等級頻道
-	if sp.config.Channels != nil {
-		for level, channel := range sp.config.Channels {
+	if cfg.Slack.Channels != nil {
+		for level, channel := range cfg.Slack.Channels {
 			channels[level] = channel
 		}
 	}
 
 	return &types.ProviderStatus{
 		Name:       "slack",
-		Enabled:    sp.config.Enable,
+		Enabled:    cfg.Slack.Enable,
 		Connected:  connected,
 		LastError:  lastError,
 		Channels:   channels,
