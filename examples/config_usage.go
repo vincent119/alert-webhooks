@@ -150,7 +150,7 @@ func exportConfig(cm *config.ConfigManager) {
 
 // 使用說明
 func printUsage() {
-	fmt.Println(`
+	fmt.Print(`
 配置系統使用說明:
 
 1. 命令行參數:
