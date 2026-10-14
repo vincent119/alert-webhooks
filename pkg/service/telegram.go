@@ -21,8 +21,8 @@ import (
 
 // TelegramService Telegram 服務
 type TelegramService struct {
-	bot  *bot.Bot
-	mu   sync.RWMutex
+	bot     *bot.Bot
+	mu      sync.RWMutex
 	chatIDs map[int]int64 // level -> chat_id 映射
 }
 
@@ -155,8 +155,6 @@ func (ts *TelegramService) testConnection() error {
 
 	return nil
 }
-
-
 
 // SendMessage send message to specified level chat
 func (ts *TelegramService) SendMessage(ctx context.Context, level int, message string) error {

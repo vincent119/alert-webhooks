@@ -18,11 +18,11 @@ import (
 
 // TemplateConfig 模板配置結構
 type TemplateConfig struct {
-	Version             string            `yaml:"version"`
-	SupportedLanguages  []LanguageConfig  `yaml:"supported_languages"`
-	FallbackOrder      []string          `yaml:"fallback_order"`
-	NamingConvention   NamingConfig      `yaml:"naming_convention"`
-	FormatOptions      FormatOptions     `yaml:"format_options"`
+	Version            string           `yaml:"version"`
+	SupportedLanguages []LanguageConfig `yaml:"supported_languages"`
+	FallbackOrder      []string         `yaml:"fallback_order"`
+	NamingConvention   NamingConfig     `yaml:"naming_convention"`
+	FormatOptions      FormatOptions    `yaml:"format_options"`
 }
 
 // LanguageConfig 語言配置
@@ -116,7 +116,7 @@ func NewTemplateEngine() *TemplateEngine {
 func (te *TemplateEngine) LoadConfig(configPath string) error {
 	logger.Info("Loading template config", "template_engine",
 		logger.String("config_path", configPath))
-	
+
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		logger.Warn("Failed to read config file, using default config", "template_engine",
@@ -125,11 +125,11 @@ func (te *TemplateEngine) LoadConfig(configPath string) error {
 		te.config = getDefaultConfig()
 		return nil // 不返回錯誤，使用預設配置
 	}
-	
+
 	var fullConfig struct {
 		TemplateConfig TemplateConfig `yaml:"template_config"`
 	}
-	
+
 	if err := yaml.Unmarshal(data, &fullConfig); err != nil {
 		logger.Warn("Failed to parse config file, using default config", "template_engine",
 			logger.String("config_path", configPath),
@@ -137,12 +137,12 @@ func (te *TemplateEngine) LoadConfig(configPath string) error {
 		te.config = getDefaultConfig()
 		return nil // 不返回錯誤，使用預設配置
 	}
-	
+
 	te.config = &fullConfig.TemplateConfig
 	logger.Info("Template config loaded successfully", "template_engine",
 		logger.String("version", te.config.Version),
 		logger.Int("supported_languages", len(te.config.SupportedLanguages)))
-	
+
 	return nil
 }
 
@@ -153,7 +153,7 @@ func (te *TemplateEngine) LoadConfigFromConfigs() error {
 		"./configs/alert_config.yaml",
 		"../configs/alert_config.yaml",
 	}
-	
+
 	for _, configPath := range configPaths {
 		if err := te.LoadConfig(configPath); err == nil {
 			logger.Info("Template config loaded from configs directory", "template_engine",
@@ -161,7 +161,7 @@ func (te *TemplateEngine) LoadConfigFromConfigs() error {
 			return nil
 		}
 	}
-	
+
 	logger.Warn("Failed to load template config from configs directory, using default config", "template_engine")
 	te.config = getDefaultConfig()
 	return nil
@@ -175,18 +175,18 @@ func (te *TemplateEngine) LoadConfigWithProfile(profile string) error {
 	} else {
 		configPath = filepath.Join("configs", fmt.Sprintf("alert_config.%s.yaml", profile))
 	}
-	
+
 	// 檢查檔案是否存在
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		logger.Warn("Config file not found, using default", "template",
 			logger.String("config_path", configPath))
 		return te.LoadConfigFromConfigs() // 回退到預設配置
 	}
-	
+
 	logger.Info("Loading template config with profile", "template",
 		logger.String("profile", profile),
 		logger.String("config_path", configPath))
-	
+
 	return te.LoadConfig(configPath)
 }
 
@@ -195,7 +195,7 @@ func (te *TemplateEngine) ReloadConfigWithProfile(profile string) error {
 	if err := te.LoadConfigWithProfile(profile); err != nil {
 		return err
 	}
-	
+
 	logger.Info("Template config reloaded", "template",
 		logger.String("profile", profile))
 	return nil
@@ -209,20 +209,20 @@ func loadTemplateConfigFromFile(profile string) *TemplateConfig {
 	} else {
 		configPath = filepath.Join("configs", fmt.Sprintf("alert_config.%s.yaml", profile))
 	}
-	
+
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil
 	}
-	
+
 	var fullConfig struct {
 		TemplateConfig TemplateConfig `yaml:"template_config"`
 	}
-	
+
 	if err := yaml.Unmarshal(data, &fullConfig); err != nil {
 		return nil
 	}
-	
+
 	return &fullConfig.TemplateConfig
 }
 
@@ -235,16 +235,16 @@ func getDefaultConfigForMode(mode string) *TemplateConfig {
 	} else {
 		profile = "" // 預設使用 full 模式
 	}
-	
+
 	if config := loadTemplateConfigFromFile(profile); config != nil {
 		return config
 	}
-	
+
 	// 如果無法讀取配置文件，根據模式返回適當的硬編碼配置
 	if mode == "minimal" {
 		return getMinimalDefaultConfig()
 	}
-	
+
 	return getFullDefaultConfig()
 }
 
@@ -358,22 +358,22 @@ func getMinimalDefaultConfig() *TemplateConfig {
 func (te *TemplateEngine) LoadTemplates(templateDir string) error {
 	logger.Info("Starting dynamic template loading", "template_engine",
 		logger.String("template_dir", templateDir))
-	
+
 	// 檢查目錄是否存在
 	if _, err := os.Stat(templateDir); err != nil {
 		return fmt.Errorf("template directory does not exist: %s (%v)", templateDir, err)
 	}
-	
+
 	// 掃描目錄中的模板檔案
 	templateFiles, err := te.scanTemplateFiles(templateDir)
 	if err != nil {
 		return fmt.Errorf("failed to scan template files: %v", err)
 	}
-	
+
 	if len(templateFiles) == 0 {
 		return fmt.Errorf("no template files found in directory: %s", templateDir)
 	}
-	
+
 	// 載入找到的模板檔案
 	loadedCount := 0
 	for language, templatePath := range templateFiles {
@@ -390,11 +390,11 @@ func (te *TemplateEngine) LoadTemplates(templateDir string) error {
 				logger.Err(err))
 		}
 	}
-	
+
 	if loadedCount == 0 {
 		return fmt.Errorf("failed to load any templates from directory: %s", templateDir)
 	}
-	
+
 	logger.Info("Template loading completed", "template_engine",
 		logger.String("template_dir", templateDir),
 		logger.Int("loaded_count", loadedCount),
@@ -406,30 +406,30 @@ func (te *TemplateEngine) LoadTemplates(templateDir string) error {
 // scanTemplateFiles 掃描模板目錄，找到所有語系的模板檔案
 func (te *TemplateEngine) scanTemplateFiles(templateDir string) (map[string]string, error) {
 	templateFiles := make(map[string]string)
-	
+
 	// 從配置獲取設定
 	supportedExtensions := te.config.NamingConvention.SupportedExtensions
 	templatePrefix := te.config.NamingConvention.Prefix
 	priorityOrder := te.config.NamingConvention.PriorityOrder
-	
+
 	// 讀取目錄內容
 	files, err := os.ReadDir(templateDir)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	for _, file := range files {
 		if file.IsDir() {
 			continue
 		}
-		
+
 		fileName := file.Name()
-		
+
 		// 檢查是否是模板檔案
 		if !strings.HasPrefix(fileName, templatePrefix) {
 			continue
 		}
-		
+
 		// 檢查副檔名
 		var isSupported bool
 		var ext string
@@ -440,30 +440,30 @@ func (te *TemplateEngine) scanTemplateFiles(templateDir string) (map[string]stri
 				break
 			}
 		}
-		
+
 		if !isSupported {
 			continue
 		}
-		
+
 		// 提取語言代碼
 		// 檔案名格式: alert_template_{language}.{ext}
 		baseName := strings.TrimPrefix(fileName, templatePrefix)
 		language := strings.TrimSuffix(baseName, ext)
-		
+
 		if language == "" {
 			logger.Warn("Invalid template file name format", "template_engine",
 				logger.String("file_name", fileName))
 			continue
 		}
-		
+
 		templatePath := filepath.Join(templateDir, fileName)
-		
+
 		// 根據配置的優先權順序選擇檔案
 		if existing, exists := templateFiles[language]; exists {
 			existingExt := filepath.Ext(existing)
 			currentPriority := te.getExtensionPriority(ext, priorityOrder)
 			existingPriority := te.getExtensionPriority(existingExt, priorityOrder)
-			
+
 			// 如果當前檔案優先權更高，替換現有檔案
 			if currentPriority < existingPriority {
 				templateFiles[language] = templatePath
@@ -486,7 +486,7 @@ func (te *TemplateEngine) scanTemplateFiles(templateDir string) (map[string]stri
 				logger.String("path", templatePath))
 		}
 	}
-	
+
 	return templateFiles, nil
 }
 
@@ -508,7 +508,7 @@ func (te *TemplateEngine) loadTemplate(templatePath string) (*template.Template,
 	}
 
 	var goTemplateContent string
-	
+
 	// 檢查檔案副檔名
 	if strings.HasSuffix(templatePath, ".tmpl") {
 		// 直接使用 Go template 語法
@@ -521,13 +521,13 @@ func (te *TemplateEngine) loadTemplate(templatePath string) (*template.Template,
 		logger.Info("Using converted Jinja2 template", "template_engine",
 			logger.String("template_path", templatePath))
 	}
-	
+
 	// 添加調試信息
 	logger.Info("Template conversion debug", "template_engine",
 		logger.String("template_path", templatePath),
 		logger.String("original_length", fmt.Sprintf("%d", len(content))),
 		logger.String("converted_length", fmt.Sprintf("%d", len(goTemplateContent))))
-	
+
 	// 顯示轉換後的模板前幾行（調試用）
 	lines := strings.Split(goTemplateContent, "\n")
 	if len(lines) > 5 {
@@ -536,16 +536,16 @@ func (te *TemplateEngine) loadTemplate(templatePath string) (*template.Template,
 	}
 
 	tmpl, err := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
-		"format_time": te.formatTimeForPlatform,
+		"format_time":        te.formatTimeForPlatform,
 		"format_time_simple": te.formatTime,
-		"add": func(a, b int) int { return a + b },
-		"index": func(m map[string]string, key string) string { return m[key] },
-		"format_text": te.formatTextForPlatform,
-		"format_bold": te.formatBoldForPlatform,
-		"format_italic": te.formatItalicForPlatform,
-		"format_code": te.formatCodeForPlatform,
-		"format_link": te.formatLinkForPlatform,
-		"printf": fmt.Sprintf,
+		"add":                func(a, b int) int { return a + b },
+		"index":              func(m map[string]string, key string) string { return m[key] },
+		"format_text":        te.formatTextForPlatform,
+		"format_bold":        te.formatBoldForPlatform,
+		"format_italic":      te.formatItalicForPlatform,
+		"format_code":        te.formatCodeForPlatform,
+		"format_link":        te.formatLinkForPlatform,
+		"printf":             fmt.Sprintf,
 	}).Parse(goTemplateContent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse template %s: %v", templatePath, err)
@@ -558,7 +558,7 @@ func (te *TemplateEngine) loadTemplate(templatePath string) (*template.Template,
 func (te *TemplateEngine) convertJinja2ToGoTemplate(content string) string {
 	// 簡化的轉換邏輯
 	result := content
-	
+
 	// 處理變數引用（先處理，避免與控制結構衝突）
 	result = strings.ReplaceAll(result, "{{ status }}", "{{ .Status }}")
 	result = strings.ReplaceAll(result, "{{ alert_name }}", "{{ .AlertName }}")
@@ -569,18 +569,18 @@ func (te *TemplateEngine) convertJinja2ToGoTemplate(content string) string {
 	result = strings.ReplaceAll(result, "{{ firing_count }}", "{{ .FiringCount }}")
 	result = strings.ReplaceAll(result, "{{ resolved_count }}", "{{ .ResolvedCount }}")
 	result = strings.ReplaceAll(result, "{{ externalURL }}", "{{ .ExternalURL }}")
-	
+
 	// 處理簡單的 if 語句
 	result = strings.ReplaceAll(result, "{% if firing_count > 0 %}", "{{ if gt .FiringCount 0 }}")
 	result = strings.ReplaceAll(result, "{% if resolved_count > 0 %}", "{{ if gt .ResolvedCount 0 }}")
 	result = strings.ReplaceAll(result, "{% elif resolved_count > 0 %}", "{{ else if gt .ResolvedCount 0 }}")
 	result = strings.ReplaceAll(result, "{% else %}", "{{ else }}")
 	result = strings.ReplaceAll(result, "{% endif %}", "{{ end }}")
-	
+
 	// 處理 for 迴圈
 	result = strings.ReplaceAll(result, "{% for alert in alerts %}", "{{ range $index, $alert := .Alerts }}")
 	result = strings.ReplaceAll(result, "{% endfor %}", "{{ end }}")
-	
+
 	// 處理迴圈內的變數
 	result = strings.ReplaceAll(result, "{{ loop.index }}", "{{ add $index 1 }}")
 	result = strings.ReplaceAll(result, "alert.status", "$alert.Status")
@@ -590,14 +590,14 @@ func (te *TemplateEngine) convertJinja2ToGoTemplate(content string) string {
 	result = strings.ReplaceAll(result, "alert.startsAt", "$alert.StartsAt")
 	result = strings.ReplaceAll(result, "alert.endsAt", "$alert.EndsAt")
 	result = strings.ReplaceAll(result, "alert.generatorURL", "$alert.GeneratorURL")
-	
+
 	// 處理條件語句
 	result = strings.ReplaceAll(result, "{% if alert.status == \"firing\" %}", "{{ if eq $alert.Status \"firing\" }}")
 	result = strings.ReplaceAll(result, "{% if alert.status == \"resolved\" %}", "{{ if eq $alert.Status \"resolved\" }}")
 	result = strings.ReplaceAll(result, "{% if alert.endsAt != \"0001-01-01T00:00:00Z\" %}", "{{ if ne $alert.EndsAt \"0001-01-01T00:00:00Z\" }}")
 	result = strings.ReplaceAll(result, "{% if alert.generatorURL %}", "{{ if $alert.GeneratorURL }}")
 	result = strings.ReplaceAll(result, "{% if externalURL %}", "{{ if .ExternalURL }}")
-	
+
 	// 處理函數調用
 	result = strings.ReplaceAll(result, "format_time(alert.startsAt)", "format_time $alert.StartsAt")
 	result = strings.ReplaceAll(result, "format_time(alert.endsAt)", "format_time $alert.EndsAt")
@@ -633,7 +633,7 @@ func (te *TemplateEngine) RenderTemplate(language string, data TemplateData) (st
 func (te *TemplateEngine) RenderTemplateForPlatform(language, platform string, data TemplateData) (string, error) {
 	// 設置平台信息
 	data.Platform = platform
-	
+
 	// Debug: 檢查 FormatOptions
 	logger.Debug("Template engine received FormatOptions", "template_engine",
 		logger.String("platform", platform),
@@ -641,28 +641,28 @@ func (te *TemplateEngine) RenderTemplateForPlatform(language, platform string, d
 		logger.Bool("ShowTimestamps", data.FormatOptions.ShowTimestamps.Enabled),
 		logger.Bool("ShowGeneratorURL", data.FormatOptions.ShowGeneratorURL.Enabled),
 		logger.Bool("ShowExternalURL", data.FormatOptions.ShowExternalURL.Enabled))
-	
+
 	// 詳細調試：檢查整個 FormatOptions 結構
 	logger.Debug("FormatOptions structure debug", "template_engine",
 		logger.String("ShowEmoji.Description", data.FormatOptions.ShowEmoji.Description),
 		logger.String("ShowTimestamps.Description", data.FormatOptions.ShowTimestamps.Description))
-	
+
 	// 現在每個平台的 handler 都會正確提供 FormatOptions，不需要再檢查
 	logger.Debug("Using provided FormatOptions", "template_engine", logger.String("platform", platform))
-	
+
 	// 額外調試：檢查傳遞給模板的完整數據
 	logger.Debug("Template data debug", "template_engine",
 		logger.String("Status", data.Status),
 		logger.String("AlertName", data.AlertName),
 		logger.Int("FiringCount", data.FiringCount),
 		logger.Bool("FormatOptions.ShowEmoji.Enabled", data.FormatOptions.ShowEmoji.Enabled))
-	
+
 	renderedMessage, err := te.RenderTemplate(language, data)
 	if err != nil {
 		logger.Error("Template rendering failed", "template_engine", logger.Err(err))
 		return "", err
 	}
-	
+
 	// 調試渲染結果
 	logger.Debug("Template rendered result", "template_engine",
 		logger.String("platform", platform),
@@ -674,7 +674,7 @@ func (te *TemplateEngine) RenderTemplateForPlatform(language, platform string, d
 			}
 			return renderedMessage
 		}()))
-	
+
 	return renderedMessage, nil
 }
 
@@ -692,7 +692,7 @@ func (te *TemplateEngine) GetSupportedLanguages() []string {
 	if te.config == nil {
 		return []string{}
 	}
-	
+
 	var languages []string
 	for _, langConfig := range te.config.SupportedLanguages {
 		languages = append(languages, langConfig.Code)
@@ -720,20 +720,20 @@ func (te *TemplateEngine) GetDefaultLanguage(preferredLanguage string) string {
 	if te.HasLanguage(preferredLanguage) {
 		return preferredLanguage
 	}
-	
+
 	// 使用配置的語言回退順序
 	for _, fallback := range te.config.FallbackOrder {
 		if te.HasLanguage(fallback) {
 			return fallback
 		}
 	}
-	
+
 	// 如果都沒有，返回第一個可用的語言
 	languages := te.GetAvailableLanguages()
 	if len(languages) > 0 {
 		return languages[0]
 	}
-	
+
 	return preferredLanguage // 如果沒有任何模板，返回原始語言
 }
 
@@ -741,7 +741,7 @@ func (te *TemplateEngine) GetDefaultLanguage(preferredLanguage string) string {
 func (te *TemplateEngine) ReloadTemplates(templateDir string) error {
 	// 清空現有模板
 	te.templates = make(map[string]*template.Template)
-	
+
 	// 重新載入
 	return te.LoadTemplates(templateDir)
 }
@@ -775,12 +775,12 @@ func (te *TemplateEngine) escapeMarkdownV2(text string) string {
 	specialChars := []string{
 		"_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!",
 	}
-	
+
 	result := text
 	for _, char := range specialChars {
 		result = strings.ReplaceAll(result, char, "\\"+char)
 	}
-	
+
 	return result
 }
 
@@ -831,7 +831,7 @@ func (te *TemplateEngine) formatLinkForPlatform(platform, url, text string) stri
 	if text == "" {
 		text = url
 	}
-	
+
 	switch platform {
 	case "telegram":
 		// Telegram HTML 格式：<a href="url">text</a>
@@ -869,16 +869,16 @@ func (te *TemplateEngine) escapeMarkdownV2Text(text string) string {
 		"_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "=", "|", "{", "}", ".", "!",
 		// 暫時移除 "-"，因為它在很多情況下不需要轉義
 	}
-	
+
 	result := text
 	for _, char := range specialChars {
 		result = strings.ReplaceAll(result, char, "\\"+char)
 	}
-	
+
 	// 只在特定情況下轉義 "-"（避免過度轉義）
 	// 在 MarkdownV2 中，"-" 只在行首作為列表項時需要轉義
 	// 在普通文字中通常不需要轉義
-	
+
 	return result
 }
 
@@ -906,7 +906,7 @@ func (te *TemplateEngine) loadMinimalConfig() (*TemplateConfig, error) {
 		"./configs/alert_config.minimal.yaml",
 		"../configs/alert_config.minimal.yaml",
 	}
-	
+
 	for _, configPath := range configPaths {
 		config, err := te.loadConfigFromFile(configPath)
 		if err == nil {
@@ -916,7 +916,7 @@ func (te *TemplateEngine) loadMinimalConfig() (*TemplateConfig, error) {
 			return config, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("minimal config file not found in any expected location")
 }
 
@@ -925,24 +925,24 @@ func (te *TemplateEngine) loadConfigFromFile(configPath string) (*TemplateConfig
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("config file does not exist: %s", configPath)
 	}
-	
+
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %v", err)
 	}
-	
+
 	var fullConfig struct {
 		TemplateConfig TemplateConfig `yaml:"template_config"`
 	}
-	
+
 	if err := yaml.Unmarshal(data, &fullConfig); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %v", err)
 	}
-	
+
 	return &fullConfig.TemplateConfig, nil
 }
 
-// GetFullDefaultConfig returns the full mode default configuration  
+// GetFullDefaultConfig returns the full mode default configuration
 func (te *TemplateEngine) GetFullDefaultConfig() *TemplateConfig {
 	return getFullDefaultConfig()
 }
@@ -959,12 +959,12 @@ func (te *TemplateEngine) GetCurrentFormatOptions() FormatOptions {
 func (te *TemplateEngine) getFormatOptionsForPlatform(platform string) FormatOptions {
 	// 由於循環依賴問題，這裡暫時使用配置文件中的默認值
 	// 每個平台的 handler 應該自己設置正確的 FormatOptions
-	
+
 	// 如果模板引擎有配置，使用它；否則使用 full 模式
 	if te.config != nil {
 		return te.config.FormatOptions
 	}
-	
+
 	// 默認使用 full 模式
 	return getFullDefaultConfig().FormatOptions
 }

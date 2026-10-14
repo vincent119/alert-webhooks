@@ -44,12 +44,12 @@ func (dp *DiscordProvider) GetName() string {
 // GetCapabilities returns the provider capabilities
 func (dp *DiscordProvider) GetCapabilities() *types.ProviderCapabilities {
 	return &types.ProviderCapabilities{
-		SupportsLevels:       true,
-		SupportsChannels:     true,
-		SupportsRichText:     true,
-		SupportsAttachments:  false,
-		MaxMessageLength:     2000,
-		SupportedLanguages:   dp.templateEngine.GetSupportedLanguages(),
+		SupportsLevels:      true,
+		SupportsChannels:    true,
+		SupportsRichText:    true,
+		SupportsAttachments: false,
+		MaxMessageLength:    2000,
+		SupportedLanguages:  dp.templateEngine.GetSupportedLanguages(),
 	}
 }
 
@@ -58,19 +58,19 @@ func (dp *DiscordProvider) GetStatus() *types.ProviderStatus {
 	err := dp.service.TestConnection()
 	if err != nil {
 		return &types.ProviderStatus{
-			Name:      "discord",
-			Enabled:   true,
-			Connected: false,
-			LastError: err.Error(),
+			Name:       "discord",
+			Enabled:    true,
+			Connected:  false,
+			LastError:  err.Error(),
 			Statistics: &types.ProviderStats{},
 		}
 	}
 
 	return &types.ProviderStatus{
-		Name:      "discord",
-		Enabled:   true,
-		Connected: true,
-		LastError: "",
+		Name:       "discord",
+		Enabled:    true,
+		Connected:  true,
+		LastError:  "",
 		Statistics: &types.ProviderStats{},
 	}
 }
