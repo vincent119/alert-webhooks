@@ -78,6 +78,7 @@ func setupGinMode() {
 	}
 }
 
+// DefaultRoute 建立並註冊應用程式的 HTTP routes 與 middleware。
 func DefaultRoute() *gin.Engine {
 	cfg := config.Current()
 	setupGinMode()
@@ -201,6 +202,7 @@ func setupPrometheus(r *gin.Engine) {
 
 }
 
+// HealthCheck 回傳服務存活狀態與版本。
 func HealthCheck(c *gin.Context) {
 	cfg := config.Current()
 	c.JSON(200, gin.H{

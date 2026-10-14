@@ -1,5 +1,6 @@
 package config
 
+// SlackConf 定義 Slack 通知服務設定。
 type SlackConf struct {
 	Enable           bool              `mapstructure:"enable" json:"enable"`
 	Token            string            `mapstructure:"token" json:"token"`
@@ -16,4 +17,5 @@ type SlackConf struct {
 	TemplateLanguage string            `mapstructure:"template_language" json:"template_language"` // 模板語言 (eng, tw, zh, ja, ko)
 }
 
+// Slack 保存目前 Slack 設定的相容存取入口。
 var Slack SlackConf

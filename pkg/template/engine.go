@@ -1,3 +1,4 @@
+// Package template 提供告警訊息模板的載入、轉換與渲染。
 package template
 
 import (

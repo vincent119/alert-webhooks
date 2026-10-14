@@ -112,7 +112,7 @@ func NewSlackService(token string) (*SlackService, error) {
 	return ss, nil
 }
 
-// testConnection 測試 Slack 連接
+// TestConnection 驗證 Slack token 可用且 API 可連線。
 func (ss *SlackService) TestConnection() error {
 	url := "https://slack.com/api/auth.test"
 
