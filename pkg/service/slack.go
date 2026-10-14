@@ -263,11 +263,11 @@ func (ss *SlackService) SendMessageToLevel(ctx context.Context, level string, me
 // SendRichMessage send rich text message
 func (ss *SlackService) SendRichMessage(ctx context.Context, channel, title, message, color string, fields []Field) error {
 	attachment := Attachment{
-		Color:  color,
-		Title:  title,
-		Text:   message,
-		Fields: fields,
-		Footer: "Alert Webhooks",
+		Color:     color,
+		Title:     title,
+		Text:      message,
+		Fields:    fields,
+		Footer:    "Alert Webhooks",
 		Timestamp: time.Now().Unix(),
 	}
 

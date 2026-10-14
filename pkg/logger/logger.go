@@ -1,13 +1,12 @@
-
 package logger
 
 import (
 	"context"
 	"time"
 
-	"go.uber.org/zap"
 	"alert-webhooks/pkg/logcore"
 	"alert-webhooks/pkg/logutil"
+	"go.uber.org/zap"
 )
 
 // Field 是 logcore.Field 的別名，使用時更簡潔
