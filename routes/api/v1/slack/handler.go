@@ -186,7 +186,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 	}
 
 	// 發送訊息
-	if err := h.currentSlack(c).SendMessageWithOptions(channel, message, options); err != nil {
+	if err := h.currentSlack(c).SendMessageWithOptions(c.Request.Context(), channel, message, options); err != nil {
 		logger.Error("Failed to send Slack message", "slack_handler",
 			logger.String("channel", channel),
 			logger.String("message", message),
@@ -386,7 +386,7 @@ func (h *Handler) SendRichMessage(c *gin.Context) {
 	}
 
 	// 發送富文本訊息
-	if err := h.currentSlack(c).SendRichMessage(channel, req.Title, req.Message, color, req.Fields); err != nil {
+	if err := h.currentSlack(c).SendRichMessage(c.Request.Context(), channel, req.Title, req.Message, color, req.Fields); err != nil {
 		logger.Error("Failed to send rich Slack message", "slack_handler",
 			logger.String("channel", channel),
 			logger.String("title", req.Title),
