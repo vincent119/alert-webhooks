@@ -93,6 +93,7 @@ func startHTTPServer(traceShutdown func(context.Context) error) {
 		},
 		graceful.WithTimeout(shutdownTimeout),
 		graceful.WithCleanup(traceShutdown),
+		graceful.WithCleanup(service.GetServiceManager().Close),
 		graceful.WithCleanup(func(context.Context) error {
 			configWatcher.Stop()
 			return nil

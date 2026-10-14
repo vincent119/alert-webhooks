@@ -8,7 +8,7 @@ import (
 )
 
 // SetupRoutes configures Discord API routes
-func SetupRoutes(router *gin.RouterGroup, discordService *service.DiscordService) {
+func SetupRoutes(router *gin.RouterGroup, services service.Accessor) {
 	// Get Discord service from service manager
 	//serviceManager := service.GetServiceManager()
 	//if serviceManager == nil {
@@ -17,12 +17,13 @@ func SetupRoutes(router *gin.RouterGroup, discordService *service.DiscordService
 
 	//discordService := serviceManager.GetDiscordService()
 	// Note: Create handler even if service is nil - handler will check service availability
-	handler := NewHandler(discordService)
+	handler := NewHandler(services)
 
 	// Discord routes (consistent with Telegram/Slack pattern)
 	discordRoutes := router.Group("/discord")
 	{
 		discordRoutes.Use(middleware.BasicAuth())
+		discordRoutes.Use(withServiceLease(services))
 
 		// Send message to specific channel
 		discordRoutes.POST("/channel/:channel", handler.SendMessageToChannel)
@@ -34,5 +35,18 @@ func SetupRoutes(router *gin.RouterGroup, discordService *service.DiscordService
 		discordRoutes.GET("/status", handler.GetStatus)
 		discordRoutes.POST("/test/:channel", handler.TestChannel)
 		discordRoutes.POST("/validate/:channel", handler.ValidateChannel)
+	}
+}
+
+func withServiceLease(services service.Accessor) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		lease := services.Acquire()
+		if lease == nil || lease.Discord() == nil {
+			c.AbortWithStatusJSON(503, gin.H{"success": false, "message": "Discord service is not available"})
+			return
+		}
+		c.Set("discord_service_lease", lease)
+		defer lease.Release()
+		c.Next()
 	}
 }
