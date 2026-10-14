@@ -77,7 +77,6 @@ func setupGinMode() {
 	}
 }
 
-
 func DefaultRoute() *gin.Engine {
 	setupGinMode()
 
@@ -93,6 +92,7 @@ func DefaultRoute() *gin.Engine {
 
 	// 設定中介件
 	routes.Use(
+		middleware.RequestBodyLimit(middleware.DefaultRequestBodyLimit),
 		otelgin.Middleware(config.App.AppName,
 			otelgin.WithFilter(func(r *http.Request) bool {
 				// 回傳 false 表示不追蹤該請求
@@ -196,7 +196,6 @@ func setupPrometheus(r *gin.Engine) {
 	}
 
 }
-
 
 func HealthCheck(c *gin.Context) {
 	c.JSON(200, gin.H{

@@ -9,39 +9,21 @@ import (
 	"alert-webhooks/routes"
 	"context"
 	"net/http"
-	"os"
-	"os/signal"
-
-	//"strings"
-	"syscall"
 	"time"
-	//"github.com/gin-gonic/gin"
+
+	"github.com/vincent119/commons/graceful"
 )
 
 const (
-	shutdownTimeout = 5 * time.Second
+	shutdownTimeout   = 30 * time.Second
+	readHeaderTimeout = 5 * time.Second
+	readTimeout       = 15 * time.Second
+	writeTimeout      = 30 * time.Second
+	idleTimeout       = 60 * time.Second
+	maxHeaderBytes    = 1 << 20
 )
 
 var mainString = "main"
-
-// waitForShutdownSignal 等待關閉信號並優雅地關閉服務
-func waitForShutdownSignal(server *http.Server) {
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
-
-	logger.Info("Service is shutting down...", mainString)
-
-	// 設置關閉超時
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
-	defer cancel()
-
-	if err := server.Shutdown(ctx); err != nil {
-		logger.Fatal("Service terminated forcefully", mainString, logger.Err(err))
-	}
-
-	logger.Info("Service exited", mainString)
-}
 
 // @title           Alert Webhooks API
 // @version         1.0
@@ -72,13 +54,6 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to initialize TracerProvider", mainString, logger.Err(err))
 	}
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
-		defer cancel()
-		if err := traceShutdown(shutdownCtx); err != nil {
-			logger.Warn("Failed to shutdown TracerProvider", mainString, logger.Err(err))
-		}
-	}()
 
 	// 初始化服務
 	serviceManager := service.GetServiceManager()
@@ -86,46 +61,51 @@ func main() {
 		logger.Warn("Failed to initialize services, some features may not be available", mainString, logger.Err(err))
 	}
 
-	// 啟動配置檔案監控器
-	configWatcher := watcher.NewConfigWatcher()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	if err := configWatcher.Start(ctx); err != nil {
-		logger.Warn("Failed to start config watcher", mainString, logger.Err(err))
-	} else {
-		defer configWatcher.Stop()
-	}
-
-	// 記錄應用啟動信息
-	logger.Info("Starting application...", mainString,
-		logger.String("mode", config.App.Mode),
-		logger.String("version", config.App.Version),
-	)
-
-	// 啟動HTTP服務
-	startHTTPServer()
+	startHTTPServer(traceShutdown)
 }
 
 // startHTTPServer 啟動HTTP服務並處理優雅關閉
-func startHTTPServer() {
+func startHTTPServer(traceShutdown func(context.Context) error) {
 	port := config.App.Port
 	serverAddr := ":" + port
 	router := routes.DefaultRoute()
+	server := newHTTPServer(serverAddr, router)
+	configWatcher := watcher.NewConfigWatcher()
 
-	server := &http.Server{
-		Addr:    serverAddr,
-		Handler: router,
+	if err := graceful.Run(
+		func(ctx context.Context) error {
+			if err := configWatcher.Start(ctx); err != nil {
+				logger.Warn("Failed to start config watcher", mainString, logger.Err(err))
+			}
+
+			logger.Info("Starting application...", mainString,
+				logger.String("mode", config.App.Mode),
+				logger.String("version", config.App.Version),
+			)
+			logger.Info("Service started", mainString, logger.String("Address", serverAddr))
+
+			return graceful.HTTPTask(server)(ctx)
+		},
+		graceful.WithTimeout(shutdownTimeout),
+		graceful.WithCleanup(traceShutdown),
+		graceful.WithCleanup(func(context.Context) error {
+			configWatcher.Stop()
+			return nil
+		}),
+		graceful.WithCleanup(server.Shutdown),
+	); err != nil {
+		logger.Error("HTTP service exited with error", mainString, logger.Err(err))
 	}
+}
 
-	// 在goroutine中啟動服務
-	go func() {
-		logger.Info("Service started", mainString, logger.String("Address", serverAddr))
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("Error occurred while starting service listener", mainString, logger.Err(err))
-		}
-	}()
-
-	// 等待中斷信號以優雅關閉服務
-	waitForShutdownSignal(server)
+func newHTTPServer(addr string, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: readHeaderTimeout,
+		ReadTimeout:       readTimeout,
+		WriteTimeout:      writeTimeout,
+		IdleTimeout:       idleTimeout,
+		MaxHeaderBytes:    maxHeaderBytes,
+	}
 }
