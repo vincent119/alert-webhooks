@@ -39,15 +39,15 @@ func (nm *NotificationManager) Initialize(templateEngine *template.TemplateEngin
 	nm.mu.Lock()
 	defer nm.mu.Unlock()
 	cfg := config.Current()
-	
+
 	logger.Info("Initializing notification manager", "notification_manager")
-	
+
 	// 設置模板引擎
 	nm.templateEngine = templateEngine
-	
+
 	// 清空現有提供者
 	nm.providers = make(map[string]types.NotificationProvider)
-	
+
 	// 註冊 Telegram 提供者
 	if cfg.Telegram.Enable && telegramService != nil {
 		telegramProvider, err := providers.NewTelegramProvider(telegramService, templateEngine)
@@ -58,7 +58,7 @@ func (nm *NotificationManager) Initialize(templateEngine *template.TemplateEngin
 			logger.Info("Telegram provider registered", "notification_manager")
 		}
 	}
-	
+
 	// 註冊 Slack 提供者
 	if cfg.Slack.Enable && slackService != nil {
 		slackProvider, err := providers.NewSlackProvider(slackService, templateEngine)
@@ -69,26 +69,26 @@ func (nm *NotificationManager) Initialize(templateEngine *template.TemplateEngin
 			logger.Info("Slack provider registered", "notification_manager")
 		}
 	}
-	
+
 	// 註冊 Discord 提供者
 	if cfg.Discord.Enable && discordService != nil {
 		discordProvider := providers.NewDiscordProvider(discordService, templateEngine)
 		nm.providers["discord"] = discordProvider
 		logger.Info("Discord provider registered", "notification_manager")
 	}
-	
+
 	logger.Info("Notification manager initialized", "notification_manager",
 		logger.Int("providers_count", len(nm.providers)))
-	
+
 	return nil
 }
 
 // SendNotification 發送通知
 func (nm *NotificationManager) SendNotification(ctx context.Context, providerName string, req *types.NotificationRequest) (*types.NotificationResponse, error) {
 	nm.mu.RLock()
+	defer nm.mu.RUnlock()
 	provider, exists := nm.providers[providerName]
-	nm.mu.RUnlock()
-	
+
 	if !exists {
 		return &types.NotificationResponse{
 			Success:  false,
@@ -96,7 +96,7 @@ func (nm *NotificationManager) SendNotification(ctx context.Context, providerNam
 			Provider: providerName,
 		}, fmt.Errorf("provider '%s' not found", providerName)
 	}
-	
+
 	if !provider.IsEnabled() {
 		return &types.NotificationResponse{
 			Success:  false,
@@ -104,7 +104,7 @@ func (nm *NotificationManager) SendNotification(ctx context.Context, providerNam
 			Provider: providerName,
 		}, fmt.Errorf("provider '%s' is disabled", providerName)
 	}
-	
+
 	// 預處理請求（渲染模板等）
 	if err := nm.preprocessRequest(req, providerName); err != nil {
 		return &types.NotificationResponse{
@@ -113,9 +113,9 @@ func (nm *NotificationManager) SendNotification(ctx context.Context, providerNam
 			Provider: providerName,
 		}, err
 	}
-	
+
 	// 發送通知
-		if err := provider.SendMessage(ctx, req); err != nil {
+	if err := provider.SendMessage(ctx, req); err != nil {
 		return &types.NotificationResponse{
 			Success:  false,
 			Message:  fmt.Sprintf("Failed to send message: %v", err),
@@ -143,13 +143,13 @@ func (nm *NotificationManager) preprocessRequest(req *types.NotificationRequest,
 		if nm.templateEngine != nil {
 			// 獲取提供者特定的模板語言
 			templateLanguage := nm.getProviderTemplateLanguage(providerName, req.TemplateLanguage)
-			
+
 			// 轉換 AlertManager 數據為模板格式
 			templateData, err := nm.convertAlertManagerData(req.AlertData)
 			if err != nil {
 				return fmt.Errorf("failed to convert AlertManager data: %v", err)
 			}
-			
+
 			// 渲染模板
 			actualLanguage := nm.templateEngine.GetDefaultLanguage(templateLanguage)
 			message, err := nm.templateEngine.RenderTemplate(actualLanguage, *templateData)
@@ -160,14 +160,14 @@ func (nm *NotificationManager) preprocessRequest(req *types.NotificationRequest,
 					logger.Err(err))
 				return err
 			}
-			
+
 			req.Message = message
 			logger.Info("Template rendered successfully", "notification_manager",
 				logger.String("provider", providerName),
 				logger.String("language", actualLanguage))
 		}
 	}
-	
+
 	return nil
 }
 
@@ -178,7 +178,7 @@ func (nm *NotificationManager) getProviderTemplateLanguage(providerName, request
 	if requestLanguage != "" {
 		return requestLanguage
 	}
-	
+
 	// 根據提供者獲取配置的語言
 	switch providerName {
 	case "telegram":
@@ -300,7 +300,7 @@ func (nm *NotificationManager) GetProvider(name string) (types.NotificationProvi
 func (nm *NotificationManager) GetAllProviders() map[string]types.NotificationProvider {
 	nm.mu.RLock()
 	defer nm.mu.RUnlock()
-	
+
 	result := make(map[string]types.NotificationProvider)
 	for name, provider := range nm.providers {
 		result[name] = provider
@@ -313,11 +313,11 @@ func (nm *NotificationManager) GetProviderStatus(name string) (*types.ProviderSt
 	nm.mu.RLock()
 	provider, exists := nm.providers[name]
 	nm.mu.RUnlock()
-	
+
 	if !exists {
 		return nil, fmt.Errorf("provider '%s' not found", name)
 	}
-	
+
 	return provider.GetStatus(), nil
 }
 
