@@ -155,6 +155,11 @@ const docTemplate = `{
         },
         "/discord/channel/{channel}": {
             "post": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
                 "description": "Send a message to a specific Discord channel",
                 "consumes": [
                     "application/json"
@@ -197,6 +202,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/discord.SendMessageResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -208,6 +219,11 @@ const docTemplate = `{
         },
         "/discord/chatid_L{level}": {
             "post": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
                 "description": "Send a message to a Discord channel based on alert level",
                 "consumes": [
                     "application/json"
@@ -250,6 +266,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/discord.SendMessageResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -261,6 +283,11 @@ const docTemplate = `{
         },
         "/discord/status": {
             "get": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
                 "description": "Get the status of Discord service and bot information",
                 "produces": [
                     "application/json"
@@ -276,6 +303,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/discord.StatusResponse"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/discord.StatusResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -287,6 +320,11 @@ const docTemplate = `{
         },
         "/discord/test/{channel}": {
             "post": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
                 "description": "Send a test message to verify channel accessibility",
                 "tags": [
                     "discord"
@@ -314,6 +352,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/discord.SendMessageResponse"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/discord.SendMessageResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -325,6 +369,11 @@ const docTemplate = `{
         },
         "/discord/validate/{channel}": {
             "post": {
+                "security": [
+                    {
+                        "BasicAuth": []
+                    }
+                ],
                 "description": "Validate if the bot can access and send messages to the channel",
                 "tags": [
                     "discord"
@@ -348,6 +397,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/discord.SendMessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/discord.SendMessageResponse"
                         }
