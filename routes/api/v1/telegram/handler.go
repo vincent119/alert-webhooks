@@ -261,9 +261,8 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		)
 
 		// 透過模板引擎渲染（含語言回退）
-		actualLanguage := templateLanguage
 		if h.templateEngine != nil {
-			actualLanguage = h.templateEngine.GetDefaultLanguage(templateLanguage)
+			actualLanguage := h.templateEngine.GetDefaultLanguage(templateLanguage)
 
 			logger.Debug("About to render template", "telegram_handler",
 				logger.String("language", actualLanguage),
