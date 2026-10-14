@@ -34,7 +34,7 @@ func Logger() gin.HandlerFunc {
 		method := c.Request.Method
 		path := c.Request.URL.Path
 		query := c.Request.URL.RawQuery
-		
+
 		// 使用 Context 版本的日誌記錄函數
 		if len(c.Errors) > 0 {
 			logger.ErrorContext(ctx, "HTTP request",
@@ -61,8 +61,6 @@ func Logger() gin.HandlerFunc {
 	}
 }
 
-
-
 // LoggerWithSkipPaths 支援跳過特定路徑的日誌中間件
 func LoggerWithSkipPaths(skipPaths []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -80,19 +78,19 @@ func LoggerWithSkipPaths(skipPaths []string) gin.HandlerFunc {
 		requestID := uuidx.NewUUIDv4()
 		c.Set("requestID", requestID)
 		c.Header("X-Request-ID", requestID)
-		
+
 		ctx := logger.WithRequestID(c.Request.Context(), requestID)
 		c.Request = c.Request.WithContext(ctx)
-		
+
 		c.Next()
-		
+
 		// 記錄日誌
 		latency := time.Since(start)
 		status := c.Writer.Status()
 		clientIP := c.ClientIP()
 		method := c.Request.Method
 		query := c.Request.URL.RawQuery
-		
+
 		if len(c.Errors) > 0 {
 			logger.ErrorContext(ctx, "HTTP request",
 				logger.String("method", method),

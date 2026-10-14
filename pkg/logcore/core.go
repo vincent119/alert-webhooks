@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"alert-webhooks/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"alert-webhooks/config"
 )
 
 var (
