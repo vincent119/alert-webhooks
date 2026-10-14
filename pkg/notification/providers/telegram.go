@@ -28,7 +28,6 @@ type TelegramService interface {
 type TelegramProvider struct {
 	telegramService TelegramService
 	templateEngine  types.TemplateEngine
-	config          *config.TelegramConf
 	stats           *types.ProviderStats
 }
 
@@ -45,7 +44,6 @@ func NewTelegramProvider(telegramService TelegramService, templateEngine types.T
 	provider := &TelegramProvider{
 		telegramService: telegramService,
 		templateEngine:  templateEngine,
-		config:          &config.Telegram,
 		stats: &types.ProviderStats{
 			MessagesSent:  0,
 			MessagesError: 0,
@@ -63,6 +61,7 @@ func (tp *TelegramProvider) GetName() string {
 
 // SendMessage send message
 func (tp *TelegramProvider) SendMessage(ctx context.Context, req *types.NotificationRequest) error {
+	cfg := config.Current()
 	ctx, span := otel.Tracer("telegram").Start(ctx, "TelegramProvider.SendMessage")
 	defer span.End()
 
@@ -84,7 +83,7 @@ func (tp *TelegramProvider) SendMessage(ctx context.Context, req *types.Notifica
 	}
 
 	// 在 debug 模式下記錄發送前的詳細資訊
-	if config.IsDevelopment() || strings.ToLower(config.App.Mode) == "debug" || strings.ToLower(config.Log.Level) == "debug" {
+	if cfg.App.Mode == "development" || strings.ToLower(cfg.App.Mode) == "debug" || strings.ToLower(cfg.Log.Level) == "debug" {
 		// 計算訊息預覽長度
 		previewLength := len(req.Message)
 		if previewLength > 100 {
@@ -162,15 +161,16 @@ func (tp *TelegramProvider) parseLevelFromRequest(req *types.NotificationRequest
 
 // ValidateConfig 驗證配置
 func (tp *TelegramProvider) ValidateConfig() error {
-	if tp.config.Token == "" {
+	cfg := config.Current()
+	if cfg.Telegram.Token == "" {
 		return fmt.Errorf("telegram token is required")
 	}
 
 	// 檢查至少有一個聊天ID配置
 	hasValidChatID := false
 	chatIDs := []string{
-		tp.config.ChatIDs0, tp.config.ChatIDs1, tp.config.ChatIDs2,
-		tp.config.ChatIDs3, tp.config.ChatIDs4, tp.config.ChatIDs5, tp.config.ChatIDs6,
+		cfg.Telegram.ChatIDs0, cfg.Telegram.ChatIDs1, cfg.Telegram.ChatIDs2,
+		cfg.Telegram.ChatIDs3, cfg.Telegram.ChatIDs4, cfg.Telegram.ChatIDs5, cfg.Telegram.ChatIDs6,
 	}
 
 	for _, chatID := range chatIDs {
@@ -189,7 +189,7 @@ func (tp *TelegramProvider) ValidateConfig() error {
 
 // IsEnabled 檢查是否啟用
 func (tp *TelegramProvider) IsEnabled() bool {
-	return tp.config.Enable
+	return config.Current().Telegram.Enable
 }
 
 // GetCapabilities 獲取能力描述
@@ -212,6 +212,7 @@ func (tp *TelegramProvider) GetCapabilities() *types.ProviderCapabilities {
 
 // GetStatus 獲取服務狀態
 func (tp *TelegramProvider) GetStatus() *types.ProviderStatus {
+	cfg := config.Current()
 	// 測試連接
 	connected := false
 	lastError := ""
@@ -227,31 +228,31 @@ func (tp *TelegramProvider) GetStatus() *types.ProviderStatus {
 
 	// 構建頻道映射（這裡是聊天ID）
 	channels := make(map[string]string)
-	if tp.config.ChatIDs0 != "" {
-		channels["L0"] = tp.config.ChatIDs0
+	if cfg.Telegram.ChatIDs0 != "" {
+		channels["L0"] = cfg.Telegram.ChatIDs0
 	}
-	if tp.config.ChatIDs1 != "" {
-		channels["L1"] = tp.config.ChatIDs1
+	if cfg.Telegram.ChatIDs1 != "" {
+		channels["L1"] = cfg.Telegram.ChatIDs1
 	}
-	if tp.config.ChatIDs2 != "" {
-		channels["L2"] = tp.config.ChatIDs2
+	if cfg.Telegram.ChatIDs2 != "" {
+		channels["L2"] = cfg.Telegram.ChatIDs2
 	}
-	if tp.config.ChatIDs3 != "" {
-		channels["L3"] = tp.config.ChatIDs3
+	if cfg.Telegram.ChatIDs3 != "" {
+		channels["L3"] = cfg.Telegram.ChatIDs3
 	}
-	if tp.config.ChatIDs4 != "" {
-		channels["L4"] = tp.config.ChatIDs4
+	if cfg.Telegram.ChatIDs4 != "" {
+		channels["L4"] = cfg.Telegram.ChatIDs4
 	}
-	if tp.config.ChatIDs5 != "" {
-		channels["L5"] = tp.config.ChatIDs5
+	if cfg.Telegram.ChatIDs5 != "" {
+		channels["L5"] = cfg.Telegram.ChatIDs5
 	}
-	if tp.config.ChatIDs6 != "" {
-		channels["L6"] = tp.config.ChatIDs6
+	if cfg.Telegram.ChatIDs6 != "" {
+		channels["L6"] = cfg.Telegram.ChatIDs6
 	}
 
 	return &types.ProviderStatus{
 		Name:       "telegram",
-		Enabled:    tp.config.Enable,
+		Enabled:    cfg.Telegram.Enable,
 		Connected:  connected,
 		LastError:  lastError,
 		Channels:   channels,

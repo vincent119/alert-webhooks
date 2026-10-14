@@ -281,7 +281,8 @@ func getLogConfig(level string, development bool) LogConfig {
 	}
 
 	// 從配置檔案中讀取設定
-	conf := &config.Conf.Log
+	settings := config.Current()
+	conf := &settings.Log
 
 	// 如果配置中指定了日誌級別，則使用配置中的
 	if conf.Level != "" {
@@ -312,13 +313,13 @@ func getLogConfig(level string, development bool) LogConfig {
 	}
 
 	// 日誌路徑
-	if config.Conf.Log.LogPath != "" {
-		logConfig.LogPath = config.Conf.Log.LogPath
+	if conf.LogPath != "" {
+		logConfig.LogPath = conf.LogPath
 	}
 
 	// 日誌文件名
-	if config.Conf.Log.LogFile != "" {
-		logConfig.FileName = config.Conf.Log.LogFile
+	if conf.LogFile != "" {
+		logConfig.FileName = conf.LogFile
 	}
 
 	// 其他配置

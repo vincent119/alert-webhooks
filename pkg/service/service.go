@@ -36,13 +36,14 @@ func GetServiceManager() *ServiceManager {
 func (sm *ServiceManager) InitServices() error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
+	cfg := config.Current()
 
 	// 初始化模板引擎
 	sm.initTemplateEngine()
 
 	// 初始化 Telegram 服務（可選）
-	if config.Telegram.Enable && config.Telegram.Token != "" {
-		telegramService, err := NewTelegramService(config.Telegram.Token)
+	if cfg.Telegram.Enable && cfg.Telegram.Token != "" {
+		telegramService, err := NewTelegramService(cfg.Telegram.Token)
 		if err != nil {
 			logger.Error("Failed to initialize Telegram service", "service_manager", logger.Err(err))
 			logger.Warn("Telegram service will run in degraded mode - routes will be registered but may not work properly", "service_manager")
@@ -60,8 +61,8 @@ func (sm *ServiceManager) InitServices() error {
 	}
 
 	// 初始化 Slack 服務（可選）
-	if config.Slack.Enable && config.Slack.Token != "" {
-		slackService, err := NewSlackService(config.Slack.Token)
+	if cfg.Slack.Enable && cfg.Slack.Token != "" {
+		slackService, err := NewSlackService(cfg.Slack.Token)
 		if err != nil {
 			logger.Error("Failed to initialize Slack service", "service_manager", logger.Err(err))
 			// 不返回錯誤，讓其他服務繼續運行
@@ -74,8 +75,8 @@ func (sm *ServiceManager) InitServices() error {
 	}
 
 	// 初始化 Discord 服務（可選）
-	if config.Conf.Discord.Enable && config.Conf.Discord.Token != "" {
-		discordService, err := NewDiscordService(config.Conf.Discord)
+	if cfg.Discord.Enable && cfg.Discord.Token != "" {
+		discordService, err := NewDiscordService(cfg.Discord)
 		if err != nil {
 			logger.Error("Failed to initialize Discord service", "service_manager", logger.Err(err))
 			// 不返回錯誤，讓其他服務繼續運行
