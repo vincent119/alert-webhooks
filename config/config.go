@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -200,6 +201,9 @@ func overrideWithEnvVars(candidate *Config) {
 		candidate.Webhooks.BaseAuthPassword = password
 		fmt.Printf("Override webhooks password from env var: [REDACTED]\n")
 	}
+	if origins, ok := os.LookupEnv("WEBHOOKS_CORS_ALLOWED_ORIGINS"); ok {
+		candidate.Webhooks.CORSAllowedOrigins = parseCORSAllowedOrigins(origins)
+	}
 
 	// Trace 配置
 	if authUser := os.Getenv("TRACE_AUTH_USER"); authUser != "" {
@@ -285,10 +289,24 @@ func Current() Config {
 
 func cloneConfig(source Config) Config {
 	cloned := source
+	cloned.Webhooks.CORSAllowedOrigins = append([]string(nil), source.Webhooks.CORSAllowedOrigins...)
 	cloned.Slack.Channels = cloneStringMap(source.Slack.Channels)
 	cloned.Discord.Channels = cloneStringMap(source.Discord.Channels)
 	cloned.Discord.MentionRoles = append([]string(nil), source.Discord.MentionRoles...)
 	return cloned
+}
+
+func parseCORSAllowedOrigins(value string) []string {
+	parts := strings.Split(value, ",")
+	origins := make([]string, 0, len(parts))
+	for _, part := range parts {
+		origin := strings.TrimSpace(part)
+		if origin == "" || origin == "*" {
+			continue
+		}
+		origins = append(origins, origin)
+	}
+	return origins
 }
 
 func cloneStringMap(source map[string]string) map[string]string {
