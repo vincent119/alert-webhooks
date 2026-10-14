@@ -185,26 +185,27 @@ config:
     enable: true
 
 # Secret configuration (tokens and credentials)
+# 安裝時必須透過私有 values 檔或受控的 Helm 參數提供必要值。
 secrets:
   # Metric authentication
   metric:
-    user: "admin"
-    password: "admin"
+    user: ""
+    password: ""
   trace:
     authUser: ""
     authPasswd: ""
   # Webhooks authentication
   webhooks:
-    user: "admin"
-    password: "admin"
+    user: ""
+    password: ""
 
-  # Service tokens (these should be overridden in production)
+  # 當對應服務啟用時必填
   telegram:
-    token: "your-telegram-token"
+    token: ""
   slack:
-    token: "your-slack-token"
+    token: ""
   discord:
-    token: "your-discord-token"
+    token: ""
 
 # Additional volumes
 volumes: []

@@ -73,7 +73,9 @@ type StatusResponse struct {
 // @Param request body SendMessageRequest true "Message request"
 // @Success 200 {object} SendMessageResponse
 // @Failure 400 {object} SendMessageResponse
+// @Failure 401 {object} SendMessageResponse
 // @Failure 500 {object} SendMessageResponse
+// @Security BasicAuth
 // @Router /discord/channel/{channel} [post]
 func (h *Handler) SendMessageToChannel(c *gin.Context) {
 	channel := c.Param("channel")
@@ -223,7 +225,9 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 // @Param request body SendMessageRequest true "Message request"
 // @Success 200 {object} SendMessageResponse
 // @Failure 400 {object} SendMessageResponse
+// @Failure 401 {object} SendMessageResponse
 // @Failure 500 {object} SendMessageResponse
+// @Security BasicAuth
 // @Router /discord/chatid_L{level} [post]
 func (h *Handler) SendMessageToLevel(c *gin.Context) {
 	level := c.Param("level")
@@ -375,7 +379,9 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 // @Tags discord
 // @Produce json
 // @Success 200 {object} StatusResponse
+// @Failure 401 {object} StatusResponse
 // @Failure 500 {object} StatusResponse
+// @Security BasicAuth
 // @Router /discord/status [get]
 func (h *Handler) GetStatus(c *gin.Context) {
 	response := StatusResponse{
@@ -420,7 +426,9 @@ func (h *Handler) GetStatus(c *gin.Context) {
 // @Param channel path string true "Discord Channel ID"
 // @Success 200 {object} SendMessageResponse
 // @Failure 400 {object} SendMessageResponse
+// @Failure 401 {object} SendMessageResponse
 // @Failure 500 {object} SendMessageResponse
+// @Security BasicAuth
 // @Router /discord/test/{channel} [post]
 func (h *Handler) TestChannel(c *gin.Context) {
 	channel := c.Param("channel")
@@ -466,7 +474,9 @@ func (h *Handler) TestChannel(c *gin.Context) {
 // @Param channel path string true "Discord Channel ID"
 // @Success 200 {object} SendMessageResponse
 // @Failure 400 {object} SendMessageResponse
+// @Failure 401 {object} SendMessageResponse
 // @Failure 500 {object} SendMessageResponse
+// @Security BasicAuth
 // @Router /discord/validate/{channel} [post]
 func (h *Handler) ValidateChannel(c *gin.Context) {
 	channel := c.Param("channel")
