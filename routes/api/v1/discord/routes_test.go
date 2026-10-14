@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"alert-webhooks/config"
+	"alert-webhooks/pkg/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -131,6 +132,6 @@ func newTestRouter(t *testing.T, authEnabled bool) *gin.Engine {
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	SetupRoutes(router.Group(""), nil)
+	SetupRoutes(router.Group(""), service.NewStaticAccessor(nil))
 	return router
 }

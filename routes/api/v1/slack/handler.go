@@ -17,12 +17,12 @@ import (
 
 // Handler Slack 路由處理器
 type Handler struct {
-	slackService   *service.SlackService
+	services       service.Accessor
 	templateEngine *template.TemplateEngine
 }
 
 // NewHandler 創建新的 Slack 路由處理器
-func NewHandler(slackService *service.SlackService) *Handler {
+func NewHandler(services service.Accessor) *Handler {
 	logger.Info("Creating new Slack handler", "slack_handler")
 
 	// 從 ServiceManager 獲取模板引擎
@@ -32,7 +32,7 @@ func NewHandler(slackService *service.SlackService) *Handler {
 	if templateEngine == nil {
 		logger.Error("Template engine not available from service manager", "slack_handler")
 		return &Handler{
-			slackService:   slackService,
+			services:       services,
 			templateEngine: template.NewTemplateEngine(), // 後備方案
 		}
 	}
@@ -40,9 +40,17 @@ func NewHandler(slackService *service.SlackService) *Handler {
 	logger.Info("Template engine obtained from service manager", "slack_handler")
 
 	return &Handler{
-		slackService:   slackService,
+		services:       services,
 		templateEngine: templateEngine,
 	}
+}
+
+func (h *Handler) currentSlack(c *gin.Context) *service.SlackService {
+	lease, ok := c.Get("slack_service_lease")
+	if !ok {
+		return nil
+	}
+	return lease.(*service.Lease).Slack()
 }
 
 // SendMessageRequest 發送訊息請求結構
@@ -69,15 +77,15 @@ type SendMessageRequest struct {
 
 // RichMessageRequest 富文本訊息請求結構
 type RichMessageRequest struct {
-	Title       string                  `json:"title"`                 // 訊息標題
-	Message     string                  `json:"message"`               // 訊息內容
-	Color       string                  `json:"color,omitempty"`       // 顏色 (good, warning, danger, 或 hex)
-	Fields      []service.Field         `json:"fields,omitempty"`      // 字段列表
-	Username    string                  `json:"username,omitempty"`    // 自定義 Bot 名稱
-	IconURL     string                  `json:"icon_url,omitempty"`    // 自定義 Bot 頭像 URL
-	IconEmoji   string                  `json:"icon_emoji,omitempty"`  // 自定義 Bot 表情符號
-	FooterText  string                  `json:"footer_text,omitempty"` // 頁腳文字
-	FooterIcon  string                  `json:"footer_icon,omitempty"` // 頁腳圖示
+	Title      string          `json:"title"`                 // 訊息標題
+	Message    string          `json:"message"`               // 訊息內容
+	Color      string          `json:"color,omitempty"`       // 顏色 (good, warning, danger, 或 hex)
+	Fields     []service.Field `json:"fields,omitempty"`      // 字段列表
+	Username   string          `json:"username,omitempty"`    // 自定義 Bot 名稱
+	IconURL    string          `json:"icon_url,omitempty"`    // 自定義 Bot 頭像 URL
+	IconEmoji  string          `json:"icon_emoji,omitempty"`  // 自定義 Bot 表情符號
+	FooterText string          `json:"footer_text,omitempty"` // 頁腳文字
+	FooterIcon string          `json:"footer_icon,omitempty"` // 頁腳圖示
 }
 
 // SendMessageResponse 發送訊息響應結構
@@ -117,7 +125,7 @@ type ChannelsResponse struct {
 // @Router /slack/channel/{channel} [post]
 func (h *Handler) SendMessageToChannel(c *gin.Context) {
 	// 檢查 Slack 服務是否可用
-	if h.slackService == nil {
+	if h.currentSlack(c) == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
 			Success: false,
 			Message: "Slack service not available",
@@ -178,7 +186,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 	}
 
 	// 發送訊息
-	if err := h.slackService.SendMessageWithOptions(channel, message, options); err != nil {
+	if err := h.currentSlack(c).SendMessageWithOptions(channel, message, options); err != nil {
 		logger.Error("Failed to send Slack message", "slack_handler",
 			logger.String("channel", channel),
 			logger.String("message", message),
@@ -214,7 +222,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 func (h *Handler) SendMessageToLevel(c *gin.Context) {
 	cfg := config.Current()
 	// 檢查 Slack 服務是否可用
-	if h.slackService == nil {
+	if h.currentSlack(c) == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
 			Success: false,
 			Message: "Slack service not available",
@@ -276,7 +284,9 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 			formatOptions,
 		)
 		lang := cfg.Slack.TemplateLanguage
-		if lang == "" { lang = "eng" }
+		if lang == "" {
+			lang = "eng"
+		}
 		if te != nil {
 			actual := te.GetDefaultLanguage(lang)
 			if msg, err := te.RenderTemplateForPlatform(actual, "slack", data); err == nil {
@@ -293,7 +303,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 	}
 
 	// 發送訊息到指定等級
-	if err := h.slackService.SendMessageToLevel(c.Request.Context(), level, message); err != nil {
+	if err := h.currentSlack(c).SendMessageToLevel(c.Request.Context(), level, message); err != nil {
 		logger.Error("Failed to send Slack message to level", "slack_handler",
 			logger.String("level", level),
 			logger.String("message", message),
@@ -329,7 +339,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 // @Router /api/v1/slack/rich/{channel} [post]
 func (h *Handler) SendRichMessage(c *gin.Context) {
 	// 檢查 Slack 服務是否可用
-	if h.slackService == nil {
+	if h.currentSlack(c) == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
 			Success: false,
 			Message: "Slack service not available",
@@ -376,7 +386,7 @@ func (h *Handler) SendRichMessage(c *gin.Context) {
 	}
 
 	// 發送富文本訊息
-	if err := h.slackService.SendRichMessage(channel, req.Title, req.Message, color, req.Fields); err != nil {
+	if err := h.currentSlack(c).SendRichMessage(channel, req.Title, req.Message, color, req.Fields); err != nil {
 		logger.Error("Failed to send rich Slack message", "slack_handler",
 			logger.String("channel", channel),
 			logger.String("title", req.Title),
@@ -409,11 +419,11 @@ func (h *Handler) GetStatus(c *gin.Context) {
 	status := StatusResponse{
 		Success:   true,
 		Enabled:   cfg.Slack.Enable,
-		Connected: h.slackService != nil,
+		Connected: h.currentSlack(c) != nil,
 	}
 
-	if h.slackService != nil {
-		status.Channels = h.slackService.GetChannels()
+	if h.currentSlack(c) != nil {
+		status.Channels = h.currentSlack(c).GetChannels()
 	}
 
 	c.JSON(http.StatusOK, status)
@@ -430,7 +440,7 @@ func (h *Handler) GetStatus(c *gin.Context) {
 // @Failure 503 {object} SendMessageResponse
 // @Router /slack/channels [get]
 func (h *Handler) GetChannels(c *gin.Context) {
-	if h.slackService == nil {
+	if h.currentSlack(c) == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
 			Success: false,
 			Message: "Slack service not available",
@@ -438,7 +448,7 @@ func (h *Handler) GetChannels(c *gin.Context) {
 		return
 	}
 
-	channels := h.slackService.GetChannels()
+	channels := h.currentSlack(c).GetChannels()
 	c.JSON(http.StatusOK, ChannelsResponse{
 		Success:  true,
 		Channels: channels,
@@ -458,7 +468,7 @@ func (h *Handler) GetChannels(c *gin.Context) {
 // @Router /slack/test [post]
 func (h *Handler) TestConnection(c *gin.Context) {
 	cfg := config.Current()
-	if h.slackService == nil {
+	if h.currentSlack(c) == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
 			Success: false,
 			Message: "Slack service not available",
@@ -477,7 +487,7 @@ func (h *Handler) TestConnection(c *gin.Context) {
 		testChannel = cfg.Slack.Channel
 	} else {
 		// 如果沒有預設頻道，使用第一個配置的頻道
-		channels := h.slackService.GetChannels()
+		channels := h.currentSlack(c).GetChannels()
 		for _, channel := range channels {
 			testChannel = channel
 			break
@@ -493,7 +503,7 @@ func (h *Handler) TestConnection(c *gin.Context) {
 	}
 
 	// 發送測試訊息
-	if err := h.slackService.SendMessage(c.Request.Context(), testChannel, testMessage); err != nil {
+	if err := h.currentSlack(c).SendMessage(c.Request.Context(), testChannel, testMessage); err != nil {
 		logger.Error("Slack connection test failed", "slack_handler",
 			logger.String("channel", testChannel),
 			logger.Err(err))
@@ -524,7 +534,7 @@ func (h *Handler) TestConnection(c *gin.Context) {
 // @Failure 503 {object} SendMessageResponse
 // @Router /slack/validate/{channel} [post]
 func (h *Handler) ValidateChannel(c *gin.Context) {
-	if h.slackService == nil {
+	if h.currentSlack(c) == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
 			Success: false,
 			Message: "Slack service not available",
@@ -549,7 +559,7 @@ func (h *Handler) ValidateChannel(c *gin.Context) {
 	// 嘗試發送一個非常簡短的驗證訊息
 	testMessage := "✅ Bot 已加入此頻道"
 
-	if err := h.slackService.SendMessage(c.Request.Context(), channel, testMessage); err != nil {
+	if err := h.currentSlack(c).SendMessage(c.Request.Context(), channel, testMessage); err != nil {
 		// 分析錯誤類型並提供具體指引
 		if strings.Contains(err.Error(), "not_in_channel") {
 			c.JSON(http.StatusBadRequest, SendMessageResponse{

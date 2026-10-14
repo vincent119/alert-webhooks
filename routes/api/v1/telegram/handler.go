@@ -22,12 +22,12 @@ import (
 
 // Handler Telegram 路由處理器
 type Handler struct {
-	telegramService *service.TelegramService
-	templateEngine  *template.TemplateEngine
+	services       service.Accessor
+	templateEngine *template.TemplateEngine
 }
 
 // NewHandler 創建新的 Telegram 路由處理器
-func NewHandler(telegramService *service.TelegramService) *Handler {
+func NewHandler(services service.Accessor) *Handler {
 	logger.Info("Creating new Telegram handler", "telegram_handler")
 
 	// 從 ServiceManager 獲取模板引擎
@@ -37,19 +37,17 @@ func NewHandler(telegramService *service.TelegramService) *Handler {
 	if templateEngine == nil {
 		logger.Error("Template engine not available from service manager", "telegram_handler")
 		return &Handler{
-			telegramService: telegramService,
-			templateEngine:  template.NewTemplateEngine(), // 後備方案
+			services:       services,
+			templateEngine: template.NewTemplateEngine(), // 後備方案
 		}
 	}
 
 	logger.Info("Template engine obtained from service manager", "telegram_handler")
 
-
-
 	// 模板引擎現在由 ServiceManager 管理，不需要在 handler 中初始化
 	handler := &Handler{
-		telegramService: telegramService,
-		templateEngine:  templateEngine,
+		services:       services,
+		templateEngine: templateEngine,
 	}
 
 	logger.Info("Telegram handler created", "telegram_handler",
@@ -58,11 +56,19 @@ func NewHandler(telegramService *service.TelegramService) *Handler {
 	return handler
 }
 
+func (h *Handler) currentTelegram(c *gin.Context) *service.TelegramService {
+	lease, ok := c.Get("telegram_service_lease")
+	if !ok {
+		return nil
+	}
+	return lease.(*service.Lease).Telegram()
+}
+
 // SendMessageRequest send message request structure
 type SendMessageRequest struct {
-	Message           string `json:"message"` // 可選，當使用 AlertManager 格式時不需要
-	TemplateLanguage  string `json:"template_language"` // 可選，優先使用配置檔案中的設定
-	AlertManagerData  *AlertManagerWebhook `json:"alertmanager_data"` // AlertManager webhook 數據
+	Message          string               `json:"message"`           // 可選，當使用 AlertManager 格式時不需要
+	TemplateLanguage string               `json:"template_language"` // 可選，優先使用配置檔案中的設定
+	AlertManagerData *AlertManagerWebhook `json:"alertmanager_data"` // AlertManager webhook 數據
 }
 
 // AlertManagerWebhook AlertManager webhook 結構（簡化版）
@@ -282,7 +288,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 					logger.String("language", actualLanguage),
 					logger.Int("message_length", len(msg)))
 
-				if sendErr := h.telegramService.SendMessage(c.Request.Context(), level, msg); sendErr != nil {
+				if sendErr := h.currentTelegram(c).SendMessage(c.Request.Context(), level, msg); sendErr != nil {
 					logger.Error("Failed to send message via template engine path", "telegram_handler",
 						logger.Int("level", level),
 						logger.String("error_detail", sendErr.Error()),
@@ -304,7 +310,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		}
 
 		// 若模板引擎不可用或渲染失敗，使用既有的分離發送備援
-		err = h.sendSeparateAlertMessages(c.Request.Context(), req.AlertManagerData, templateLanguage, level)
+		err = h.sendSeparateAlertMessages(c.Request.Context(), h.currentTelegram(c), req.AlertManagerData, templateLanguage, level)
 		if err != nil {
 			logger.Error("Failed to send alert messages", "telegram_handler",
 				logger.Int("level", level),
@@ -317,7 +323,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		}
 	} else {
 		// 發送普通訊息
-		err = h.telegramService.SendMessage(c.Request.Context(), level, req.Message)
+		err = h.currentTelegram(c).SendMessage(c.Request.Context(), level, req.Message)
 		if err != nil {
 			logger.Error("Failed to send Telegram message", "telegram_handler",
 				logger.Int("level", level),
@@ -338,36 +344,36 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		Level:   level,
 	})
 }
+
 // convertAlertSliceToMap 將 Alert 結構切片轉為通用 map 切片
 func convertAlertSliceToMap(alerts []Alert) []map[string]interface{} {
-    res := make([]map[string]interface{}, 0, len(alerts))
-    for _, a := range alerts {
-        m := map[string]interface{}{
-            "status":       a.Status,
-            "labels":       convertStringMapToInterface(a.Labels),
-            "annotations":  convertStringMapToInterface(a.Annotations),
-            "startsAt":     a.StartsAt,
-            "endsAt":       a.EndsAt,
-            "generatorURL": a.GeneratorURL,
-            "fingerprint":  a.Fingerprint,
-        }
-        res = append(res, m)
-    }
-    return res
+	res := make([]map[string]interface{}, 0, len(alerts))
+	for _, a := range alerts {
+		m := map[string]interface{}{
+			"status":       a.Status,
+			"labels":       convertStringMapToInterface(a.Labels),
+			"annotations":  convertStringMapToInterface(a.Annotations),
+			"startsAt":     a.StartsAt,
+			"endsAt":       a.EndsAt,
+			"generatorURL": a.GeneratorURL,
+			"fingerprint":  a.Fingerprint,
+		}
+		res = append(res, m)
+	}
+	return res
 }
 
 // convertStringMapToInterface 將 map[string]string 轉為 map[string]interface{}
 func convertStringMapToInterface(m map[string]string) map[string]interface{} {
-    if m == nil {
-        return nil
-    }
-    res := make(map[string]interface{}, len(m))
-    for k, v := range m {
-        res[k] = v
-    }
-    return res
+	if m == nil {
+		return nil
+	}
+	res := make(map[string]interface{}, len(m))
+	for k, v := range m {
+		res[k] = v
+	}
+	return res
 }
-
 
 // GetBotInfo 獲取機器人資訊
 // @Summary 獲取機器人資訊
@@ -379,7 +385,7 @@ func convertStringMapToInterface(m map[string]string) map[string]interface{} {
 // @Router /telegram/info [get]
 func (h *Handler) GetBotInfo(c *gin.Context) {
 	// 獲取機器人資訊
-	meInterface, err := h.telegramService.GetBotInfo()
+	meInterface, err := h.currentTelegram(c).GetBotInfo()
 	if err != nil {
 		logger.Error("Failed to get bot info", "telegram_handler", logger.Err(err))
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -403,10 +409,10 @@ func (h *Handler) GetBotInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"bot_info": gin.H{
-			"id":        me.ID,
-			"username":  me.Username,
-			"first_name": me.FirstName,
-			"can_join_groups": me.CanJoinGroups,
+			"id":                          me.ID,
+			"username":                    me.Username,
+			"first_name":                  me.FirstName,
+			"can_join_groups":             me.CanJoinGroups,
 			"can_read_all_group_messages": me.CanReadAllGroupMessages,
 		},
 	})
@@ -518,7 +524,7 @@ func (h *Handler) generateAlertManagerMessage(webhook *AlertManagerWebhook, lang
 }
 
 // sendSeparateAlertMessages 分別發送觸發中和已解決的警報
-func (h *Handler) sendSeparateAlertMessages(ctx context.Context, webhook *AlertManagerWebhook, language string, level int) error {
+func (h *Handler) sendSeparateAlertMessages(ctx context.Context, telegramService *service.TelegramService, webhook *AlertManagerWebhook, language string, level int) error {
 	// 分離觸發中和已解決的警報
 	var firingAlerts []Alert
 	var resolvedAlerts []Alert
@@ -557,7 +563,7 @@ func (h *Handler) sendSeparateAlertMessages(ctx context.Context, webhook *AlertM
 			logger.Int("level", level),
 			logger.Int("message_length", len(firingMessage)))
 
-		if err := h.telegramService.SendMessage(ctx, level, firingMessage); err != nil {
+		if err := telegramService.SendMessage(ctx, level, firingMessage); err != nil {
 			logger.Error("Failed to send firing alerts message", "telegram_handler",
 				logger.Int("level", level),
 				logger.String("error_detail", err.Error()))
@@ -595,7 +601,7 @@ func (h *Handler) sendSeparateAlertMessages(ctx context.Context, webhook *AlertM
 			logger.Int("level", level),
 			logger.Int("message_length", len(resolvedMessage)))
 
-		if err := h.telegramService.SendMessage(ctx, level, resolvedMessage); err != nil {
+		if err := telegramService.SendMessage(ctx, level, resolvedMessage); err != nil {
 			logger.Error("Failed to send resolved alerts message", "telegram_handler",
 				logger.Int("level", level),
 				logger.String("error_detail", err.Error()))
