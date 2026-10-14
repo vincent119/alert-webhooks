@@ -58,13 +58,10 @@ definitions:
       timestamp:
         type: string
     type: object
-  modelx.ErrorResponse:
+  resp.Health:
     properties:
-      code:
-        example: 401
-        type: integer
-      message:
-        example: unauthorized
+      status:
+        example: ok
         type: string
     type: object
   service.Field:
@@ -262,13 +259,13 @@ definitions:
       success:
         type: boolean
     type: object
-  v1.ResponseHealthCheck:
+  v1.ErrorResponse:
     properties:
-      Status:
-        type: string
-      recv_time:
-        type: string
-      recv_time_utc:
+      code:
+        example: 401
+        type: integer
+      message:
+        example: unauthorized
         type: string
     type: object
 info:
@@ -541,15 +538,15 @@ paths:
         "200":
           description: Health check response
           schema:
-            $ref: '#/definitions/v1.ResponseHealthCheck'
+            $ref: '#/definitions/resp.Health'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/modelx.ErrorResponse'
+            $ref: '#/definitions/v1.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/modelx.ErrorResponse'
+            $ref: '#/definitions/v1.ErrorResponse'
       security:
       - BasicAuth: []
       summary: Check health status
