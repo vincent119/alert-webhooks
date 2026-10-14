@@ -70,7 +70,7 @@ func NewDiscordService(cfg config.DiscordConf) (*DiscordService, error) {
 
 // SendMessage send message to specified level chat
 func (ds *DiscordService) SendMessage(ctx context.Context, level string, message string) error {
-	ctx, span := otel.Tracer("discord").Start(ctx, "DiscordService.SendMessage")
+	_, span := otel.Tracer("discord").Start(ctx, "DiscordService.SendMessage")
 	defer span.End()
 
 	span.SetAttributes(

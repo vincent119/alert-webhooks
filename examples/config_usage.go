@@ -80,8 +80,12 @@ func main() {
 	fmt.Println("\n=== 環境變數覆蓋 ===")
 
 	// 設定環境變數（在實際應用中，這些會在系統中設定）
-	os.Setenv("APP_PORT", "7777")
-	os.Setenv("LOG_LEVEL", "warn")
+	if err := os.Setenv("APP_PORT", "7777"); err != nil {
+		log.Fatalf("設定 APP_PORT 環境變數失敗: %v", err)
+	}
+	if err := os.Setenv("LOG_LEVEL", "warn"); err != nil {
+		log.Fatalf("設定 LOG_LEVEL 環境變數失敗: %v", err)
+	}
 
 	// 重新初始化配置以讀取環境變數
 	if err := config.Init(); err != nil {
