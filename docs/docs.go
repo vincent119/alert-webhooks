@@ -436,19 +436,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Health check response",
                         "schema": {
-                            "$ref": "#/definitions/v1.ResponseHealthCheck"
+                            "$ref": "#/definitions/resp.Health"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/modelx.ErrorResponse"
+                            "$ref": "#/definitions/v1.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/modelx.ErrorResponse"
+                            "$ref": "#/definitions/v1.ErrorResponse"
                         }
                     }
                 }
@@ -850,16 +850,12 @@ const docTemplate = `{
                 }
             }
         },
-        "modelx.ErrorResponse": {
+        "resp.Health": {
             "type": "object",
             "properties": {
-                "code": {
-                    "type": "integer",
-                    "example": 401
-                },
-                "message": {
+                "status": {
                     "type": "string",
-                    "example": "unauthorized"
+                    "example": "ok"
                 }
             }
         },
@@ -1151,17 +1147,16 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.ResponseHealthCheck": {
+        "v1.ErrorResponse": {
             "type": "object",
             "properties": {
-                "Status": {
-                    "type": "string"
+                "code": {
+                    "type": "integer",
+                    "example": 401
                 },
-                "recv_time": {
-                    "type": "string"
-                },
-                "recv_time_utc": {
-                    "type": "string"
+                "message": {
+                    "type": "string",
+                    "example": "unauthorized"
                 }
             }
         }
