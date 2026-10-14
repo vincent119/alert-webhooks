@@ -122,7 +122,7 @@ func (cw *ConfigWatcher) watchLoop(ctx context.Context) {
 						debounceTimer.Stop()
 					}
 					debounceTimer = time.AfterFunc(cw.debounce, func() {
-						cw.handleConfigChange(event.Name)
+						cw.handleConfigChange(ctx, event.Name)
 					})
 					debounceMu.Unlock()
 				}
@@ -137,7 +137,7 @@ func (cw *ConfigWatcher) watchLoop(ctx context.Context) {
 }
 
 // handleConfigChange 處理配置變更
-func (cw *ConfigWatcher) handleConfigChange(filename string) {
+func (cw *ConfigWatcher) handleConfigChange(ctx context.Context, filename string) {
 	logger.Info("Handling config change", "config_watcher",
 		logger.String("filename", filename))
 
@@ -146,7 +146,7 @@ func (cw *ConfigWatcher) handleConfigChange(filename string) {
 	switch {
 	case strings.HasPrefix(baseName, "config."):
 		// 主配置檔案變更
-		cw.reloadMainConfig()
+		cw.reloadMainConfig(ctx)
 	case strings.HasPrefix(baseName, "alert_config"):
 		// 警報模板配置變更
 		cw.reloadTemplateConfig()
@@ -157,7 +157,7 @@ func (cw *ConfigWatcher) handleConfigChange(filename string) {
 }
 
 // reloadMainConfig 重新載入主配置
-func (cw *ConfigWatcher) reloadMainConfig() {
+func (cw *ConfigWatcher) reloadMainConfig(ctx context.Context) {
 	logger.Info("Reloading main config", "config_watcher")
 
 	// 強制重新載入配置（繞過 sync.Once）
@@ -168,8 +168,11 @@ func (cw *ConfigWatcher) reloadMainConfig() {
 	}
 	logger.Info("Main config force reloaded", "config_watcher")
 
-	// 服務實例的安全替換與舊資源釋放由 R-05 處理；此處只發布設定快照。
-	logger.Info("Main config snapshot reloaded successfully", "config_watcher")
+	if err := service.GetServiceManager().Reload(ctx); err != nil {
+		logger.Error("Failed to reload services", "config_watcher", logger.Err(err))
+		return
+	}
+	logger.Info("Main config and services reloaded successfully", "config_watcher")
 }
 
 // reloadTemplateConfig 重新載入模板配置

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -10,13 +12,98 @@ import (
 	"alert-webhooks/pkg/template"
 )
 
-// ServiceManager 服務管理器
+// Accessor 是路由層取得目前服務組合所需的最小介面。
+type Accessor interface{ Acquire() *Lease }
+
+// NewStaticAccessor 提供相容測試與不支援熱重載的呼叫端使用。
+func NewStaticAccessor(discord *DiscordService) Accessor {
+	return &staticAccessor{bundle: &serviceBundle{discord: discord, drained: make(chan struct{})}}
+}
+
+type staticAccessor struct{ bundle *serviceBundle }
+
+func (a *staticAccessor) Acquire() *Lease {
+	if !a.bundle.acquire() {
+		return nil
+	}
+	return &Lease{bundle: a.bundle}
+}
+
+// Lease 保護 request 使用的服務組合，釋放前不得關閉其資源。
+type Lease struct {
+	bundle *serviceBundle
+	once   sync.Once
+}
+
+func (l *Lease) Telegram() *TelegramService { return l.bundle.telegram }
+func (l *Lease) Slack() *SlackService       { return l.bundle.slack }
+func (l *Lease) Discord() *DiscordService   { return l.bundle.discord }
+func (l *Lease) Release() {
+	if l != nil {
+		l.once.Do(l.bundle.release)
+	}
+}
+
+type serviceBundle struct {
+	telegram  *TelegramService
+	slack     *SlackService
+	discord   *DiscordService
+	mu        sync.Mutex
+	refs      int
+	retired   bool
+	drained   chan struct{}
+	closeOnce sync.Once
+	closeFn   func() error
+}
+
+func (b *serviceBundle) acquire() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.retired {
+		return false
+	}
+	b.refs++
+	return true
+}
+func (b *serviceBundle) release() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.refs--
+	if b.retired && b.refs == 0 {
+		close(b.drained)
+	}
+}
+func (b *serviceBundle) retire() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.retired {
+		return
+	}
+	b.retired = true
+	if b.refs == 0 {
+		close(b.drained)
+	}
+}
+func (b *serviceBundle) close() error {
+	var err error
+	b.closeOnce.Do(func() {
+		if b.closeFn != nil {
+			err = b.closeFn()
+			return
+		}
+		if b.discord != nil {
+			err = b.discord.Close()
+		}
+	})
+	return err
+}
+
+// ServiceManager 管理可交換的服務組合。
 type ServiceManager struct {
-	telegramService *TelegramService
-	slackService    *SlackService
-	discordService  *DiscordService
-	templateEngine  *template.TemplateEngine
-	mu              sync.RWMutex
+	mu             sync.RWMutex
+	current        *serviceBundle
+	templateEngine *template.TemplateEngine
+	retired        sync.WaitGroup
 }
 
 var (
@@ -24,178 +111,209 @@ var (
 	once     sync.Once
 )
 
-// GetServiceManager 獲取服務管理器單例
 func GetServiceManager() *ServiceManager {
-	once.Do(func() {
-		instance = &ServiceManager{}
-	})
+	once.Do(func() { instance = &ServiceManager{} })
 	return instance
 }
 
-// InitServices 初始化所有服務
+// InitServices 建立初始服務組合，維持啟動時的降級行為。
 func (sm *ServiceManager) InitServices() error {
 	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	cfg := config.Current()
-
-	// 初始化模板引擎
-	sm.initTemplateEngine()
-
-	// 初始化 Telegram 服務（可選）
-	if cfg.Telegram.Enable && cfg.Telegram.Token != "" {
-		telegramService, err := NewTelegramService(cfg.Telegram.Token)
-		if err != nil {
-			logger.Error("Failed to initialize Telegram service", "service_manager", logger.Err(err))
-			logger.Warn("Telegram service will run in degraded mode - routes will be registered but may not work properly", "service_manager")
-			// 創建一個降級的服務實例，允許路由註冊但功能受限
-			sm.telegramService = &TelegramService{
-				bot:     nil, // bot 為 nil 表示降級模式
-				chatIDs: make(map[int]int64),
-			}
-		} else {
-			sm.telegramService = telegramService
-			logger.Info("Telegram service initialized successfully", "service_manager")
-		}
-	} else {
-		logger.Info("Telegram not enabled or token not configured, skipping Telegram service", "service_manager")
+	if sm.templateEngine == nil {
+		sm.templateEngine = newTemplateEngine()
 	}
-
-	// 初始化 Slack 服務（可選）
-	if cfg.Slack.Enable && cfg.Slack.Token != "" {
-		slackService, err := NewSlackService(cfg.Slack.Token)
-		if err != nil {
-			logger.Error("Failed to initialize Slack service", "service_manager", logger.Err(err))
-			// 不返回錯誤，讓其他服務繼續運行
-		} else {
-			sm.slackService = slackService
-			logger.Info("Slack service initialized successfully", "service_manager")
-		}
-	} else {
-		logger.Info("Slack not enabled or token not configured, skipping Slack service", "service_manager")
+	sm.mu.Unlock()
+	b, err := buildServiceBundle(config.Current(), false)
+	if err != nil {
+		return err
 	}
-
-	// 初始化 Discord 服務（可選）
-	if cfg.Discord.Enable && cfg.Discord.Token != "" {
-		discordService, err := NewDiscordService(cfg.Discord)
-		if err != nil {
-			logger.Error("Failed to initialize Discord service", "service_manager", logger.Err(err))
-			// 不返回錯誤，讓其他服務繼續運行
-		} else {
-			sm.discordService = discordService
-			logger.Info("Discord service initialized successfully", "service_manager")
-		}
-	} else {
-		logger.Info("Discord not enabled or token not configured, skipping Discord service", "service_manager")
-	}
-
-	// 初始化通知管理器（在所有服務初始化完成後）
-	notificationManager := notification.GetNotificationManager()
-	if err := notificationManager.Initialize(sm.templateEngine, sm.telegramService, sm.slackService, sm.discordService); err != nil {
-		logger.Error("Failed to initialize notification manager", "service_manager", logger.Err(err))
-	} else {
-		logger.Info("Notification manager initialized successfully", "service_manager")
-	}
-
-	logger.Info("Services initialization completed", "service_manager")
+	sm.initializeNotificationManager(b)
+	sm.swap(b)
 	return nil
 }
 
-// GetTelegramService 獲取 Telegram 服務
+// Reload 只在候選服務全部可用時交換目前組合。
+func (sm *ServiceManager) Reload(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("重載服務設定已取消: %w", err)
+	}
+	b, err := buildServiceBundle(config.Current(), true)
+	if err != nil {
+		return err
+	}
+	sm.initializeNotificationManager(b)
+	sm.swap(b)
+	return nil
+}
+
+func (sm *ServiceManager) reload(build func() (*serviceBundle, error)) error {
+	b, err := build()
+	if err != nil {
+		return err
+	}
+	sm.swap(b)
+	return nil
+}
+func (sm *ServiceManager) swap(next *serviceBundle) {
+	sm.mu.Lock()
+	old := sm.current
+	sm.current = next
+	sm.mu.Unlock()
+	if old != nil {
+		sm.retire(old)
+	}
+}
+func (sm *ServiceManager) retire(b *serviceBundle) {
+	b.retire()
+	sm.retired.Add(1)
+	go func() {
+		defer sm.retired.Done()
+		<-b.drained
+		if err := b.close(); err != nil {
+			logger.Error("Failed to close retired service bundle", "service_manager", logger.Err(err))
+		}
+	}()
+}
+func (sm *ServiceManager) Acquire() *Lease {
+	sm.mu.RLock()
+	b := sm.current
+	if b == nil || !b.acquire() {
+		sm.mu.RUnlock()
+		return nil
+	}
+	sm.mu.RUnlock()
+	return &Lease{bundle: b}
+}
+
+// Close 停止新 lease 並等待現有 request 釋放。
+func (sm *ServiceManager) Close(ctx context.Context) error {
+	sm.mu.Lock()
+	b := sm.current
+	sm.current = nil
+	sm.mu.Unlock()
+	if b != nil {
+		sm.retire(b)
+	}
+	done := make(chan struct{})
+	go func() { sm.retired.Wait(); close(done) }()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("等待服務組合關閉逾時: %w", ctx.Err())
+	}
+}
 func (sm *ServiceManager) GetTelegramService() *TelegramService {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-	return sm.telegramService
+	l := sm.Acquire()
+	if l == nil {
+		return nil
+	}
+	defer l.Release()
+	return l.Telegram()
 }
-
-// IsTelegramServiceReady 檢查 Telegram 服務是否就緒
-func (sm *ServiceManager) IsTelegramServiceReady() bool {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-	return sm.telegramService != nil
-}
-
-// GetSlackService 獲取 Slack 服務
 func (sm *ServiceManager) GetSlackService() *SlackService {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-	return sm.slackService
+	l := sm.Acquire()
+	if l == nil {
+		return nil
+	}
+	defer l.Release()
+	return l.Slack()
 }
-
-// GetDiscordService 獲取 Discord 服務
 func (sm *ServiceManager) GetDiscordService() *DiscordService {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-	return sm.discordService
+	l := sm.Acquire()
+	if l == nil {
+		return nil
+	}
+	defer l.Release()
+	return l.Discord()
 }
-
-// IsSlackServiceReady 檢查 Slack 服務是否就緒
+func (sm *ServiceManager) IsTelegramServiceReady() bool {
+	l := sm.Acquire()
+	if l == nil {
+		return false
+	}
+	defer l.Release()
+	return l.Telegram() != nil
+}
 func (sm *ServiceManager) IsSlackServiceReady() bool {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-	return sm.slackService != nil
+	l := sm.Acquire()
+	if l == nil {
+		return false
+	}
+	defer l.Release()
+	return l.Slack() != nil
 }
-
-// IsDiscordServiceReady 檢查 Discord 服務是否就緒
 func (sm *ServiceManager) IsDiscordServiceReady() bool {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-	return sm.discordService != nil
+	l := sm.Acquire()
+	if l == nil {
+		return false
+	}
+	defer l.Release()
+	return l.Discord() != nil
 }
-
-// GetTemplateEngine 獲取模板引擎
 func (sm *ServiceManager) GetTemplateEngine() *template.TemplateEngine {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 	return sm.templateEngine
 }
+func (sm *ServiceManager) initializeNotificationManager(b *serviceBundle) {
+	if err := notification.GetNotificationManager().Initialize(sm.GetTemplateEngine(), b.telegram, b.slack, b.discord); err != nil {
+		logger.Error("Failed to initialize notification manager", "service_manager", logger.Err(err))
+	}
+}
 
-// initTemplateEngine 初始化模板引擎
-func (sm *ServiceManager) initTemplateEngine() {
-	logger.Info("Initializing template engine", "service_manager")
-	
-	templateEngine := template.NewTemplateEngine()
-	
-	// 不再在初始化時選擇特定配置，而是加載默認的 full 配置
-	// 每個平台的 handler 會根據自己的 template_mode 動態決定 FormatOptions
-	logger.Info("Loading default template config (full mode)", "service_manager")
-	
-	err := templateEngine.LoadConfigFromConfigs()
-	if err != nil {
-		logger.Warn("Failed to load template config, using defaults", "service_manager", logger.Err(err))
-	}
-	
-	// 載入模板檔案
-	templatePaths := []string{
-		"templates/alerts",
-		"./templates/alerts",
-		"../templates/alerts",
-	}
-	
-	var loaded bool
-	for _, path := range templatePaths {
-		if err := templateEngine.LoadTemplates(path); err == nil {
-			logger.Info("Templates loaded successfully", "service_manager",
-				logger.String("template_path", path),
-				logger.String("available_languages", strings.Join(templateEngine.GetAvailableLanguages(), ", ")))
-			loaded = true
-			break
+func buildServiceBundle(cfg config.Config, strict bool) (*serviceBundle, error) {
+	b := &serviceBundle{drained: make(chan struct{})}
+	if cfg.Telegram.Enable && cfg.Telegram.Token != "" {
+		s, e := NewTelegramService(cfg.Telegram.Token)
+		if e != nil {
+			if strict {
+				return nil, fmt.Errorf("建立 Telegram 服務失敗: %w", e)
+			}
+			b.telegram = &TelegramService{chatIDs: make(map[int]int64)}
+		} else {
+			b.telegram = s
 		}
 	}
-	
-	if !loaded {
-		logger.Warn("Failed to load templates from all paths", "service_manager")
+	if cfg.Slack.Enable && cfg.Slack.Token != "" {
+		s, e := NewSlackService(cfg.Slack.Token)
+		if e != nil {
+			if strict {
+				return nil, fmt.Errorf("建立 Slack 服務失敗: %w", e)
+			}
+		} else {
+			b.slack = s
+		}
 	}
-	
-	sm.templateEngine = templateEngine
-	logger.Info("Template engine initialized successfully", "service_manager")
+	if cfg.Discord.Enable && cfg.Discord.Token != "" {
+		s, e := NewDiscordService(cfg.Discord)
+		if e != nil {
+			if strict {
+				return nil, fmt.Errorf("建立 Discord 服務失敗: %w", e)
+			}
+		} else {
+			b.discord = s
+		}
+	}
+	return b, nil
 }
-
-// ReloadTemplateEngine 重新載入模板引擎
+func newTemplateEngine() *template.TemplateEngine {
+	e := template.NewTemplateEngine()
+	if err := e.LoadConfigFromConfigs(); err != nil {
+		logger.Warn("Failed to load template config, using defaults", "service_manager", logger.Err(err))
+	}
+	for _, p := range []string{"templates/alerts", "./templates/alerts", "../templates/alerts"} {
+		if e.LoadTemplates(p) == nil {
+			return e
+		}
+	}
+	logger.Warn("Failed to load templates from all paths", "service_manager")
+	return e
+}
 func (sm *ServiceManager) ReloadTemplateEngine() {
 	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	
-	logger.Info("Reloading template engine", "service_manager")
-	sm.initTemplateEngine()
-	logger.Info("Template engine reloaded successfully", "service_manager")
+	sm.templateEngine = newTemplateEngine()
+	sm.mu.Unlock()
 }
+
+var _ = strings.Join

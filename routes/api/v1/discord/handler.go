@@ -19,14 +19,20 @@ import (
 
 // Handler handles Discord API requests
 type Handler struct {
-	discordService *service.DiscordService
+	services service.Accessor
 }
 
 // NewHandler creates a new Discord handler
-func NewHandler(discordService *service.DiscordService) *Handler {
-	return &Handler{
-		discordService: discordService,
+func NewHandler(services service.Accessor) *Handler {
+	return &Handler{services: services}
+}
+
+func (h *Handler) currentDiscord(c *gin.Context) *service.DiscordService {
+	lease, ok := c.Get("discord_service_lease")
+	if !ok {
+		return nil
 	}
+	return lease.(*service.Lease).Discord()
 }
 
 // SendMessageRequest send message request structure
@@ -88,7 +94,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 	}
 
 	// Check if Discord service is available
-	if h.discordService == nil {
+	if h.currentDiscord(c) == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
 			Success: false,
 			Message: "Discord service is not available",
@@ -107,7 +113,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 
 	// Handle direct message
 	if req.Message != "" {
-		err := h.discordService.SendMessageToChannel(channel, req.Message)
+		err := h.currentDiscord(c).SendMessageToChannel(channel, req.Message)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
 				Success: false,
@@ -143,7 +149,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 			return
 		}
 
-		err = h.discordService.SendMessageToChannel(channel, message)
+		err = h.currentDiscord(c).SendMessageToChannel(channel, message)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
 				Success: false,
@@ -193,7 +199,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 			return
 		}
 
-		err = h.discordService.SendMessageToChannel(channel, message)
+		err = h.currentDiscord(c).SendMessageToChannel(channel, message)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
 				Success: false,
@@ -240,7 +246,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 	}
 
 	// Check if Discord service is available
-	if h.discordService == nil {
+	if h.currentDiscord(c) == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
 			Success: false,
 			Message: "Discord service is not available",
@@ -262,7 +268,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 
 	// Handle direct message
 	if req.Message != "" {
-		err := h.discordService.SendMessage(c.Request.Context(), levelKey, req.Message)
+		err := h.currentDiscord(c).SendMessage(c.Request.Context(), levelKey, req.Message)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
 				Success: false,
@@ -299,7 +305,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 			return
 		}
 
-		err = h.discordService.SendMessage(c.Request.Context(), levelKey, message)
+		err = h.currentDiscord(c).SendMessage(c.Request.Context(), levelKey, message)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
 				Success: false,
@@ -350,7 +356,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 			return
 		}
 
-		err = h.discordService.SendMessage(c.Request.Context(), levelKey, message)
+		err = h.currentDiscord(c).SendMessage(c.Request.Context(), levelKey, message)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, SendMessageResponse{
 				Success: false,
@@ -390,7 +396,7 @@ func (h *Handler) GetStatus(c *gin.Context) {
 	}
 
 	// Check if Discord service is available
-	if h.discordService == nil {
+	if h.currentDiscord(c) == nil {
 		response.Status = "unavailable"
 		response.Error = "Discord service is not initialized"
 		c.JSON(http.StatusServiceUnavailable, response)
@@ -398,7 +404,7 @@ func (h *Handler) GetStatus(c *gin.Context) {
 	}
 
 	// Test connection
-	err := h.discordService.TestConnection()
+	err := h.currentDiscord(c).TestConnection()
 	if err != nil {
 		response.Status = "error"
 		response.Error = err.Error()
@@ -407,7 +413,7 @@ func (h *Handler) GetStatus(c *gin.Context) {
 	}
 
 	// Get bot info
-	botInfo, err := h.discordService.GetBotInfo()
+	botInfo, err := h.currentDiscord(c).GetBotInfo()
 	if err != nil {
 		response.Status = "partial"
 		response.Error = fmt.Sprintf("Connection OK but failed to get bot info: %s", err.Error())
@@ -441,7 +447,7 @@ func (h *Handler) TestChannel(c *gin.Context) {
 	}
 
 	// Check if Discord service is available
-	if h.discordService == nil {
+	if h.currentDiscord(c) == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
 			Success: false,
 			Message: "Discord service is not available",
@@ -452,7 +458,7 @@ func (h *Handler) TestChannel(c *gin.Context) {
 	testMessage := fmt.Sprintf("🤖 Discord Test Message\n\nTimestamp: %s\nChannel: %s\n\nThis is a test message from Alert Webhooks Discord bot.",
 		time.Now().UTC().Format("2006-01-02 15:04:05 UTC"), channel)
 
-	err := h.discordService.SendMessageToChannel(channel, testMessage)
+	err := h.currentDiscord(c).SendMessageToChannel(channel, testMessage)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, SendMessageResponse{
 			Success: false,
@@ -489,7 +495,7 @@ func (h *Handler) ValidateChannel(c *gin.Context) {
 	}
 
 	// Check if Discord service is available
-	if h.discordService == nil {
+	if h.currentDiscord(c) == nil {
 		c.JSON(http.StatusServiceUnavailable, SendMessageResponse{
 			Success: false,
 			Message: "Discord service is not available",
@@ -497,7 +503,7 @@ func (h *Handler) ValidateChannel(c *gin.Context) {
 		return
 	}
 
-	err := h.discordService.ValidateChannel(channel)
+	err := h.currentDiscord(c).ValidateChannel(channel)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, SendMessageResponse{
 			Success: false,
