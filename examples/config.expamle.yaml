@@ -67,6 +67,8 @@ webhooks:
   base_auth_user: ""
   # basic auth password (leave empty to read from k8s or docker env)
   base_auth_password: ""
+  # exact browser origins allowed to make cross-origin requests; empty denies CORS
+  cors_allowed_origins: []
 
 telegram:
   # enable telegram integration
