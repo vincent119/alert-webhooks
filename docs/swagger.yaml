@@ -39,6 +39,8 @@ definitions:
     type: object
   discord.SendMessageResponse:
     properties:
+      code:
+        type: string
       level:
         type: string
       message:
@@ -49,6 +51,8 @@ definitions:
   discord.StatusResponse:
     properties:
       bot_info: {}
+      code:
+        type: string
       error:
         type: string
       service:
@@ -165,6 +169,8 @@ definitions:
     type: object
   slack.SendMessageResponse:
     properties:
+      code:
+        type: string
       level:
         type: string
       message:
@@ -252,6 +258,8 @@ definitions:
     type: object
   telegram.SendMessageResponse:
     properties:
+      code:
+        type: string
       level:
         type: integer
       message:
@@ -720,13 +728,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/telegram.SendMessageResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/telegram.SendMessageResponse'
       security:
       - BasicAuth: []
       summary: Send Telegram message

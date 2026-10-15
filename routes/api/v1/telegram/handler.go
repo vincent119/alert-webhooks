@@ -99,7 +99,12 @@ type Alert struct {
 type SendMessageResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
+	Code    string `json:"code,omitempty"`
 	Level   int    `json:"level"`
+}
+
+func errorResponse(message, code string) gin.H {
+	return gin.H{"success": false, "message": message, "code": code}
 }
 
 // SendMessage send Telegram message
@@ -112,8 +117,8 @@ type SendMessageResponse struct {
 // @Param request body SendMessageRequest true "訊息內容"
 // @Security BasicAuth
 // @Success 200 {object} SendMessageResponse
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} SendMessageResponse
+// @Failure 500 {object} SendMessageResponse
 // @Router /telegram/chatid_{chatid} [post]
 func (h *Handler) SendMessage(c *gin.Context) {
 	cfg := config.Current()
@@ -144,10 +149,8 @@ func (h *Handler) SendMessage(c *gin.Context) {
 	// 先嘗試解析為標準格式
 	body, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"message": "Failed to read request body: " + err.Error(),
-		})
+		zlogger.Warn("Failed to read Telegram request body", zlogger.String("category", "telegram_handler"), zlogger.Err(err))
+		c.JSON(http.StatusBadRequest, errorResponse("Failed to read request body", "TELEGRAM_REQUEST_BODY_READ_FAILED"))
 		return
 	}
 
@@ -190,10 +193,8 @@ func (h *Handler) SendMessage(c *gin.Context) {
 					zlogger.String("body_preview", getBodyPreview(body)))
 			}
 
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"message": "Invalid request body format: " + unmarshalErr.Error(),
-			})
+			zlogger.Warn("Invalid Telegram request body format", zlogger.String("category", "telegram_handler"), zlogger.Err(unmarshalErr))
+			c.JSON(http.StatusBadRequest, errorResponse("Invalid request body format", "TELEGRAM_INVALID_REQUEST_FORMAT"))
 			return
 		}
 
@@ -281,7 +282,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 					zlogger.Error("Failed to send message via template engine path", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
 						zlogger.String("error_detail", sendErr.Error()),
 						zlogger.Int("message_length", len(msg)))
-					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to send message: " + sendErr.Error()})
+					c.JSON(http.StatusInternalServerError, errorResponse("Failed to send message", "TELEGRAM_MESSAGE_SEND_FAILED"))
 					return
 				}
 
@@ -300,10 +301,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		if err != nil {
 			zlogger.Error("Failed to send alert messages", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
 				zlogger.Err(err))
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"message": "Failed to send alert messages: " + err.Error(),
-			})
+			c.JSON(http.StatusInternalServerError, errorResponse("Failed to send alert messages", "TELEGRAM_ALERT_MESSAGE_SEND_FAILED"))
 			return
 		}
 	} else {
@@ -313,10 +311,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 			zlogger.Error("Failed to send Telegram message", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
 				zlogger.String("message", req.Message),
 				zlogger.Err(err))
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"message": "Failed to send message: " + err.Error(),
-			})
+			c.JSON(http.StatusInternalServerError, errorResponse("Failed to send message", "TELEGRAM_MESSAGE_SEND_FAILED"))
 			return
 		}
 	}

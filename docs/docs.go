@@ -724,15 +724,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/telegram.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/telegram.SendMessageResponse"
                         }
                     }
                 }
@@ -821,6 +819,9 @@ const docTemplate = `{
         "discord.SendMessageResponse": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "string"
+                },
                 "level": {
                     "type": "string"
                 },
@@ -836,6 +837,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "bot_info": {},
+                "code": {
+                    "type": "string"
+                },
                 "error": {
                     "type": "string"
                 },
@@ -1002,6 +1006,9 @@ const docTemplate = `{
         "slack.SendMessageResponse": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "string"
+                },
                 "level": {
                     "type": "string"
                 },
@@ -1136,6 +1143,9 @@ const docTemplate = `{
         "telegram.SendMessageResponse": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "string"
+                },
                 "level": {
                     "type": "integer"
                 },
@@ -1182,7 +1192,7 @@ var SwaggerInfo = &swag.Spec{
 	Title:            "Alert Webhooks API",
 	Description:      "這是 Alert Webhooks 的 Swagger 文件（由 swag 自動產生）。",
 	InfoInstanceName: "swagger",
-	SwaggerTemplate:  docTemplate}
+	SwaggerTemplate:  docTemplate,}
 
 func init() {
 	swag.Register(SwaggerInfo.InstanceName(), SwaggerInfo)

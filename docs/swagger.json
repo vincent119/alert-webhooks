@@ -721,15 +721,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/telegram.SendMessageResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/telegram.SendMessageResponse"
                         }
                     }
                 }
@@ -818,6 +816,9 @@
         "discord.SendMessageResponse": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "string"
+                },
                 "level": {
                     "type": "string"
                 },
@@ -833,6 +834,9 @@
             "type": "object",
             "properties": {
                 "bot_info": {},
+                "code": {
+                    "type": "string"
+                },
                 "error": {
                     "type": "string"
                 },
@@ -999,6 +1003,9 @@
         "slack.SendMessageResponse": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "string"
+                },
                 "level": {
                     "type": "string"
                 },
@@ -1133,6 +1140,9 @@
         "telegram.SendMessageResponse": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "string"
+                },
                 "level": {
                     "type": "integer"
                 },

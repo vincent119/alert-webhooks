@@ -56,6 +56,7 @@ type SendMessageRequest struct {
 type SendMessageResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
+	Code    string `json:"code,omitempty"`
 	Level   string `json:"level"`
 }
 
@@ -65,7 +66,13 @@ type StatusResponse struct {
 	Status    string      `json:"status"`
 	BotInfo   interface{} `json:"bot_info,omitempty"`
 	Error     string      `json:"error,omitempty"`
+	Code      string      `json:"code,omitempty"`
 	Timestamp string      `json:"timestamp"`
+}
+
+func respondError(c *gin.Context, status int, message, code string, err error) {
+	zlogger.Error("Discord request failed", zlogger.String("category", "discord_handler"), zlogger.String("code", code), zlogger.Err(err))
+	c.JSON(status, SendMessageResponse{Success: false, Message: message, Code: code})
 }
 
 // SendMessageToChannel handles sending messages to a specific Discord channel
@@ -103,10 +110,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 
 	var req SendMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, SendMessageResponse{
-			Success: false,
-			Message: fmt.Sprintf("Invalid request format: %s", err.Error()),
-		})
+		respondError(c, http.StatusBadRequest, "Invalid request format", "DISCORD_INVALID_REQUEST_FORMAT", err)
 		return
 	}
 
@@ -114,10 +118,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 	if req.Message != "" {
 		err := h.currentDiscord(c).SendMessageToChannel(channel, req.Message)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to send message: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to send message", "DISCORD_MESSAGE_SEND_FAILED", err)
 			return
 		}
 
@@ -132,28 +133,19 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 	if len(req.AlertManagerData) > 0 {
 		alertDataBytes, err := json.Marshal(req.AlertManagerData)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to process alertmanager_data: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to process alertmanager data", "DISCORD_ALERT_DATA_PROCESSING_FAILED", err)
 			return
 		}
 
 		message, err := h.generateAlertManagerMessage(alertDataBytes)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to generate message: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to generate message", "DISCORD_MESSAGE_GENERATION_FAILED", err)
 			return
 		}
 
 		err = h.currentDiscord(c).SendMessageToChannel(channel, message)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to send message: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to send message", "DISCORD_MESSAGE_SEND_FAILED", err)
 			return
 		}
 
@@ -182,28 +174,19 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 
 		alertDataBytes, err := json.Marshal(alertManagerData)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to process direct AlertManager data: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to process alertmanager data", "DISCORD_ALERT_DATA_PROCESSING_FAILED", err)
 			return
 		}
 
 		message, err := h.generateAlertManagerMessage(alertDataBytes)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to generate message: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to generate message", "DISCORD_MESSAGE_GENERATION_FAILED", err)
 			return
 		}
 
 		err = h.currentDiscord(c).SendMessageToChannel(channel, message)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to send message: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to send message", "DISCORD_MESSAGE_SEND_FAILED", err)
 			return
 		}
 
@@ -258,10 +241,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 
 	var req SendMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, SendMessageResponse{
-			Success: false,
-			Message: fmt.Sprintf("Invalid request format: %s", err.Error()),
-		})
+		respondError(c, http.StatusBadRequest, "Invalid request format", "DISCORD_INVALID_REQUEST_FORMAT", err)
 		return
 	}
 
@@ -269,10 +249,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 	if req.Message != "" {
 		err := h.currentDiscord(c).SendMessage(c.Request.Context(), levelKey, req.Message)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to send message: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to send message", "DISCORD_MESSAGE_SEND_FAILED", err)
 			return
 		}
 
@@ -288,28 +265,19 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 	if len(req.AlertManagerData) > 0 {
 		alertDataBytes, err := json.Marshal(req.AlertManagerData)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to process alertmanager_data: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to process alertmanager data", "DISCORD_ALERT_DATA_PROCESSING_FAILED", err)
 			return
 		}
 
 		message, err := h.generateAlertManagerMessage(alertDataBytes)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to generate message: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to generate message", "DISCORD_MESSAGE_GENERATION_FAILED", err)
 			return
 		}
 
 		err = h.currentDiscord(c).SendMessage(c.Request.Context(), levelKey, message)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to send message: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to send message", "DISCORD_MESSAGE_SEND_FAILED", err)
 			return
 		}
 
@@ -339,28 +307,19 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 
 		alertDataBytes, err := json.Marshal(alertManagerData)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to process direct AlertManager data: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to process alertmanager data", "DISCORD_ALERT_DATA_PROCESSING_FAILED", err)
 			return
 		}
 
 		message, err := h.generateAlertManagerMessage(alertDataBytes)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to generate message: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to generate message", "DISCORD_MESSAGE_GENERATION_FAILED", err)
 			return
 		}
 
 		err = h.currentDiscord(c).SendMessage(c.Request.Context(), levelKey, message)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to send message: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Failed to send message", "DISCORD_MESSAGE_SEND_FAILED", err)
 			return
 		}
 
@@ -406,7 +365,9 @@ func (h *Handler) GetStatus(c *gin.Context) {
 	err := h.currentDiscord(c).TestConnection()
 	if err != nil {
 		response.Status = "error"
-		response.Error = err.Error()
+		response.Error = "Discord connection test failed"
+		response.Code = "DISCORD_CONNECTION_TEST_FAILED"
+		zlogger.Error("Discord connection test failed", zlogger.String("category", "discord_handler"), zlogger.Err(err))
 		c.JSON(http.StatusInternalServerError, response)
 		return
 	}
@@ -415,7 +376,9 @@ func (h *Handler) GetStatus(c *gin.Context) {
 	botInfo, err := h.currentDiscord(c).GetBotInfo()
 	if err != nil {
 		response.Status = "partial"
-		response.Error = fmt.Sprintf("Connection OK but failed to get bot info: %s", err.Error())
+		response.Error = "Discord bot information is unavailable"
+		response.Code = "DISCORD_BOT_INFO_UNAVAILABLE"
+		zlogger.Error("Failed to get Discord bot info", zlogger.String("category", "discord_handler"), zlogger.Err(err))
 	} else {
 		response.Status = "healthy"
 		response.BotInfo = botInfo
@@ -459,10 +422,7 @@ func (h *Handler) TestChannel(c *gin.Context) {
 
 	err := h.currentDiscord(c).SendMessageToChannel(channel, testMessage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, SendMessageResponse{
-			Success: false,
-			Message: fmt.Sprintf("❌ Test message failed: %s", err.Error()),
-		})
+		respondError(c, http.StatusInternalServerError, "Test message failed", "DISCORD_TEST_MESSAGE_FAILED", err)
 		return
 	}
 
@@ -504,10 +464,7 @@ func (h *Handler) ValidateChannel(c *gin.Context) {
 
 	err := h.currentDiscord(c).ValidateChannel(channel)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, SendMessageResponse{
-			Success: false,
-			Message: fmt.Sprintf("❌ Channel validation failed: %s", err.Error()),
-		})
+		respondError(c, http.StatusBadRequest, "Channel validation failed", "DISCORD_CHANNEL_VALIDATION_FAILED", err)
 		return
 	}
 
