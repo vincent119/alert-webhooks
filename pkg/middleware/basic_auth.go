@@ -1,6 +1,9 @@
 package middleware
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
+
 	"alert-webhooks/config"
 	"github.com/gin-gonic/gin"
 )
@@ -42,8 +45,8 @@ func BasicAuth() gin.HandlerFunc {
 			return
 		}
 
-		// 驗證用戶名和密碼
-		if username != webhooks.BaseAuthUser || password != webhooks.BaseAuthPassword {
+		// 帳密皆完成固定時間比較後才判斷，避免任一欄位失敗時提早返回。
+		if !credentialsMatch(username, password, webhooks.BaseAuthUser, webhooks.BaseAuthPassword) {
 			c.Header("WWW-Authenticate", "Basic realm=Authorization Required")
 			c.JSON(401, gin.H{
 				"error":   "Unauthorized",
@@ -57,6 +60,17 @@ func BasicAuth() gin.HandlerFunc {
 		// 認證成功，繼續處理請求
 		c.Next()
 	}
+}
+
+func credentialsMatch(username, password, expectedUsername, expectedPassword string) bool {
+	usernameHash := sha256.Sum256([]byte(username))
+	passwordHash := sha256.Sum256([]byte(password))
+	expectedUsernameHash := sha256.Sum256([]byte(expectedUsername))
+	expectedPasswordHash := sha256.Sum256([]byte(expectedPassword))
+
+	usernameMatches := subtle.ConstantTimeCompare(usernameHash[:], expectedUsernameHash[:])
+	passwordMatches := subtle.ConstantTimeCompare(passwordHash[:], expectedPasswordHash[:])
+	return usernameMatches&passwordMatches == 1
 }
 
 // BasicAuthWithConfig 使用自定義配置的基本認證中間件
