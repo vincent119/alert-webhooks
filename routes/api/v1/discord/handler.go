@@ -604,9 +604,10 @@ func (h *Handler) generateBuiltInMessage(alertData json.RawMessage) (string, err
 	resolvedCount := 0
 	for _, alert := range req.Alerts {
 		if status, ok := alert["status"].(string); ok {
-			if status == "firing" {
+			switch status {
+			case "firing":
 				firingCount++
-			} else if status == "resolved" {
+			case "resolved":
 				resolvedCount++
 			}
 		}
