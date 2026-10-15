@@ -12,7 +12,7 @@ import (
 	"text/template"
 	"time"
 
-	"alert-webhooks/pkg/logger"
+	"github.com/vincent119/zlogger"
 
 	"gopkg.in/yaml.v3"
 )
@@ -115,14 +115,12 @@ func NewTemplateEngine() *TemplateEngine {
 
 // LoadConfig 載入模板配置檔案
 func (te *TemplateEngine) LoadConfig(configPath string) error {
-	logger.Info("Loading template config", "template_engine",
-		logger.String("config_path", configPath))
+	zlogger.Info("Loading template config", zlogger.String("category", "template_engine"), zlogger.String("config_path", configPath))
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		logger.Warn("Failed to read config file, using default config", "template_engine",
-			logger.String("config_path", configPath),
-			logger.Err(err))
+		zlogger.Warn("Failed to read config file, using default config", zlogger.String("category", "template_engine"), zlogger.String("config_path", configPath),
+			zlogger.Err(err))
 		te.config = getDefaultConfig()
 		return nil // 不返回錯誤，使用預設配置
 	}
@@ -132,17 +130,15 @@ func (te *TemplateEngine) LoadConfig(configPath string) error {
 	}
 
 	if err := yaml.Unmarshal(data, &fullConfig); err != nil {
-		logger.Warn("Failed to parse config file, using default config", "template_engine",
-			logger.String("config_path", configPath),
-			logger.Err(err))
+		zlogger.Warn("Failed to parse config file, using default config", zlogger.String("category", "template_engine"), zlogger.String("config_path", configPath),
+			zlogger.Err(err))
 		te.config = getDefaultConfig()
 		return nil // 不返回錯誤，使用預設配置
 	}
 
 	te.config = &fullConfig.TemplateConfig
-	logger.Info("Template config loaded successfully", "template_engine",
-		logger.String("version", te.config.Version),
-		logger.Int("supported_languages", len(te.config.SupportedLanguages)))
+	zlogger.Info("Template config loaded successfully", zlogger.String("category", "template_engine"), zlogger.String("version", te.config.Version),
+		zlogger.Int("supported_languages", len(te.config.SupportedLanguages)))
 
 	return nil
 }
@@ -157,13 +153,12 @@ func (te *TemplateEngine) LoadConfigFromConfigs() error {
 
 	for _, configPath := range configPaths {
 		if err := te.LoadConfig(configPath); err == nil {
-			logger.Info("Template config loaded from configs directory", "template_engine",
-				logger.String("config_path", configPath))
+			zlogger.Info("Template config loaded from configs directory", zlogger.String("category", "template_engine"), zlogger.String("config_path", configPath))
 			return nil
 		}
 	}
 
-	logger.Warn("Failed to load template config from configs directory, using default config", "template_engine")
+	zlogger.Warn("Failed to load template config from configs directory, using default config", zlogger.String("category", "template_engine"))
 	te.config = getDefaultConfig()
 	return nil
 }
@@ -179,14 +174,12 @@ func (te *TemplateEngine) LoadConfigWithProfile(profile string) error {
 
 	// 檢查檔案是否存在
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		logger.Warn("Config file not found, using default", "template",
-			logger.String("config_path", configPath))
+		zlogger.Warn("Config file not found, using default", zlogger.String("category", "template"), zlogger.String("config_path", configPath))
 		return te.LoadConfigFromConfigs() // 回退到預設配置
 	}
 
-	logger.Info("Loading template config with profile", "template",
-		logger.String("profile", profile),
-		logger.String("config_path", configPath))
+	zlogger.Info("Loading template config with profile", zlogger.String("category", "template"), zlogger.String("profile", profile),
+		zlogger.String("config_path", configPath))
 
 	return te.LoadConfig(configPath)
 }
@@ -197,8 +190,7 @@ func (te *TemplateEngine) ReloadConfigWithProfile(profile string) error {
 		return err
 	}
 
-	logger.Info("Template config reloaded", "template",
-		logger.String("profile", profile))
+	zlogger.Info("Template config reloaded", zlogger.String("category", "template"), zlogger.String("profile", profile))
 	return nil
 }
 
@@ -357,8 +349,7 @@ func getMinimalDefaultConfig() *TemplateConfig {
 
 // LoadTemplates 載入模板檔案 - 自動掃描並載入所有語系模板
 func (te *TemplateEngine) LoadTemplates(templateDir string) error {
-	logger.Info("Starting dynamic template loading", "template_engine",
-		logger.String("template_dir", templateDir))
+	zlogger.Info("Starting dynamic template loading", zlogger.String("category", "template_engine"), zlogger.String("template_dir", templateDir))
 
 	// 檢查目錄是否存在
 	if _, err := os.Stat(templateDir); err != nil {
@@ -380,15 +371,13 @@ func (te *TemplateEngine) LoadTemplates(templateDir string) error {
 	for language, templatePath := range templateFiles {
 		if template, err := te.loadTemplate(templatePath); err == nil {
 			te.templates[language] = template
-			logger.Info("Template loaded successfully", "template_engine",
-				logger.String("language", language),
-				logger.String("path", templatePath))
+			zlogger.Info("Template loaded successfully", zlogger.String("category", "template_engine"), zlogger.String("language", language),
+				zlogger.String("path", templatePath))
 			loadedCount++
 		} else {
-			logger.Warn("Failed to load template", "template_engine",
-				logger.String("language", language),
-				logger.String("path", templatePath),
-				logger.Err(err))
+			zlogger.Warn("Failed to load template", zlogger.String("category", "template_engine"), zlogger.String("language", language),
+				zlogger.String("path", templatePath),
+				zlogger.Err(err))
 		}
 	}
 
@@ -396,10 +385,9 @@ func (te *TemplateEngine) LoadTemplates(templateDir string) error {
 		return fmt.Errorf("failed to load any templates from directory: %s", templateDir)
 	}
 
-	logger.Info("Template loading completed", "template_engine",
-		logger.String("template_dir", templateDir),
-		logger.Int("loaded_count", loadedCount),
-		logger.Int("total_found", len(templateFiles)))
+	zlogger.Info("Template loading completed", zlogger.String("category", "template_engine"), zlogger.String("template_dir", templateDir),
+		zlogger.Int("loaded_count", loadedCount),
+		zlogger.Int("total_found", len(templateFiles)))
 
 	return nil
 }
@@ -452,8 +440,7 @@ func (te *TemplateEngine) scanTemplateFiles(templateDir string) (map[string]stri
 		language := strings.TrimSuffix(baseName, ext)
 
 		if language == "" {
-			logger.Warn("Invalid template file name format", "template_engine",
-				logger.String("file_name", fileName))
+			zlogger.Warn("Invalid template file name format", zlogger.String("category", "template_engine"), zlogger.String("file_name", fileName))
 			continue
 		}
 
@@ -468,23 +455,20 @@ func (te *TemplateEngine) scanTemplateFiles(templateDir string) (map[string]stri
 			// 如果當前檔案優先權更高，替換現有檔案
 			if currentPriority < existingPriority {
 				templateFiles[language] = templatePath
-				logger.Info("Template file found (replacing existing)", "template_engine",
-					logger.String("language", language),
-					logger.String("new_path", templatePath),
-					logger.String("old_path", existing),
-					logger.String("reason", "higher_priority"))
+				zlogger.Info("Template file found (replacing existing)", zlogger.String("category", "template_engine"), zlogger.String("language", language),
+					zlogger.String("new_path", templatePath),
+					zlogger.String("old_path", existing),
+					zlogger.String("reason", "higher_priority"))
 			} else {
-				logger.Info("Template file found (keeping existing)", "template_engine",
-					logger.String("language", language),
-					logger.String("existing_path", existing),
-					logger.String("skipped_path", templatePath),
-					logger.String("reason", "lower_priority"))
+				zlogger.Info("Template file found (keeping existing)", zlogger.String("category", "template_engine"), zlogger.String("language", language),
+					zlogger.String("existing_path", existing),
+					zlogger.String("skipped_path", templatePath),
+					zlogger.String("reason", "lower_priority"))
 			}
 		} else {
 			templateFiles[language] = templatePath
-			logger.Info("Template file found", "template_engine",
-				logger.String("language", language),
-				logger.String("path", templatePath))
+			zlogger.Info("Template file found", zlogger.String("category", "template_engine"), zlogger.String("language", language),
+				zlogger.String("path", templatePath))
 		}
 	}
 
@@ -514,26 +498,22 @@ func (te *TemplateEngine) loadTemplate(templatePath string) (*template.Template,
 	if strings.HasSuffix(templatePath, ".tmpl") {
 		// 直接使用 Go template 語法
 		goTemplateContent = string(content)
-		logger.Info("Using direct Go template", "template_engine",
-			logger.String("template_path", templatePath))
+		zlogger.Info("Using direct Go template", zlogger.String("category", "template_engine"), zlogger.String("template_path", templatePath))
 	} else {
 		// 將 Jinja2 語法轉換為 Go template 語法
 		goTemplateContent = te.convertJinja2ToGoTemplate(string(content))
-		logger.Info("Using converted Jinja2 template", "template_engine",
-			logger.String("template_path", templatePath))
+		zlogger.Info("Using converted Jinja2 template", zlogger.String("category", "template_engine"), zlogger.String("template_path", templatePath))
 	}
 
 	// 添加調試信息
-	logger.Info("Template conversion debug", "template_engine",
-		logger.String("template_path", templatePath),
-		logger.String("original_length", fmt.Sprintf("%d", len(content))),
-		logger.String("converted_length", fmt.Sprintf("%d", len(goTemplateContent))))
+	zlogger.Info("Template conversion debug", zlogger.String("category", "template_engine"), zlogger.String("template_path", templatePath),
+		zlogger.String("original_length", fmt.Sprintf("%d", len(content))),
+		zlogger.String("converted_length", fmt.Sprintf("%d", len(goTemplateContent))))
 
 	// 顯示轉換後的模板前幾行（調試用）
 	lines := strings.Split(goTemplateContent, "\n")
 	if len(lines) > 5 {
-		logger.Info("Converted template preview", "template_engine",
-			logger.String("preview", strings.Join(lines[:5], "\n")))
+		zlogger.Info("Converted template preview", zlogger.String("category", "template_engine"), zlogger.String("preview", strings.Join(lines[:5], "\n")))
 	}
 
 	tmpl, err := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
@@ -617,9 +597,9 @@ func (te *TemplateEngine) RenderTemplate(language string, data TemplateData) (st
 	// 這樣可以保留平台 handler 傳遞的自定義 FormatOptions
 	if te.config != nil && data.FormatOptions == (FormatOptions{}) {
 		data.FormatOptions = te.config.FormatOptions
-		logger.Debug("Using config FormatOptions as fallback", "template_engine")
+		zlogger.Debug("Using config FormatOptions as fallback", zlogger.String("category", "template_engine"))
 	} else {
-		logger.Debug("Using provided FormatOptions (not overriding)", "template_engine")
+		zlogger.Debug("Using provided FormatOptions (not overriding)", zlogger.String("category", "template_engine"))
 	}
 
 	var buf bytes.Buffer
@@ -636,40 +616,36 @@ func (te *TemplateEngine) RenderTemplateForPlatform(language, platform string, d
 	data.Platform = platform
 
 	// Debug: 檢查 FormatOptions
-	logger.Debug("Template engine received FormatOptions", "template_engine",
-		logger.String("platform", platform),
-		logger.Bool("ShowEmoji", data.FormatOptions.ShowEmoji.Enabled),
-		logger.Bool("ShowTimestamps", data.FormatOptions.ShowTimestamps.Enabled),
-		logger.Bool("ShowGeneratorURL", data.FormatOptions.ShowGeneratorURL.Enabled),
-		logger.Bool("ShowExternalURL", data.FormatOptions.ShowExternalURL.Enabled))
+	zlogger.Debug("Template engine received FormatOptions", zlogger.String("category", "template_engine"), zlogger.String("platform", platform),
+		zlogger.Bool("ShowEmoji", data.FormatOptions.ShowEmoji.Enabled),
+		zlogger.Bool("ShowTimestamps", data.FormatOptions.ShowTimestamps.Enabled),
+		zlogger.Bool("ShowGeneratorURL", data.FormatOptions.ShowGeneratorURL.Enabled),
+		zlogger.Bool("ShowExternalURL", data.FormatOptions.ShowExternalURL.Enabled))
 
 	// 詳細調試：檢查整個 FormatOptions 結構
-	logger.Debug("FormatOptions structure debug", "template_engine",
-		logger.String("ShowEmoji.Description", data.FormatOptions.ShowEmoji.Description),
-		logger.String("ShowTimestamps.Description", data.FormatOptions.ShowTimestamps.Description))
+	zlogger.Debug("FormatOptions structure debug", zlogger.String("category", "template_engine"), zlogger.String("ShowEmoji.Description", data.FormatOptions.ShowEmoji.Description),
+		zlogger.String("ShowTimestamps.Description", data.FormatOptions.ShowTimestamps.Description))
 
 	// 現在每個平台的 handler 都會正確提供 FormatOptions，不需要再檢查
-	logger.Debug("Using provided FormatOptions", "template_engine", logger.String("platform", platform))
+	zlogger.Debug("Using provided FormatOptions", zlogger.String("category", "template_engine"), zlogger.String("platform", platform))
 
 	// 額外調試：檢查傳遞給模板的完整數據
-	logger.Debug("Template data debug", "template_engine",
-		logger.String("Status", data.Status),
-		logger.String("AlertName", data.AlertName),
-		logger.Int("FiringCount", data.FiringCount),
-		logger.Bool("FormatOptions.ShowEmoji.Enabled", data.FormatOptions.ShowEmoji.Enabled))
+	zlogger.Debug("Template data debug", zlogger.String("category", "template_engine"), zlogger.String("Status", data.Status),
+		zlogger.String("AlertName", data.AlertName),
+		zlogger.Int("FiringCount", data.FiringCount),
+		zlogger.Bool("FormatOptions.ShowEmoji.Enabled", data.FormatOptions.ShowEmoji.Enabled))
 
 	renderedMessage, err := te.RenderTemplate(language, data)
 	if err != nil {
-		logger.Error("Template rendering failed", "template_engine", logger.Err(err))
+		zlogger.Error("Template rendering failed", zlogger.String("category", "template_engine"), zlogger.Err(err))
 		return "", err
 	}
 
 	// 調試渲染結果
-	logger.Debug("Template rendered result", "template_engine",
-		logger.String("platform", platform),
-		logger.String("language", language),
-		logger.Int("result_length", len(renderedMessage)),
-		logger.String("result_preview", func() string {
+	zlogger.Debug("Template rendered result", zlogger.String("category", "template_engine"), zlogger.String("platform", platform),
+		zlogger.String("language", language),
+		zlogger.Int("result_length", len(renderedMessage)),
+		zlogger.String("result_preview", func() string {
 			if len(renderedMessage) > 200 {
 				return renderedMessage[:200] + "..."
 			}
@@ -858,7 +834,7 @@ func (te *TemplateEngine) GetMinimalDefaultConfig() *TemplateConfig {
 	// Try to load from alert_config.minimal.yaml first
 	minimalConfig, err := te.loadMinimalConfig()
 	if err != nil {
-		logger.Warn("Failed to load minimal config, using hardcoded defaults", "template_engine", logger.Err(err))
+		zlogger.Warn("Failed to load minimal config, using hardcoded defaults", zlogger.String("category", "template_engine"), zlogger.Err(err))
 		return getMinimalDefaultConfig()
 	}
 	return minimalConfig
@@ -875,9 +851,8 @@ func (te *TemplateEngine) loadMinimalConfig() (*TemplateConfig, error) {
 	for _, configPath := range configPaths {
 		config, err := te.loadConfigFromFile(configPath)
 		if err == nil {
-			logger.Info("Minimal config loaded successfully", "template_engine",
-				logger.String("config_path", configPath),
-				logger.Bool("ShowTimestamps", config.FormatOptions.ShowTimestamps.Enabled))
+			zlogger.Info("Minimal config loaded successfully", zlogger.String("category", "template_engine"), zlogger.String("config_path", configPath),
+				zlogger.Bool("ShowTimestamps", config.FormatOptions.ShowTimestamps.Enabled))
 			return config, nil
 		}
 	}

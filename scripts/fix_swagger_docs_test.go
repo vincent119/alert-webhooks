@@ -14,13 +14,13 @@ func TestCloseSwaggerValidationFilePreservesPrimaryValidationError(t *testing.T)
 
 	err := closeSwaggerValidationFile(file, validationErr)
 	if !errors.Is(err, validationErr) {
-		t.Fatalf("主要 validation error 未保留：%v", err)
+		t.Fatalf("primary validation error was not preserved: %v", err)
 	}
 	if errors.Is(err, closeErr) {
-		t.Fatalf("close error 不應覆蓋主要 validation error：%v", err)
+		t.Fatalf("close error must not replace the primary validation error: %v", err)
 	}
 	if got, want := file.closeCount, 1; got != want {
-		t.Fatalf("驗證檔關閉次數不正確：got %d, want %d", got, want)
+		t.Fatalf("validation file close count is incorrect: got %d, want %d", got, want)
 	}
 }
 
@@ -30,10 +30,10 @@ func TestCloseSwaggerValidationFileReturnsCloseErrorWithoutPrimaryError(t *testi
 
 	err := closeSwaggerValidationFile(file, nil)
 	if !errors.Is(err, closeErr) {
-		t.Fatalf("預期回傳 close error：%v", err)
+		t.Fatalf("want close error: %v", err)
 	}
 	if got, want := file.closeCount, 1; got != want {
-		t.Fatalf("驗證檔關閉次數不正確：got %d, want %d", got, want)
+		t.Fatalf("validation file close count is incorrect: got %d, want %d", got, want)
 	}
 }
 
@@ -41,21 +41,21 @@ func TestRemoveSwaggerBackupTreatsMissingFileAsSuccess(t *testing.T) {
 	backupFile := filepath.Join(t.TempDir(), "docs.go.backup")
 
 	if err := removeSwaggerBackup(backupFile); err != nil {
-		t.Fatalf("不存在的備份檔應視為成功：%v", err)
+		t.Fatalf("missing backup file should be treated as success: %v", err)
 	}
 }
 
 func TestRemoveSwaggerBackupReturnsCleanupError(t *testing.T) {
 	backupDir := filepath.Join(t.TempDir(), "docs.go.backup")
 	if err := os.Mkdir(backupDir, 0755); err != nil {
-		t.Fatalf("建立暫存目錄失敗：%v", err)
+		t.Fatalf("create temporary directory failed: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(backupDir, "keep"), []byte("test"), 0644); err != nil {
-		t.Fatalf("建立暫存檔失敗：%v", err)
+		t.Fatalf("create temporary file failed: %v", err)
 	}
 
 	if err := removeSwaggerBackup(backupDir); err == nil {
-		t.Fatal("刪除非空目錄時預期 cleanup error")
+		t.Fatal("expected cleanup error when deleting a non-empty directory")
 	}
 }
 

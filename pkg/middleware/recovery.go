@@ -3,7 +3,7 @@ package middleware
 import (
 	"fmt"
 	//"going-admin-backend/internal/api"
-	"alert-webhooks/pkg/logger"
+	"github.com/vincent119/zlogger"
 	//"net/http"
 	"runtime/debug"
 
@@ -23,11 +23,10 @@ func Recovery() gin.HandlerFunc {
 				httpRequest, _ := c.Get("HttpRequest")
 
 				// 記錄詳細錯誤日誌
-				logger.Error("[Recovery] Critical system error", middlewareRecoveryString,
-					logger.Any("error", err),
-					logger.String("stack", string(stack)),
-					logger.Any("request", httpRequest),
-					logger.String("path", c.Request.URL.Path),
+				zlogger.Error("[Recovery] Critical system error", zlogger.String("category", middlewareRecoveryString), zlogger.Any("error", err),
+					zlogger.String("stack", string(stack)),
+					zlogger.Any("request", httpRequest),
+					zlogger.String("path", c.Request.URL.Path),
 				)
 
 				// 返回 500 錯誤給客戶端
@@ -56,15 +55,14 @@ func RecoveryWithWriter(stack bool) gin.HandlerFunc {
 				errMsg := fmt.Sprintf("[Recovery] unexpected panic: %v", err)
 
 				// 記錄日誌
-				logger.Error(errMsg, middlewareRecoveryString,
-					logger.String("path", c.Request.URL.Path),
-					logger.String("method", c.Request.Method),
-					logger.String("client_ip", c.ClientIP()),
+				zlogger.Error(errMsg, zlogger.String("category", middlewareRecoveryString), zlogger.String("path", c.Request.URL.Path),
+					zlogger.String("method", c.Request.Method),
+					zlogger.String("client_ip", c.ClientIP()),
 				)
 
 				// 如果需要輸出堆疊信息
 				if stack {
-					logger.Error("stack trace", middlewareRecoveryString, logger.String("stack", string(stackInfo)))
+					zlogger.Error("stack trace", zlogger.String("category", middlewareRecoveryString), zlogger.String("stack", string(stackInfo)))
 				}
 
 				// 返回 500 錯誤給客戶端
