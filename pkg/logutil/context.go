@@ -1,217 +1,74 @@
 package logutil
 
 import (
-	"alert-webhooks/pkg/logcore"
 	"context"
+
+	"github.com/vincent119/zlogger"
 )
 
-// 定義 context key
-type contextKey string
-
-const loggerContextKey = contextKey("logger_fields")
-
-// WithContext 將字段添加到上下文
-func WithContext(ctx context.Context, fields ...logcore.Field) context.Context {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	// 如果沒有字段，直接返回原始 context
-	if len(fields) == 0 {
-		return ctx
-	}
-
-	// 獲取現有字段
-	var existingFields []logcore.Field
-	if val := ctx.Value(loggerContextKey); val != nil {
-		if existing, ok := val.([]logcore.Field); ok {
-			existingFields = existing
-		}
-	}
-
-	// 如果沒有現有字段，直接使用新字段
-	if len(existingFields) == 0 {
-		return context.WithValue(ctx, loggerContextKey, fields)
-	}
-
-	// 合併字段 - 預先分配確切大小的切片以提高效率
-	newFields := make([]logcore.Field, len(existingFields)+len(fields))
-	copy(newFields, existingFields)
-	copy(newFields[len(existingFields):], fields)
-
-	return context.WithValue(ctx, loggerContextKey, newFields)
+// WithContext 將欄位加入 context。
+func WithContext(ctx context.Context, fields ...zlogger.Field) context.Context {
+	return zlogger.WithContext(ctx, fields...)
 }
 
-// FromContext 從上下文中提取字段
-func FromContext(ctx context.Context) []logcore.Field {
-	if ctx == nil {
-		return nil
-	}
-
-	if val := ctx.Value(loggerContextKey); val != nil {
-		if fields, ok := val.([]logcore.Field); ok {
-			return fields
-		}
-	}
-	return nil
+// FromContext 取得 context 中的日誌欄位。
+func FromContext(ctx context.Context) []zlogger.Field {
+	return zlogger.FromContext(ctx)
 }
 
-// DebugContext 使用上下文記錄調試信息
-func DebugContext(ctx context.Context, msg string, fields ...logcore.Field) {
-	// 檢查日誌系統是否初始化
-	if logcore.Log == nil {
-		return
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	// 合併上下文中的字段和提供的字段
-	ctxFields := FromContext(ctx)
-	if len(ctxFields) > 0 {
-		// 創建足夠大的切片一次性分配內存
-		allFields := make([]logcore.Field, len(ctxFields)+len(fields))
-		copy(allFields, ctxFields)
-		copy(allFields[len(ctxFields):], fields)
-		logcore.Debug(msg, "default", allFields...)
-	} else {
-		logcore.Debug(msg, "default", fields...)
-	}
+// DebugContext 以 context 欄位記錄除錯日誌。
+func DebugContext(ctx context.Context, msg string, fields ...zlogger.Field) {
+	zlogger.DebugContext(ctx, msg, withDefaultCategory(fields)...)
 }
 
-// InfoContext 使用上下文記錄信息
-func InfoContext(ctx context.Context, msg string, fields ...logcore.Field) {
-	// 檢查日誌系統是否初始化
-	if logcore.Log == nil {
-		return
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	// 合併上下文中的字段和提供的字段
-	ctxFields := FromContext(ctx)
-	if len(ctxFields) > 0 {
-		// 創建足夠大的切片一次性分配內存
-		allFields := make([]logcore.Field, len(ctxFields)+len(fields))
-		copy(allFields, ctxFields)
-		copy(allFields[len(ctxFields):], fields)
-		logcore.Info(msg, "default", allFields...)
-	} else {
-		logcore.Info(msg, "default", fields...)
-	}
+// InfoContext 以 context 欄位記錄資訊日誌。
+func InfoContext(ctx context.Context, msg string, fields ...zlogger.Field) {
+	zlogger.InfoContext(ctx, msg, withDefaultCategory(fields)...)
 }
 
-// WarnContext 使用上下文記錄警告信息
-func WarnContext(ctx context.Context, msg string, fields ...logcore.Field) {
-	// 檢查日誌系統是否初始化
-	if logcore.Log == nil {
-		return
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	// 合併上下文中的字段和提供的字段
-	ctxFields := FromContext(ctx)
-	if len(ctxFields) > 0 {
-		// 創建足夠大的切片一次性分配內存
-		allFields := make([]logcore.Field, len(ctxFields)+len(fields))
-		copy(allFields, ctxFields)
-		copy(allFields[len(ctxFields):], fields)
-		logcore.Warn(msg, "default", allFields...)
-	} else {
-		logcore.Warn(msg, "default", fields...)
-	}
+// WarnContext 以 context 欄位記錄警告日誌。
+func WarnContext(ctx context.Context, msg string, fields ...zlogger.Field) {
+	zlogger.WarnContext(ctx, msg, withDefaultCategory(fields)...)
 }
 
-// ErrorContext 使用上下文記錄錯誤信息
-func ErrorContext(ctx context.Context, msg string, fields ...logcore.Field) {
-	// 檢查日誌系統是否初始化
-	if logcore.Log == nil {
-		return
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	// 合併上下文中的字段和提供的字段
-	ctxFields := FromContext(ctx)
-	if len(ctxFields) > 0 {
-		// 創建足夠大的切片一次性分配內存
-		allFields := make([]logcore.Field, len(ctxFields)+len(fields))
-		copy(allFields, ctxFields)
-		copy(allFields[len(ctxFields):], fields)
-		logcore.Error(msg, "default", allFields...)
-	} else {
-		logcore.Error(msg, "default", fields...)
-	}
+// ErrorContext 以 context 欄位記錄錯誤日誌。
+func ErrorContext(ctx context.Context, msg string, fields ...zlogger.Field) {
+	zlogger.ErrorContext(ctx, msg, withDefaultCategory(fields)...)
 }
 
-// FatalContext 使用上下文記錄致命錯誤
-func FatalContext(ctx context.Context, msg string, fields ...logcore.Field) {
-	// 檢查日誌系統是否初始化
-	if logcore.Log == nil {
-		return
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	// 合併上下文中的字段和提供的字段
-	ctxFields := FromContext(ctx)
-	if len(ctxFields) > 0 {
-		// 創建足夠大的切片一次性分配內存
-		allFields := make([]logcore.Field, len(ctxFields)+len(fields))
-		copy(allFields, ctxFields)
-		copy(allFields[len(ctxFields):], fields)
-		logcore.Fatal(msg, "default", allFields...)
-	} else {
-		logcore.Fatal(msg, "default", fields...)
-	}
+// FatalContext 以 context 欄位記錄致命日誌。
+func FatalContext(ctx context.Context, msg string, fields ...zlogger.Field) {
+	zlogger.FatalContext(ctx, msg, withDefaultCategory(fields)...)
 }
 
-// WithRequestID 將請求 ID 添加到上下文
+func withDefaultCategory(fields []zlogger.Field) []zlogger.Field {
+	allFields := make([]zlogger.Field, 0, len(fields)+1)
+	allFields = append(allFields, fields...)
+	allFields = append(allFields, zlogger.String("category", "default"))
+	return allFields
+}
+
+// WithRequestID 將請求 ID 加入 context。
 func WithRequestID(ctx context.Context, requestID string) context.Context {
-	if requestID == "" {
-		return ctx
-	}
-	return WithContext(ctx, logcore.String("request_id", requestID))
+	return zlogger.WithRequestID(ctx, requestID)
 }
 
-// WithUserID 將用戶 ID 添加到上下文
+// WithUserID 將使用者 ID 加入 context。
 func WithUserID(ctx context.Context, userID interface{}) context.Context {
-	if userID == nil {
-		return ctx
-	}
-	return WithContext(ctx, logcore.Any("user_id", userID))
+	return zlogger.WithUserID(ctx, userID)
 }
 
-// WithTraceID 將追蹤 ID 添加到上下文
+// WithTraceID 將追蹤 ID 加入 context。
 func WithTraceID(ctx context.Context, traceID string) context.Context {
-	if traceID == "" {
-		return ctx
-	}
-	return WithContext(ctx, logcore.String("trace_id", traceID))
+	return zlogger.WithTraceID(ctx, traceID)
 }
 
-// WithOperation 將操作名稱添加到上下文
+// WithOperation 將操作名稱加入 context。
 func WithOperation(ctx context.Context, operation string) context.Context {
-	if operation == "" {
-		return ctx
-	}
-	return WithContext(ctx, logcore.String("operation", operation))
+	return zlogger.WithOperation(ctx, operation)
 }
 
-// WithComponent 將組件名稱添加到上下文
+// WithComponent 將元件名稱加入 context。
 func WithComponent(ctx context.Context, component string) context.Context {
-	if component == "" {
-		return ctx
-	}
-	return WithContext(ctx, logcore.String("component", component))
+	return zlogger.WithComponent(ctx, component)
 }
