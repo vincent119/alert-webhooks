@@ -22,6 +22,37 @@ func TestBasicAuthAllowsRequestWithoutHeaderWhenCredentialsAreEmpty(t *testing.T
 	}
 }
 
+func TestBasicAuthAllowsRequestWithoutHeaderWhenEitherCredentialIsEmpty(t *testing.T) {
+	tests := []struct {
+		name     string
+		username string
+		password string
+	}{
+		{
+			name:     "僅設定帳號",
+			username: "test-user",
+		},
+		{
+			name:     "僅設定密碼",
+			password: "test-password",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			router := newBasicAuthTestRouter(t, true, tt.username, tt.password)
+			request := httptest.NewRequest(http.MethodGet, "/protected", nil)
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			if response.Code != http.StatusNoContent {
+				t.Fatalf("status = %d, want %d", response.Code, http.StatusNoContent)
+			}
+		})
+	}
+}
+
 func TestBasicAuthRequiresCredentialsWhenBothConfigured(t *testing.T) {
 	tests := []struct {
 		name       string
