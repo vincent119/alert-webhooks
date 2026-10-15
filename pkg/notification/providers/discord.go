@@ -162,21 +162,21 @@ func (dp *DiscordProvider) formatBasicMessage(alertData *types.AlertManagerData)
 
 		if labels, ok := alert["labels"].(map[string]interface{}); ok {
 			if alertName := getStringValue(labels["alertname"]); alertName != "" {
-				message.WriteString(fmt.Sprintf("**Alert Name:** %s\n", alertName))
+				fmt.Fprintf(&message, "**Alert Name:** %s\n", alertName)
 			}
 			if env := getStringValue(labels["env"]); env != "" {
-				message.WriteString(fmt.Sprintf("**Environment:** %s\n", env))
+				fmt.Fprintf(&message, "**Environment:** %s\n", env)
 			}
 			if severity := getStringValue(labels["severity"]); severity != "" {
-				message.WriteString(fmt.Sprintf("**Severity:** %s\n", severity))
+				fmt.Fprintf(&message, "**Severity:** %s\n", severity)
 			}
 			if namespace := getStringValue(labels["namespace"]); namespace != "" {
-				message.WriteString(fmt.Sprintf("**Namespace:** %s\n", namespace))
+				fmt.Fprintf(&message, "**Namespace:** %s\n", namespace)
 			}
 		}
 
-		message.WriteString(fmt.Sprintf("**Status:** %s\n", alertData.Status))
-		message.WriteString(fmt.Sprintf("**Total Alerts:** %d\n", len(alertData.Alerts)))
+		fmt.Fprintf(&message, "**Status:** %s\n", alertData.Status)
+		fmt.Fprintf(&message, "**Total Alerts:** %d\n", len(alertData.Alerts))
 
 		// Count firing and resolved alerts
 		firingCount := 0
@@ -192,8 +192,8 @@ func (dp *DiscordProvider) formatBasicMessage(alertData *types.AlertManagerData)
 			}
 		}
 
-		message.WriteString(fmt.Sprintf("**Firing:** %d\n", firingCount))
-		message.WriteString(fmt.Sprintf("**Resolved:** %d\n", resolvedCount))
+		fmt.Fprintf(&message, "**Firing:** %d\n", firingCount)
+		fmt.Fprintf(&message, "**Resolved:** %d\n", resolvedCount)
 
 		// Add summary of firing alerts
 		if firingCount > 0 {
@@ -202,7 +202,7 @@ func (dp *DiscordProvider) formatBasicMessage(alertData *types.AlertManagerData)
 				if status, ok := alert["status"].(string); ok && status == "firing" && i < 5 { // Limit to first 5
 					if annotations, ok := alert["annotations"].(map[string]interface{}); ok {
 						if summary := getStringValue(annotations["summary"]); summary != "" {
-							message.WriteString(fmt.Sprintf("• %s\n", summary))
+							fmt.Fprintf(&message, "• %s\n", summary)
 						}
 					}
 				}
@@ -216,7 +216,7 @@ func (dp *DiscordProvider) formatBasicMessage(alertData *types.AlertManagerData)
 				if status, ok := alert["status"].(string); ok && status == "resolved" && i < 5 { // Limit to first 5
 					if annotations, ok := alert["annotations"].(map[string]interface{}); ok {
 						if summary := getStringValue(annotations["summary"]); summary != "" {
-							message.WriteString(fmt.Sprintf("• %s\n", summary))
+							fmt.Fprintf(&message, "• %s\n", summary)
 						}
 					}
 				}
@@ -225,7 +225,7 @@ func (dp *DiscordProvider) formatBasicMessage(alertData *types.AlertManagerData)
 
 		// Add external URL if available
 		if alertData.ExternalURL != "" {
-			message.WriteString(fmt.Sprintf("\n🔗 [View Details](%s)", alertData.ExternalURL))
+			fmt.Fprintf(&message, "\n🔗 [View Details](%s)", alertData.ExternalURL)
 		}
 	}
 
