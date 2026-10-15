@@ -103,8 +103,83 @@ type SendMessageResponse struct {
 	Level   int    `json:"level"`
 }
 
+var sensitivePayloadFields = map[string]struct{}{
+	"token":         {},
+	"access_token":  {},
+	"refresh_token": {},
+	"secret":        {},
+	"client_secret": {},
+	"password":      {},
+	"passwd":        {},
+	"authorization": {},
+	"cookie":        {},
+	"api_key":       {},
+	"apikey":        {},
+	"x_api_key":     {},
+	"credential":    {},
+	"private_key":   {},
+	"signing_key":   {},
+	"signature":     {},
+	"webhook":       {},
+	"webhook_url":   {},
+}
+
+const maxSanitizedPayloadLogLength = 2 * 1024
+
 func errorResponse(message, code string) gin.H {
 	return gin.H{"success": false, "message": message, "code": code}
+}
+
+func sanitizeDebugPayload(body []byte) (string, bool) {
+	var payload interface{}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return "", false
+	}
+
+	sanitized, err := json.Marshal(redactPayloadValue(payload, false))
+	if err != nil {
+		return "", false
+	}
+
+	return truncateSanitizedPayload(string(sanitized)), true
+}
+
+func truncateSanitizedPayload(payload string) string {
+	runes := []rune(payload)
+	if len(runes) <= maxSanitizedPayloadLogLength {
+		return payload
+	}
+	return string(runes[:maxSanitizedPayloadLogLength]) + "..."
+}
+
+func redactPayloadValue(value interface{}, redactAll bool) interface{} {
+	switch typedValue := value.(type) {
+	case map[string]interface{}:
+		for key, nestedValue := range typedValue {
+			lowerKey := strings.ToLower(key)
+			if redactAll || isSensitivePayloadField(lowerKey) {
+				typedValue[key] = "[REDACTED]"
+				continue
+			}
+			typedValue[key] = redactPayloadValue(nestedValue, lowerKey == "annotations" || lowerKey == "commonannotations")
+		}
+		return typedValue
+	case []interface{}:
+		for index, nestedValue := range typedValue {
+			typedValue[index] = redactPayloadValue(nestedValue, redactAll)
+		}
+		return typedValue
+	default:
+		if redactAll {
+			return "[REDACTED]"
+		}
+		return value
+	}
+}
+
+func isSensitivePayloadField(key string) bool {
+	_, ok := sensitivePayloadFields[key]
+	return ok
 }
 
 // SendMessage send Telegram message
@@ -167,14 +242,19 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		zlogger.String("app_mode", cfg.App.Mode),
 		zlogger.String("log_level", cfg.Log.Level))
 
-	// 如果滿足任一條件就輸出 debug 日誌
+	// 如果滿足任一條件就輸出遮蔽後的診斷資料，避免告警內容進入日誌。
 	if isDev || isDebugMode || isDebugLevel {
-		zlogger.Debug("Received JSON request body", zlogger.String("category", "telegram_handler"), zlogger.String("chatid", chatIDParam),
+		fields := []zlogger.Field{
+			zlogger.String("category", "telegram_handler"),
+			zlogger.String("chatid", chatIDParam),
 			zlogger.String("level", levelStr),
-			zlogger.String("raw_body", string(body)),
+			zlogger.Int("request_body_bytes", len(body)),
 			zlogger.String("content_type", c.GetHeader("Content-Type")),
-			zlogger.String("user_agent", c.GetHeader("User-Agent")),
-			zlogger.String("remote_addr", c.ClientIP()))
+		}
+		if sanitizedBody, ok := sanitizeDebugPayload(body); ok {
+			fields = append(fields, zlogger.String("sanitized_body", sanitizedBody))
+		}
+		zlogger.Debug("Received Telegram request", fields...)
 	}
 
 	// 嘗試解析為標準格式
@@ -190,7 +270,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 			// Debug 模式下記錄 AlertManager 格式解析失敗的情況
 			if isDev || isDebugMode || isDebugLevel {
 				zlogger.Debug("AlertManager format parsing also failed", zlogger.String("category", "telegram_handler"), zlogger.String("unmarshal_error", unmarshalErr.Error()),
-					zlogger.String("body_preview", getBodyPreview(body)))
+					zlogger.Int("request_body_bytes", len(body)))
 			}
 
 			zlogger.Warn("Invalid Telegram request body format", zlogger.String("category", "telegram_handler"), zlogger.Err(unmarshalErr))
@@ -853,13 +933,4 @@ func (h *Handler) getFormatOptionsForTelegram() template.FormatOptions {
 			}{Enabled: false, Description: "緊湊模式（簡化顯示）"},
 		}
 	}
-}
-
-// getBodyPreview 取得請求體的預覽內容，限制長度避免日誌過長
-func getBodyPreview(body []byte) string {
-	const maxPreviewLength = 200
-	if len(body) <= maxPreviewLength {
-		return string(body)
-	}
-	return string(body[:maxPreviewLength]) + "..."
 }
