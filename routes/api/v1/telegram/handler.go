@@ -723,18 +723,18 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 			message.WriteString("✅ *Alert Resolved*\n\n")
 		}
 
-		message.WriteString(fmt.Sprintf("*Status:* %s\n", escapeText(webhook.Status)))
-		message.WriteString(fmt.Sprintf("*Alert Name:* %s\n", escapeText(alertName)))
-		message.WriteString(fmt.Sprintf("*Environment:* %s\n", escapeText(env)))
-		message.WriteString(fmt.Sprintf("*Severity:* %s\n", escapeText(severity)))
-		message.WriteString(fmt.Sprintf("*Namespace:* %s\n", escapeText(namespace)))
-		message.WriteString(fmt.Sprintf("*Total Alerts:* %d\n", len(webhook.Alerts)))
+		fmt.Fprintf(&message, "*Status:* %s\n", escapeText(webhook.Status))
+		fmt.Fprintf(&message, "*Alert Name:* %s\n", escapeText(alertName))
+		fmt.Fprintf(&message, "*Environment:* %s\n", escapeText(env))
+		fmt.Fprintf(&message, "*Severity:* %s\n", escapeText(severity))
+		fmt.Fprintf(&message, "*Namespace:* %s\n", escapeText(namespace))
+		fmt.Fprintf(&message, "*Total Alerts:* %d\n", len(webhook.Alerts))
 
 		if firingCount > 0 {
-			message.WriteString(fmt.Sprintf("*Firing:* %d\n", firingCount))
+			fmt.Fprintf(&message, "*Firing:* %d\n", firingCount)
 		}
 		if resolvedCount > 0 {
-			message.WriteString(fmt.Sprintf("*Resolved:* %d\n", resolvedCount))
+			fmt.Fprintf(&message, "*Resolved:* %d\n", resolvedCount)
 		}
 
 		// 詳細警報列表
@@ -742,21 +742,21 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 			message.WriteString("\n*🚨 Firing Alerts:*\n")
 			for i, alert := range webhook.Alerts {
 				if alert.Status == "firing" {
-					message.WriteString(fmt.Sprintf("\n*Alert %d:*\n", i+1))
-					message.WriteString(fmt.Sprintf("• Summary: %s\n", escapeText(alert.Annotations["summary"])))
+					fmt.Fprintf(&message, "\n*Alert %d:*\n", i+1)
+					fmt.Fprintf(&message, "• Summary: %s\n", escapeText(alert.Annotations["summary"]))
 					// If description provided, add it
 					if desc, ok := alert.Annotations["description"]; ok && desc != "" {
-						message.WriteString(fmt.Sprintf("• Description: %s\n", escapeText(desc)))
+						fmt.Fprintf(&message, "• Description: %s\n", escapeText(desc))
 					}
 					if pod := alert.Labels["pod"]; pod != "" {
-						message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(pod)))
+						fmt.Fprintf(&message, "• Pod: %s\n", escapeText(pod))
 					}
-					message.WriteString(fmt.Sprintf("• Started: %s\n", escapeText(h.formatTime(alert.StartsAt))))
+					fmt.Fprintf(&message, "• Started: %s\n", escapeText(h.formatTime(alert.StartsAt)))
 					if alert.EndsAt != "0001-01-01T00:00:00Z" {
-						message.WriteString(fmt.Sprintf("• Ended: %s\n", escapeText(h.formatTime(alert.EndsAt))))
+						fmt.Fprintf(&message, "• Ended: %s\n", escapeText(h.formatTime(alert.EndsAt)))
 					}
 					if formatOptions.ShowGeneratorURL.Enabled && alert.GeneratorURL != "" {
-						message.WriteString(fmt.Sprintf("• [View Details](%s)\n", alert.GeneratorURL))
+						fmt.Fprintf(&message, "• [View Details](%s)\n", alert.GeneratorURL)
 					}
 				}
 			}
@@ -766,26 +766,26 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 			message.WriteString("\n*✅ Resolved Alerts:*\n")
 			for i, alert := range webhook.Alerts {
 				if alert.Status == "resolved" {
-					message.WriteString(fmt.Sprintf("\n*Alert %d:*\n", i+1))
-					message.WriteString(fmt.Sprintf("• Summary: %s\n", escapeText(alert.Annotations["summary"])))
+					fmt.Fprintf(&message, "\n*Alert %d:*\n", i+1)
+					fmt.Fprintf(&message, "• Summary: %s\n", escapeText(alert.Annotations["summary"]))
 					// If description provided, add it
 					if desc, ok := alert.Annotations["description"]; ok && desc != "" {
-						message.WriteString(fmt.Sprintf("• Description: %s\n", escapeText(desc)))
+						fmt.Fprintf(&message, "• Description: %s\n", escapeText(desc))
 					}
 					if pod := alert.Labels["pod"]; pod != "" {
-						message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(pod)))
+						fmt.Fprintf(&message, "• Pod: %s\n", escapeText(pod))
 					}
-					message.WriteString(fmt.Sprintf("• Started: %s\n", escapeText(h.formatTime(alert.StartsAt))))
-					message.WriteString(fmt.Sprintf("• Ended: %s\n", escapeText(h.formatTime(alert.EndsAt))))
+					fmt.Fprintf(&message, "• Started: %s\n", escapeText(h.formatTime(alert.StartsAt)))
+					fmt.Fprintf(&message, "• Ended: %s\n", escapeText(h.formatTime(alert.EndsAt)))
 					if formatOptions.ShowGeneratorURL.Enabled && alert.GeneratorURL != "" {
-						message.WriteString(fmt.Sprintf("• [View Details](%s)\n", alert.GeneratorURL))
+						fmt.Fprintf(&message, "• [View Details](%s)\n", alert.GeneratorURL)
 					}
 				}
 			}
 		}
 
 		if formatOptions.ShowExternalURL.Enabled && webhook.ExternalURL != "" {
-			message.WriteString(fmt.Sprintf("\n[View All Alert Details](%s)", webhook.ExternalURL))
+			fmt.Fprintf(&message, "\n[View All Alert Details](%s)", webhook.ExternalURL)
 		}
 	}
 
