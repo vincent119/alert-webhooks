@@ -593,11 +593,11 @@ func (h *Handler) generateBuiltInMessage(alertData json.RawMessage) (string, err
 	}
 
 	// Use escapeText for dynamic content to ensure Discord compatibility
-	message.WriteString(fmt.Sprintf("**Alert Name:** %s\n", h.escapeText(alertName)))
-	message.WriteString(fmt.Sprintf("**Environment:** %s\n", h.escapeText(env)))
-	message.WriteString(fmt.Sprintf("**Severity:** %s\n", h.escapeText(severity)))
-	message.WriteString(fmt.Sprintf("**Namespace:** %s\n", h.escapeText(namespace)))
-	message.WriteString(fmt.Sprintf("**Total Alerts:** %d\n", len(req.Alerts)))
+	fmt.Fprintf(&message, "**Alert Name:** %s\n", h.escapeText(alertName))
+	fmt.Fprintf(&message, "**Environment:** %s\n", h.escapeText(env))
+	fmt.Fprintf(&message, "**Severity:** %s\n", h.escapeText(severity))
+	fmt.Fprintf(&message, "**Namespace:** %s\n", h.escapeText(namespace))
+	fmt.Fprintf(&message, "**Total Alerts:** %d\n", len(req.Alerts))
 
 	// Count firing and resolved alerts
 	firingCount := 0
@@ -613,8 +613,8 @@ func (h *Handler) generateBuiltInMessage(alertData json.RawMessage) (string, err
 		}
 	}
 
-	message.WriteString(fmt.Sprintf("**Firing:** %d\n", firingCount))
-	message.WriteString(fmt.Sprintf("**Resolved:** %d\n", resolvedCount))
+	fmt.Fprintf(&message, "**Firing:** %d\n", firingCount)
+	fmt.Fprintf(&message, "**Resolved:** %d\n", resolvedCount)
 
 	// Add firing alerts summary
 	if firingCount > 0 {
@@ -623,7 +623,7 @@ func (h *Handler) generateBuiltInMessage(alertData json.RawMessage) (string, err
 			if status, ok := alert["status"].(string); ok && status == "firing" && i < 5 { // Limit to first 5
 				if annotations, ok := alert["annotations"].(map[string]interface{}); ok {
 					if summary := h.getStringValue(annotations["summary"]); summary != "" {
-						message.WriteString(fmt.Sprintf("• %s\n", h.escapeText(summary)))
+						fmt.Fprintf(&message, "• %s\n", h.escapeText(summary))
 					}
 				}
 			}
@@ -637,7 +637,7 @@ func (h *Handler) generateBuiltInMessage(alertData json.RawMessage) (string, err
 			if status, ok := alert["status"].(string); ok && status == "resolved" && i < 5 { // Limit to first 5
 				if annotations, ok := alert["annotations"].(map[string]interface{}); ok {
 					if summary := h.getStringValue(annotations["summary"]); summary != "" {
-						message.WriteString(fmt.Sprintf("• %s\n", h.escapeText(summary)))
+						fmt.Fprintf(&message, "• %s\n", h.escapeText(summary))
 					}
 				}
 			}
@@ -648,7 +648,7 @@ func (h *Handler) generateBuiltInMessage(alertData json.RawMessage) (string, err
 	serviceManager := service.GetServiceManager()
 	if te := serviceManager.GetTemplateEngine(); te != nil {
 		if te.GetCurrentFormatOptions().ShowExternalURL.Enabled && req.ExternalURL != "" {
-			message.WriteString(fmt.Sprintf("\n🔗 [View Details](%s)", req.ExternalURL))
+			fmt.Fprintf(&message, "\n🔗 [View Details](%s)", req.ExternalURL)
 		}
 	}
 
