@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"alert-webhooks/config"
 	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/service"
 	"alert-webhooks/pkg/trace"
 	"alert-webhooks/pkg/watcher"
 	"alert-webhooks/routes"
-	"context"
-	"net/http"
-	"time"
 
 	"github.com/vincent119/commons/graceful"
 )
@@ -41,13 +44,17 @@ var mainString = "main"
 func main() {
 	// 初始化配置
 	if err := config.Init(); err != nil {
-		logger.Error("初始化設定失敗", mainString, logger.Err(err))
+		fmt.Fprintf(os.Stderr, "初始化設定失敗：%v\n", err)
 		return
 	}
 	cfg := config.Current()
 
 	// 初始化日誌系統
-	logger.InitLogger(cfg.Log.Level, cfg.App.Mode == "development")
+	loggerCleanup, err := logger.Configure(cfg.Log, cfg.App.Mode == "development")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "初始化日誌系統失敗：%v\n", err)
+		return
+	}
 
 	// 初始化 OpenTelemetry TracerProvider
 	traceShutdown, err := trace.InitTracerProvider(
@@ -56,7 +63,11 @@ func main() {
 		cfg.App.AppName,
 	)
 	if err != nil {
-		logger.Fatal("Failed to initialize TracerProvider", mainString, logger.Err(err))
+		logger.Error("初始化 TracerProvider 失敗", mainString, logger.Err(err))
+		if cleanupErr := loggerCleanup(); cleanupErr != nil {
+			fmt.Fprintf(os.Stderr, "關閉日誌系統失敗：%v\n", cleanupErr)
+		}
+		return
 	}
 
 	// 初始化服務
@@ -65,11 +76,11 @@ func main() {
 		logger.Warn("Failed to initialize services, some features may not be available", mainString, logger.Err(err))
 	}
 
-	startHTTPServer(traceShutdown)
+	startHTTPServer(traceShutdown, loggerCleanup)
 }
 
 // startHTTPServer 啟動HTTP服務並處理優雅關閉
-func startHTTPServer(traceShutdown func(context.Context) error) {
+func startHTTPServer(traceShutdown func(context.Context) error, loggerCleanup func() error) {
 	cfg := config.Current()
 	port := cfg.App.Port
 	serverAddr := ":" + port
@@ -92,6 +103,10 @@ func startHTTPServer(traceShutdown func(context.Context) error) {
 			return graceful.HTTPTask(server)(ctx)
 		},
 		graceful.WithTimeout(shutdownTimeout),
+		// graceful 以後進先出執行清理，日誌必須最後關閉以記錄其他資源的關閉結果。
+		graceful.WithCleanup(func(context.Context) error {
+			return loggerCleanup()
+		}),
 		graceful.WithCleanup(traceShutdown),
 		graceful.WithCleanup(service.GetServiceManager().Close),
 		graceful.WithCleanup(func(context.Context) error {
