@@ -23,8 +23,7 @@ type ConfigWatcher struct {
 	debounce       time.Duration
 	runCtx         context.Context
 	cancel         context.CancelFunc
-	debounceCancel context.CancelFunc
-	debounceTimer  *time.Timer
+	changes        chan string
 	wg             sync.WaitGroup
 	reloadMain     func(context.Context)
 	reloadTemplate func(context.Context)
@@ -55,6 +54,7 @@ func (cw *ConfigWatcher) Start(ctx context.Context) error {
 	cw.watcher = watcher
 	cw.runCtx = runCtx
 	cw.cancel = cancel
+	cw.changes = make(chan string, 1)
 
 	// 監控配置目錄和主要配置檔案
 	configPaths := []string{
@@ -74,8 +74,9 @@ func (cw *ConfigWatcher) Start(ctx context.Context) error {
 	}
 
 	cw.isRunning = true
-	cw.wg.Add(1)
+	cw.wg.Add(2)
 	go cw.watchLoop(runCtx, watcher)
+	go cw.reloadLoop(runCtx, cw.changes, cw.debounce)
 
 	zlogger.Info("Config watcher started", zlogger.String("category", "config_watcher"))
 	return nil
@@ -91,21 +92,12 @@ func (cw *ConfigWatcher) Stop() {
 
 	watcher := cw.watcher
 	cancel := cw.cancel
-	debounceCancel := cw.debounceCancel
-	debounceTimer := cw.debounceTimer
 	cw.watcher = nil
 	cw.cancel = nil
-	cw.debounceCancel = nil
-	cw.debounceTimer = nil
+	cw.changes = nil
 	cw.isRunning = false
 	cw.mu.Unlock()
 
-	if debounceCancel != nil {
-		debounceCancel()
-	}
-	if debounceTimer != nil {
-		debounceTimer.Stop()
-	}
 	if cancel != nil {
 		cancel()
 	}
@@ -150,36 +142,81 @@ func (cw *ConfigWatcher) watchLoop(ctx context.Context, watcher *fsnotify.Watche
 }
 
 func (cw *ConfigWatcher) scheduleConfigChange(filename string) {
-	cw.mu.Lock()
-	defer cw.mu.Unlock()
+	cw.mu.RLock()
 	if !cw.isRunning || cw.runCtx == nil {
+		cw.mu.RUnlock()
 		return
 	}
-	if cw.debounceCancel != nil {
-		cw.debounceCancel()
-	}
-	if cw.debounceTimer != nil {
-		cw.debounceTimer.Stop()
+	changes := cw.changes
+	ctx := cw.runCtx
+	cw.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return
+	default:
 	}
 
-	callbackCtx, cancel := context.WithCancel(cw.runCtx)
-	timer := time.NewTimer(cw.debounce)
-	cw.debounceCancel = cancel
-	cw.debounceTimer = timer
-	cw.wg.Add(1)
-	go func() {
-		defer cw.wg.Done()
-		defer timer.Stop()
-		select {
-		case <-callbackCtx.Done():
-			return
-		case <-timer.C:
+	select {
+	case changes <- filename:
+		return
+	default:
+	}
+
+	select {
+	case <-changes:
+	default:
+	}
+
+	select {
+	case changes <- filename:
+	case <-ctx.Done():
+	}
+}
+
+func (cw *ConfigWatcher) reloadLoop(ctx context.Context, changes <-chan string, debounce time.Duration) {
+	defer cw.wg.Done()
+
+	var (
+		filename string
+		timer    *time.Timer
+		timerC   <-chan time.Time
+	)
+	defer func() {
+		if timer != nil {
+			timer.Stop()
 		}
-		if callbackCtx.Err() != nil {
-			return
-		}
-		cw.handleConfigChange(callbackCtx, filename)
 	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case filename = <-changes:
+			if ctx.Err() != nil {
+				return
+			}
+			if timer == nil {
+				timer = time.NewTimer(debounce)
+				timerC = timer.C
+				continue
+			}
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			timer.Reset(debounce)
+		case <-timerC:
+			timer = nil
+			timerC = nil
+			if ctx.Err() != nil {
+				return
+			}
+			cw.handleConfigChange(ctx, filename)
+		}
+	}
 }
 
 // handleConfigChange 處理配置變更
