@@ -90,7 +90,7 @@ func TestOverrideWithEnvVarsCORSAllowedOrigins(t *testing.T) {
 
 	want := []string{"https://console.example.com", "https://admin.example.com"}
 	if !reflect.DeepEqual(candidate.Webhooks.CORSAllowedOrigins, want) {
-		t.Fatalf("CORS origins = %v，預期 %v", candidate.Webhooks.CORSAllowedOrigins, want)
+		t.Fatalf("CORS origins = %v, want %v", candidate.Webhooks.CORSAllowedOrigins, want)
 	}
 }
 
@@ -102,6 +102,6 @@ func TestCurrentCopiesCORSAllowedOrigins(t *testing.T) {
 	current := Current()
 	current.Webhooks.CORSAllowedOrigins[0] = "https://changed.example.com"
 	if got := Current().Webhooks.CORSAllowedOrigins[0]; got != "https://console.example.com" {
-		t.Fatalf("Current 回傳的 CORS origin 可修改已發布快照: %q", got)
+		t.Fatalf("CORS origin returned by Current can modify the published snapshot: %q", got)
 	}
 }

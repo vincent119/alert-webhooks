@@ -3,11 +3,11 @@ package trace
 
 import (
 	"alert-webhooks/config"
-	"alert-webhooks/pkg/logger"
 	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"github.com/vincent119/zlogger"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -25,18 +25,17 @@ func InitTracerProvider(ctx context.Context, cfg config.TraceConf, serviceName s
 	// 套用預設值：enable=false, insecure=true(HTTP), sampleRate=1.0, authUser/authPasswd 空值不啟用認證
 	applyDefaults(&cfg)
 
-	logger.Info("TracerProvider 初始化中", traceCategory,
-		logger.Bool("enable", cfg.Enable),
-		logger.String("url", cfg.Url),
-		logger.String("port", cfg.Port),
-		logger.Bool("insecure", cfg.Insecure),
-		logger.Bool("tlsSkipVerify", cfg.TlsSkipVerify),
-		logger.String("urlPath", cfg.UrlPath),
-		logger.Float64("sampleRate", cfg.SampleRate),
+	zlogger.Info("Initializing TracerProvider", zlogger.String("category", traceCategory), zlogger.Bool("enable", cfg.Enable),
+		zlogger.String("url", cfg.Url),
+		zlogger.String("port", cfg.Port),
+		zlogger.Bool("insecure", cfg.Insecure),
+		zlogger.Bool("tlsSkipVerify", cfg.TlsSkipVerify),
+		zlogger.String("urlPath", cfg.UrlPath),
+		zlogger.Float64("sampleRate", cfg.SampleRate),
 	)
 
 	if !cfg.Enable {
-		logger.Info("OpenTelemetry tracing 已停用", traceCategory)
+		zlogger.Info("OpenTelemetry tracing is disabled", zlogger.String("category", traceCategory))
 		// 未啟用時回傳 noop shutdown
 		return func(ctx context.Context) error { return nil }, nil
 	}
@@ -62,9 +61,7 @@ func InitTracerProvider(ctx context.Context, cfg config.TraceConf, serviceName s
 	// 使用 WithEndpointURL 明確帶上 scheme，避免 WithInsecure() 不生效的問題
 	endpointURL := fmt.Sprintf("%s://%s%s", scheme, endpoint, urlPath)
 
-	logger.Info("OTLP exporter endpoint URL", traceCategory,
-		logger.String("endpointURL", endpointURL),
-	)
+	zlogger.Info("OTLP exporter endpoint URL", zlogger.String("category", traceCategory), zlogger.String("endpointURL", endpointURL))
 
 	opts := []otlptracehttp.Option{
 		otlptracehttp.WithEndpointURL(endpointURL),
@@ -129,10 +126,9 @@ func InitTracerProvider(ctx context.Context, cfg config.TraceConf, serviceName s
 		propagation.Baggage{},
 	))
 
-	logger.Info("TracerProvider 初始化完成", traceCategory,
-		logger.String("endpointURL", endpointURL),
-		logger.String("serviceName", serviceName),
-		logger.Float64("sampleRate", cfg.SampleRate),
+	zlogger.Info("TracerProvider initialized", zlogger.String("category", traceCategory), zlogger.String("endpointURL", endpointURL),
+		zlogger.String("serviceName", serviceName),
+		zlogger.Float64("sampleRate", cfg.SampleRate),
 	)
 
 	return tp.Shutdown, nil

@@ -63,10 +63,10 @@ func TestSetupRoutesRequiresBasicAuthWhenEnabled(t *testing.T) {
 					router.ServeHTTP(resp, req)
 
 					if resp.Code != authCase.wantStatus {
-						t.Fatalf("狀態碼 = %d，預期 %d", resp.Code, authCase.wantStatus)
+						t.Fatalf("status = %d, want %d", resp.Code, authCase.wantStatus)
 					}
 					if got := resp.Header().Get("WWW-Authenticate"); got == "" {
-						t.Fatal("缺少 WWW-Authenticate header")
+						t.Fatal("missing WWW-Authenticate header")
 					}
 				})
 			}
@@ -111,7 +111,7 @@ func TestSetupRoutesAllowsValidBasicAuthAndDisabledAuthentication(t *testing.T) 
 			router.ServeHTTP(resp, req)
 
 			if resp.Code != http.StatusServiceUnavailable {
-				t.Fatalf("狀態碼 = %d，預期既有 handler 的 %d", resp.Code, http.StatusServiceUnavailable)
+				t.Fatalf("status = %d, want existing handler status %d", resp.Code, http.StatusServiceUnavailable)
 			}
 		})
 	}

@@ -28,20 +28,20 @@ func TestSlackSendMessageUsesRequestContext(t *testing.T) {
 	select {
 	case requestCtx := <-started:
 		if requestCtx != ctx {
-			t.Fatal("Slack HTTP request 未使用 caller context")
+			t.Fatal("Slack HTTP request did not use caller context")
 		}
 	case <-time.After(time.Second):
-		t.Fatal("Slack HTTP request 未開始")
+		t.Fatal("Slack HTTP request did not start")
 	}
 
 	cancel()
 	select {
 	case err := <-errCh:
 		if !errors.Is(err, context.Canceled) {
-			t.Fatalf("取消 context 後的錯誤無法辨識：%v", err)
+			t.Fatalf("error after context cancellation is not identifiable: %v", err)
 		}
 	case <-time.After(time.Second):
-		t.Fatal("取消 context 後 Slack 傳送未結束")
+		t.Fatal("Slack send did not finish after context cancellation")
 	}
 }
 
@@ -62,7 +62,7 @@ func TestSlackSendDoesNotHoldLockDuringHTTPIO(t *testing.T) {
 	select {
 	case <-started:
 	case <-time.After(time.Second):
-		t.Fatal("Slack HTTP request 未開始")
+		t.Fatal("Slack HTTP request did not start")
 	}
 
 	updated := make(chan struct{})
@@ -74,35 +74,35 @@ func TestSlackSendDoesNotHoldLockDuringHTTPIO(t *testing.T) {
 	select {
 	case <-updated:
 	case <-time.After(time.Second):
-		t.Fatal("Slack HTTP I/O 期間阻塞 channel 更新")
+		t.Fatal("Slack HTTP I/O blocked channel update")
 	}
 
 	close(release)
 	if err := <-sendErr; err != nil {
-		t.Fatalf("Slack 傳送失敗：%v", err)
+		t.Fatalf("Slack send failed: %v", err)
 	}
 }
 
 func TestSlackSendMessagePreservesPayloadAndHeaders(t *testing.T) {
 	service := newSlackServiceForTest("test-token", roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		if got, want := req.Header.Get("Authorization"), "Bearer test-token"; got != want {
-			t.Fatalf("Authorization 不正確：got %q, want %q", got, want)
+			t.Fatalf("Authorization is incorrect: got %q, want %q", got, want)
 		}
 		if got, want := req.Header.Get("Content-Type"), "application/json"; got != want {
-			t.Fatalf("Content-Type 不正確：got %q, want %q", got, want)
+			t.Fatalf("Content-Type is incorrect: got %q, want %q", got, want)
 		}
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
-			t.Fatalf("讀取 request body 失敗：%v", err)
+			t.Fatalf("read request body failed: %v", err)
 		}
 		if got, want := string(body), `{"channel":"#alerts","text":"測試訊息","username":"覆寫名稱"}`; got != want {
-			t.Fatalf("Slack payload 不正確：got %q, want %q", got, want)
+			t.Fatalf("Slack payload is incorrect: got %q, want %q", got, want)
 		}
 		return slackTestResponse(`{"ok":true}`), nil
 	}))
 
 	if err := service.SendMessageWithOptions(context.Background(), "#alerts", "測試訊息", &SlackMessage{Username: "覆寫名稱"}); err != nil {
-		t.Fatalf("Slack 傳送失敗：%v", err)
+		t.Fatalf("Slack send failed: %v", err)
 	}
 }
 
@@ -113,10 +113,10 @@ func TestSlackTestConnectionClosesResponseBody(t *testing.T) {
 	}))
 
 	if err := service.TestConnection(); err != nil {
-		t.Fatalf("Slack 連線測試失敗：%v", err)
+		t.Fatalf("Slack connection test failed: %v", err)
 	}
 	if got, want := body.closeCount, 1; got != want {
-		t.Fatalf("response body 關閉次數不正確：got %d, want %d", got, want)
+		t.Fatalf("response body close count is incorrect: got %d, want %d", got, want)
 	}
 }
 
@@ -127,10 +127,10 @@ func TestSlackSendMessageClosesResponseBody(t *testing.T) {
 	}))
 
 	if err := service.SendMessageWithOptions(context.Background(), "#alerts", "測試訊息", nil); err != nil {
-		t.Fatalf("Slack 傳送失敗：%v", err)
+		t.Fatalf("Slack send failed: %v", err)
 	}
 	if got, want := body.closeCount, 1; got != want {
-		t.Fatalf("response body 關閉次數不正確：got %d, want %d", got, want)
+		t.Fatalf("response body close count is incorrect: got %d, want %d", got, want)
 	}
 }
 
@@ -146,13 +146,13 @@ func TestSlackSendMessagePreservesAPIErrorWhenResponseBodyCloseFails(t *testing.
 
 	err := service.SendMessageWithOptions(context.Background(), "#alerts", "測試訊息", nil)
 	if err == nil {
-		t.Fatal("Slack API 回應失敗時預期應回傳錯誤")
+		t.Fatal("expected an error for failed Slack API response")
 	}
 	if got, want := err.Error(), "Invalid Slack token. Please check if the token in configuration is correct"; got != want {
-		t.Fatalf("主要錯誤被 cleanup error 改變：got %q, want %q", got, want)
+		t.Fatalf("primary error was changed by cleanup error: got %q, want %q", got, want)
 	}
 	if got, want := body.closeCount, 1; got != want {
-		t.Fatalf("response body 關閉次數不正確：got %d, want %d", got, want)
+		t.Fatalf("response body close count is incorrect: got %d, want %d", got, want)
 	}
 }
 

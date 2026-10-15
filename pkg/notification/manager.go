@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	"alert-webhooks/config"
-	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/notification/providers"
 	"alert-webhooks/pkg/notification/types"
 	"alert-webhooks/pkg/template"
+	"github.com/vincent119/zlogger"
 )
 
 // NotificationManager 統一通知管理器
@@ -40,7 +40,7 @@ func (nm *NotificationManager) Initialize(templateEngine *template.TemplateEngin
 	defer nm.mu.Unlock()
 	cfg := config.Current()
 
-	logger.Info("Initializing notification manager", "notification_manager")
+	zlogger.Info("Initializing notification manager", zlogger.String("category", "notification_manager"))
 
 	// 設置模板引擎
 	nm.templateEngine = templateEngine
@@ -52,10 +52,10 @@ func (nm *NotificationManager) Initialize(templateEngine *template.TemplateEngin
 	if cfg.Telegram.Enable && telegramService != nil {
 		telegramProvider, err := providers.NewTelegramProvider(telegramService, templateEngine)
 		if err != nil {
-			logger.Error("Failed to initialize Telegram provider", "notification_manager", logger.Err(err))
+			zlogger.Error("Failed to initialize Telegram provider", zlogger.String("category", "notification_manager"), zlogger.Err(err))
 		} else {
 			nm.providers["telegram"] = telegramProvider
-			logger.Info("Telegram provider registered", "notification_manager")
+			zlogger.Info("Telegram provider registered", zlogger.String("category", "notification_manager"))
 		}
 	}
 
@@ -63,10 +63,10 @@ func (nm *NotificationManager) Initialize(templateEngine *template.TemplateEngin
 	if cfg.Slack.Enable && slackService != nil {
 		slackProvider, err := providers.NewSlackProvider(slackService, templateEngine)
 		if err != nil {
-			logger.Error("Failed to initialize Slack provider", "notification_manager", logger.Err(err))
+			zlogger.Error("Failed to initialize Slack provider", zlogger.String("category", "notification_manager"), zlogger.Err(err))
 		} else {
 			nm.providers["slack"] = slackProvider
-			logger.Info("Slack provider registered", "notification_manager")
+			zlogger.Info("Slack provider registered", zlogger.String("category", "notification_manager"))
 		}
 	}
 
@@ -74,11 +74,10 @@ func (nm *NotificationManager) Initialize(templateEngine *template.TemplateEngin
 	if cfg.Discord.Enable && discordService != nil {
 		discordProvider := providers.NewDiscordProvider(discordService, templateEngine)
 		nm.providers["discord"] = discordProvider
-		logger.Info("Discord provider registered", "notification_manager")
+		zlogger.Info("Discord provider registered", zlogger.String("category", "notification_manager"))
 	}
 
-	logger.Info("Notification manager initialized", "notification_manager",
-		logger.Int("providers_count", len(nm.providers)))
+	zlogger.Info("Notification manager initialized", zlogger.String("category", "notification_manager"), zlogger.Int("providers_count", len(nm.providers)))
 
 	return nil
 }
@@ -154,17 +153,15 @@ func (nm *NotificationManager) preprocessRequest(req *types.NotificationRequest,
 			actualLanguage := nm.templateEngine.GetDefaultLanguage(templateLanguage)
 			message, err := nm.templateEngine.RenderTemplate(actualLanguage, *templateData)
 			if err != nil {
-				logger.Warn("Failed to render template, will use raw data", "notification_manager",
-					logger.String("provider", providerName),
-					logger.String("language", actualLanguage),
-					logger.Err(err))
+				zlogger.Warn("Failed to render template, will use raw data", zlogger.String("category", "notification_manager"), zlogger.String("provider", providerName),
+					zlogger.String("language", actualLanguage),
+					zlogger.Err(err))
 				return err
 			}
 
 			req.Message = message
-			logger.Info("Template rendered successfully", "notification_manager",
-				logger.String("provider", providerName),
-				logger.String("language", actualLanguage))
+			zlogger.Info("Template rendered successfully", zlogger.String("category", "notification_manager"), zlogger.String("provider", providerName),
+				zlogger.String("language", actualLanguage))
 		}
 	}
 
@@ -324,6 +321,6 @@ func (nm *NotificationManager) GetProviderStatus(name string) (*types.ProviderSt
 
 // Reload 重新載入通知管理器
 func (nm *NotificationManager) Reload(templateEngine *template.TemplateEngine, telegramService providers.TelegramService, slackService providers.SlackService, discordService providers.DiscordService) error {
-	logger.Info("Reloading notification manager", "notification_manager")
+	zlogger.Info("Reloading notification manager", zlogger.String("category", "notification_manager"))
 	return nm.Initialize(templateEngine, telegramService, slackService, discordService)
 }

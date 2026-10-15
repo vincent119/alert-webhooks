@@ -35,7 +35,7 @@ func TestTelegramFormattersEscapeExternalText(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.got != tt.want {
-				t.Fatalf("格式化結果不正確：got %q, want %q", tt.got, tt.want)
+				t.Fatalf("format result is incorrect: got %q, want %q", tt.got, tt.want)
 			}
 		})
 	}
@@ -47,11 +47,11 @@ func TestTelegramFormatLinkAllowsOnlyAbsoluteHTTPURLs(t *testing.T) {
 	validURL := "https://example.com/alerts?name=cpu&severity=high"
 	validText := `<b>CPU</b> & "高"`
 	if got, want := engine.formatLinkForPlatform("telegram", validURL, validText), `<a href="`+html.EscapeString(validURL)+`">`+html.EscapeString(validText)+`</a>`; got != want {
-		t.Fatalf("有效 HTTPS 連結格式不正確：got %q, want %q", got, want)
+		t.Fatalf("valid HTTPS link format is incorrect: got %q, want %q", got, want)
 	}
 
 	if got, want := engine.formatLinkForPlatform("telegram", "http://example.com", ""), `<a href="http://example.com">http://example.com</a>`; got != want {
-		t.Fatalf("空文字應使用有效 URL 作為連結文字：got %q, want %q", got, want)
+		t.Fatalf("empty text should use the valid URL as link text: got %q, want %q", got, want)
 	}
 }
 
@@ -99,10 +99,10 @@ func TestTelegramFormatLinkRejectsDisallowedURLs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := engine.formatLinkForPlatform("telegram", tt.url, tt.text)
 			if got != tt.want {
-				t.Fatalf("不允許的 URL 回退結果不正確：got %q, want %q", got, tt.want)
+				t.Fatalf("disallowed URL fallback result is incorrect: got %q, want %q", got, tt.want)
 			}
 			if containsAnchor(got) {
-				t.Fatalf("不允許的 URL 不得產生連結：%q", got)
+				t.Fatalf("disallowed URL must not produce a link: %q", got)
 			}
 		})
 	}
@@ -114,10 +114,10 @@ func TestNonTelegramFormattersPreserveExistingOutput(t *testing.T) {
 	text := `<b>告警</b>`
 
 	if got, want := engine.formatLinkForPlatform("slack", url, text), "<"+url+"|"+text+">"; got != want {
-		t.Fatalf("Slack 格式不應改變：got %q, want %q", got, want)
+		t.Fatalf("Slack format must not change: got %q, want %q", got, want)
 	}
 	if got, want := engine.formatLinkForPlatform("discord", url, text), "["+text+"]("+url+")"; got != want {
-		t.Fatalf("Discord 格式不應改變：got %q, want %q", got, want)
+		t.Fatalf("Discord format must not change: got %q, want %q", got, want)
 	}
 }
 
