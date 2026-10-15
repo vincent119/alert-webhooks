@@ -215,16 +215,3 @@ func WithComponent(ctx context.Context, component string) context.Context {
 	}
 	return WithContext(ctx, logcore.String("component", component))
 }
-
-// 添加輔助函數，減少重複代碼
-func mergeContextFields(ctx context.Context, fields []logcore.Field) []logcore.Field {
-	ctxFields := FromContext(ctx)
-	if len(ctxFields) == 0 {
-		return fields
-	}
-
-	allFields := make([]logcore.Field, len(ctxFields)+len(fields))
-	copy(allFields, ctxFields)
-	copy(allFields[len(ctxFields):], fields)
-	return allFields
-}

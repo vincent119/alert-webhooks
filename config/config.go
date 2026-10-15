@@ -407,19 +407,3 @@ func mergeConfigStruct(target, source *Config) {
 func GetConfigPaths() []string {
 	return configPaths
 }
-
-// 獲取專案根目錄
-func getProjectRoot() string {
-	// 嘗試從環境變數獲取
-	if root := os.Getenv("PROJECT_ROOT"); root != "" {
-		return root
-	}
-
-	// 通過當前工作目錄判斷
-	wd, err := os.Getwd()
-	if err != nil {
-		return "."
-	}
-
-	return wd
-}
