@@ -92,6 +92,7 @@ type RichMessageRequest struct {
 type SendMessageResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
+	Code    string `json:"code,omitempty"`
 	Level   string `json:"level"`
 }
 
@@ -107,6 +108,11 @@ type StatusResponse struct {
 type ChannelsResponse struct {
 	Success  bool              `json:"success"`
 	Channels map[string]string `json:"channels"`
+}
+
+func respondError(c *gin.Context, status int, message, code string, err error) {
+	zlogger.Error("Slack request failed", zlogger.String("category", "slack_handler"), zlogger.String("code", code), zlogger.Err(err))
+	c.JSON(status, SendMessageResponse{Success: false, Message: message, Code: code})
 }
 
 // SendMessageToChannel 發送訊息到指定頻道
@@ -149,10 +155,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 
 	var req SendMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, SendMessageResponse{
-			Success: false,
-			Message: "Invalid request format: " + err.Error(),
-		})
+		respondError(c, http.StatusBadRequest, "Invalid request format", "SLACK_INVALID_REQUEST_FORMAT", err)
 		return
 	}
 
@@ -187,12 +190,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 
 	// 發送訊息
 	if err := h.currentSlack(c).SendMessageWithOptions(c.Request.Context(), channel, message, options); err != nil {
-		zlogger.Error("Failed to send Slack message", slackHandlerLogFields("channel", channel, err)...)
-
-		c.JSON(http.StatusInternalServerError, SendMessageResponse{
-			Success: false,
-			Message: "Failed to send message: " + err.Error(),
-		})
+		respondError(c, http.StatusInternalServerError, "Failed to send message", "SLACK_MESSAGE_SEND_FAILED", err)
 		return
 	}
 
@@ -243,10 +241,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 
 	var req SendMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, SendMessageResponse{
-			Success: false,
-			Message: "Invalid request format: " + err.Error(),
-		})
+		respondError(c, http.StatusBadRequest, "Invalid request format", "SLACK_INVALID_REQUEST_FORMAT", err)
 		return
 	}
 
@@ -301,12 +296,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 
 	// 發送訊息到指定等級
 	if err := h.currentSlack(c).SendMessageToLevel(c.Request.Context(), level, message); err != nil {
-		zlogger.Error("Failed to send Slack message to level", slackHandlerLogFields("level", level, err)...)
-
-		c.JSON(http.StatusInternalServerError, SendMessageResponse{
-			Success: false,
-			Message: "Failed to send message: " + err.Error(),
-		})
+		respondError(c, http.StatusInternalServerError, "Failed to send message", "SLACK_MESSAGE_SEND_FAILED", err)
 		return
 	}
 
@@ -357,10 +347,7 @@ func (h *Handler) SendRichMessage(c *gin.Context) {
 
 	var req RichMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, SendMessageResponse{
-			Success: false,
-			Message: "Invalid request format: " + err.Error(),
-		})
+		respondError(c, http.StatusBadRequest, "Invalid request format", "SLACK_INVALID_REQUEST_FORMAT", err)
 		return
 	}
 
@@ -381,12 +368,7 @@ func (h *Handler) SendRichMessage(c *gin.Context) {
 
 	// 發送富文本訊息
 	if err := h.currentSlack(c).SendRichMessage(c.Request.Context(), channel, req.Title, req.Message, color, req.Fields); err != nil {
-		zlogger.Error("Failed to send rich Slack message", slackHandlerLogFields("channel", channel, err)...)
-
-		c.JSON(http.StatusInternalServerError, SendMessageResponse{
-			Success: false,
-			Message: "Failed to send rich message: " + err.Error(),
-		})
+		respondError(c, http.StatusInternalServerError, "Failed to send rich message", "SLACK_RICH_MESSAGE_SEND_FAILED", err)
 		return
 	}
 
@@ -495,13 +477,7 @@ func (h *Handler) TestConnection(c *gin.Context) {
 
 	// 發送測試訊息
 	if err := h.currentSlack(c).SendMessage(c.Request.Context(), testChannel, testMessage); err != nil {
-		zlogger.Error("Slack connection test failed", zlogger.String("category", "slack_handler"), zlogger.String("channel", testChannel),
-			zlogger.Err(err))
-
-		c.JSON(http.StatusInternalServerError, SendMessageResponse{
-			Success: false,
-			Message: "Connection test failed: " + err.Error(),
-		})
+		respondError(c, http.StatusInternalServerError, "Connection test failed", "SLACK_CONNECTION_TEST_FAILED", err)
 		return
 	}
 
@@ -562,10 +538,7 @@ func (h *Handler) ValidateChannel(c *gin.Context) {
 				Message: fmt.Sprintf("❌ Channel %s does not exist\n\nPlease check:\n1. Is the channel name correct\n2. Is it a private channel (Bot needs to be invited)", channel),
 			})
 		} else {
-			c.JSON(http.StatusInternalServerError, SendMessageResponse{
-				Success: false,
-				Message: fmt.Sprintf("❌ Channel validation failed: %s", err.Error()),
-			})
+			respondError(c, http.StatusInternalServerError, "Channel validation failed", "SLACK_CHANNEL_VALIDATION_FAILED", err)
 		}
 		return
 	}
