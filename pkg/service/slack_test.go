@@ -5,10 +5,46 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/vincent119/zlogger"
 )
+
+var slackLogFile string
+
+func TestMain(m *testing.M) {
+	logPath, err := os.MkdirTemp("", "alert-webhooks-slack-log-*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(logPath)
+
+	level := "info"
+	format := "json"
+	outputs := []string{"file"}
+	fileName := "slack.log"
+	cleanup, err := zlogger.Configure(&zlogger.ConfigPatch{
+		Level:    &level,
+		Format:   &format,
+		Outputs:  &outputs,
+		LogPath:  &logPath,
+		FileName: &fileName,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	slackLogFile = filepath.Join(logPath, fileName)
+	code := m.Run()
+	if err := cleanup(); err != nil && code == 0 {
+		code = 1
+	}
+	os.Exit(code)
+}
 
 func TestSlackSendMessageUsesRequestContext(t *testing.T) {
 	started := make(chan context.Context, 1)
@@ -106,6 +142,32 @@ func TestSlackSendMessagePreservesPayloadAndHeaders(t *testing.T) {
 	}
 }
 
+func TestSlackSendMessageDoesNotLogMessageText(t *testing.T) {
+	const sensitiveMessage = "S-02-敏感正文-成功"
+	service := newSlackServiceForTest("test-token", roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return slackTestResponse(`{"ok":true}`), nil
+	}))
+
+	if err := service.SendMessageWithOptions(context.Background(), "#alerts", sensitiveMessage, nil); err != nil {
+		t.Fatalf("Slack send failed: %v", err)
+	}
+
+	assertSlackLogDoesNotContainMessageText(t, sensitiveMessage)
+}
+
+func TestSlackSendMessageFailureDoesNotLogMessageText(t *testing.T) {
+	const sensitiveMessage = "S-02-敏感正文-失敗"
+	service := newSlackServiceForTest("test-token", roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return nil, errors.New("Slack transport failed")
+	}))
+
+	if err := service.SendMessageWithOptions(context.Background(), "#alerts", sensitiveMessage, nil); err == nil {
+		t.Fatal("expected Slack send error")
+	}
+
+	assertSlackLogDoesNotContainMessageText(t, sensitiveMessage)
+}
+
 func TestSlackTestConnectionClosesResponseBody(t *testing.T) {
 	body := &closeTrackingReadCloser{Reader: strings.NewReader(`{"ok":true}`)}
 	service := newSlackServiceForTest("test-token", roundTripperFunc(func(*http.Request) (*http.Response, error) {
@@ -191,4 +253,21 @@ type roundTripperFunc func(*http.Request) (*http.Response, error)
 
 func (fn roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return fn(req)
+}
+
+func assertSlackLogDoesNotContainMessageText(t *testing.T, sensitiveMessage string) {
+	t.Helper()
+	if err := zlogger.Sync(); err != nil {
+		t.Fatalf("Sync() error = %v", err)
+	}
+	content, err := os.ReadFile(slackLogFile)
+	if err != nil {
+		t.Fatalf("read log file failed: %v", err)
+	}
+	if strings.Contains(string(content), sensitiveMessage) {
+		t.Fatalf("log contains sensitive message: %s", content)
+	}
+	if strings.Contains(string(content), `"text"`) {
+		t.Fatalf("log contains text field: %s", content)
+	}
 }

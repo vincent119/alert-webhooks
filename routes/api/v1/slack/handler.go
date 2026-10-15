@@ -187,9 +187,7 @@ func (h *Handler) SendMessageToChannel(c *gin.Context) {
 
 	// 發送訊息
 	if err := h.currentSlack(c).SendMessageWithOptions(c.Request.Context(), channel, message, options); err != nil {
-		zlogger.Error("Failed to send Slack message", zlogger.String("category", "slack_handler"), zlogger.String("channel", channel),
-			zlogger.String("message", message),
-			zlogger.Err(err))
+		zlogger.Error("Failed to send Slack message", slackHandlerLogFields("channel", channel, err)...)
 
 		c.JSON(http.StatusInternalServerError, SendMessageResponse{
 			Success: false,
@@ -303,9 +301,7 @@ func (h *Handler) SendMessageToLevel(c *gin.Context) {
 
 	// 發送訊息到指定等級
 	if err := h.currentSlack(c).SendMessageToLevel(c.Request.Context(), level, message); err != nil {
-		zlogger.Error("Failed to send Slack message to level", zlogger.String("category", "slack_handler"), zlogger.String("level", level),
-			zlogger.String("message", message),
-			zlogger.Err(err))
+		zlogger.Error("Failed to send Slack message to level", slackHandlerLogFields("level", level, err)...)
 
 		c.JSON(http.StatusInternalServerError, SendMessageResponse{
 			Success: false,
@@ -385,9 +381,7 @@ func (h *Handler) SendRichMessage(c *gin.Context) {
 
 	// 發送富文本訊息
 	if err := h.currentSlack(c).SendRichMessage(c.Request.Context(), channel, req.Title, req.Message, color, req.Fields); err != nil {
-		zlogger.Error("Failed to send rich Slack message", zlogger.String("category", "slack_handler"), zlogger.String("channel", channel),
-			zlogger.String("title", req.Title),
-			zlogger.Err(err))
+		zlogger.Error("Failed to send rich Slack message", slackHandlerLogFields("channel", channel, err)...)
 
 		c.JSON(http.StatusInternalServerError, SendMessageResponse{
 			Success: false,
@@ -704,13 +698,7 @@ func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
 
 		message, err := currentTemplateEngine.RenderTemplateForPlatform(actualLanguage, "slack", templateData)
 		if err == nil {
-			messagePreview := message
-			if len(message) > 100 {
-				messagePreview = message[:100] + "..."
-			}
-			zlogger.Info("Slack template rendered successfully", zlogger.String("category", "slack_handler"), zlogger.String("language", actualLanguage),
-				zlogger.String("available_languages", fmt.Sprintf("%v", currentTemplateEngine.GetAvailableLanguages())),
-				zlogger.String("message_preview", messagePreview))
+			zlogger.Info("Slack template rendered successfully", slackTemplateLogFields(actualLanguage, currentTemplateEngine.GetAvailableLanguages())...)
 			return message
 		}
 		zlogger.Warn("Failed to render Slack template, using built-in template", zlogger.String("category", "slack_handler"), zlogger.String("language", actualLanguage),
@@ -721,6 +709,25 @@ func (h *Handler) formatAlertManagerMessage(req *SendMessageRequest) string {
 
 	// 如果模板引擎失敗，使用內建的模板邏輯
 	return h.generateBuiltInSlackMessage(req, firingCount, resolvedCount, alertName, env, severity, namespace)
+}
+
+func slackHandlerLogFields(targetKey, target string, err error) []zlogger.Field {
+	fields := []zlogger.Field{
+		zlogger.String("category", "slack_handler"),
+		zlogger.String(targetKey, target),
+	}
+	if err != nil {
+		fields = append(fields, zlogger.Err(err))
+	}
+	return fields
+}
+
+func slackTemplateLogFields(language string, availableLanguages []string) []zlogger.Field {
+	return []zlogger.Field{
+		zlogger.String("category", "slack_handler"),
+		zlogger.String("language", language),
+		zlogger.String("available_languages", fmt.Sprintf("%v", availableLanguages)),
+	}
 }
 
 // generateBuiltInSlackMessage 生成內建的 Slack 訊息格式（後備方案）

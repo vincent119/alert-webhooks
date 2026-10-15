@@ -297,7 +297,6 @@ func (ss *SlackService) sendSlackMessage(ctx context.Context, msg *SlackMessage)
 	resp, err := ss.client.Do(req)
 	if err != nil {
 		zlogger.Error("Failed to send Slack message", zlogger.String("category", "slack"), zlogger.String("channel", msg.Channel),
-			zlogger.String("text", msg.Text),
 			zlogger.Err(err))
 		return fmt.Errorf("failed to send request: %w", err)
 	}
@@ -335,8 +334,7 @@ func (ss *SlackService) sendSlackMessage(ctx context.Context, msg *SlackMessage)
 		return fmt.Errorf("%s", friendlyError)
 	}
 
-	zlogger.Info("Slack message sent successfully", zlogger.String("category", "slack"), zlogger.String("channel", msg.Channel),
-		zlogger.String("text", msg.Text))
+	zlogger.Info("Slack message sent successfully", zlogger.String("category", "slack"), zlogger.String("channel", msg.Channel))
 
 	return nil
 }
