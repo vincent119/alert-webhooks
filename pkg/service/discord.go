@@ -49,8 +49,7 @@ func NewDiscordService(cfg config.DiscordConf) (*DiscordService, error) {
 	// Verify bot permissions
 	user, err := session.User("@me")
 	if err != nil {
-		session.Close()
-		return nil, fmt.Errorf("failed to get bot user info: %w", err)
+		return nil, closeDiscordSessionAfterUserLookupFailure(session, err)
 	}
 
 	logger.Info("Discord service connected successfully",
@@ -66,6 +65,19 @@ func NewDiscordService(cfg config.DiscordConf) (*DiscordService, error) {
 	}
 
 	return ds, nil
+}
+
+type discordSessionCloser interface {
+	Close() error
+}
+
+func closeDiscordSessionAfterUserLookupFailure(session discordSessionCloser, userErr error) error {
+	if closeErr := session.Close(); closeErr != nil {
+		logger.Warn("Failed to close Discord session after user lookup failure", "DiscordService",
+			logger.Err(closeErr))
+	}
+
+	return fmt.Errorf("failed to get bot user info: %w", userErr)
 }
 
 // SendMessage send message to specified level chat
