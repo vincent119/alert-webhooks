@@ -207,9 +207,10 @@ func (nm *NotificationManager) convertAlertManagerData(data *types.AlertManagerD
 		// 狀態
 		if status, ok := alert["status"].(string); ok {
 			alertData.Status = status
-			if status == "firing" {
+			switch status {
+			case "firing":
 				firingCount++
-			} else if status == "resolved" {
+			case "resolved":
 				resolvedCount++
 			}
 		}

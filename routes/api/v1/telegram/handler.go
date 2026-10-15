@@ -423,9 +423,10 @@ func (h *Handler) generateAlertManagerMessage(webhook *AlertManagerWebhook, lang
 	firingCount := 0
 	resolvedCount := 0
 	for _, alert := range webhook.Alerts {
-		if alert.Status == "firing" {
+		switch alert.Status {
+		case "firing":
 			firingCount++
-		} else if alert.Status == "resolved" {
+		case "resolved":
 			resolvedCount++
 		}
 	}
@@ -529,9 +530,10 @@ func (h *Handler) sendSeparateAlertMessages(ctx context.Context, telegramService
 	var resolvedAlerts []Alert
 
 	for _, alert := range webhook.Alerts {
-		if alert.Status == "firing" {
+		switch alert.Status {
+		case "firing":
 			firingAlerts = append(firingAlerts, alert)
-		} else if alert.Status == "resolved" {
+		case "resolved":
 			resolvedAlerts = append(resolvedAlerts, alert)
 		}
 	}
