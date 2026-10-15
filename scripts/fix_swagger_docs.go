@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -105,7 +107,9 @@ func main() {
 	}
 
 	// 清理備份文件（可選）
-	os.Remove(backupFile)
+	if err := removeSwaggerBackup(backupFile); err != nil {
+		fmt.Printf("⚠️  無法清理備份文件: %v\n", err)
+	}
 
 	fmt.Println("✅ Swagger 文檔修復完成！")
 	fmt.Println("📝 修復的問題:")
@@ -115,12 +119,14 @@ func main() {
 }
 
 // validateSwaggerDocs 驗證修復後的 docs.go 文件
-func validateSwaggerDocs(filePath string) error {
+func validateSwaggerDocs(filePath string) (err error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("無法打開文件: %v", err)
 	}
-	defer file.Close()
+	defer func() {
+		err = closeSwaggerValidationFile(file, err)
+	}()
 
 	scanner := bufio.NewScanner(file)
 	lineNum := 0
@@ -150,4 +156,19 @@ func validateSwaggerDocs(filePath string) error {
 	}
 
 	return nil
+}
+
+func removeSwaggerBackup(backupFile string) error {
+	err := os.Remove(backupFile)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+
+func closeSwaggerValidationFile(file io.Closer, validationErr error) error {
+	if closeErr := file.Close(); closeErr != nil && validationErr == nil {
+		return fmt.Errorf("關閉驗證文件失敗: %w", closeErr)
+	}
+	return validationErr
 }
