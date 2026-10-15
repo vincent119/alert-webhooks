@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"alert-webhooks/config"
-	"alert-webhooks/pkg/logger"
+	"github.com/vincent119/zlogger"
 
 	"github.com/bwmarrin/discordgo"
 	"go.opentelemetry.io/otel"
@@ -52,10 +52,8 @@ func NewDiscordService(cfg config.DiscordConf) (*DiscordService, error) {
 		return nil, closeDiscordSessionAfterUserLookupFailure(session, err)
 	}
 
-	logger.Info("Discord service connected successfully",
-		"DiscordService",
-		logger.String("bot_id", user.ID),
-		logger.String("bot_username", user.Username))
+	zlogger.Info("Discord service connected successfully", zlogger.String("category", "DiscordService"), zlogger.String("bot_id", user.ID),
+		zlogger.String("bot_username", user.Username))
 
 	ds := &DiscordService{
 		session:  session,
@@ -73,8 +71,7 @@ type discordSessionCloser interface {
 
 func closeDiscordSessionAfterUserLookupFailure(session discordSessionCloser, userErr error) error {
 	if closeErr := session.Close(); closeErr != nil {
-		logger.Warn("Failed to close Discord session after user lookup failure", "DiscordService",
-			logger.Err(closeErr))
+		zlogger.Warn("Failed to close Discord session after user lookup failure", zlogger.String("category", "DiscordService"), zlogger.Err(closeErr))
 	}
 
 	return fmt.Errorf("failed to get bot user info: %w", userErr)
@@ -142,9 +139,7 @@ func (ds *DiscordService) SendMessageToChannel(channelID, message string) error 
 		return ds.handleDiscordError(err, channelID)
 	}
 
-	logger.Info("Discord message sent successfully",
-		"DiscordService",
-		logger.String("channel_id", channelID))
+	zlogger.Info("Discord message sent successfully", zlogger.String("category", "DiscordService"), zlogger.String("channel_id", channelID))
 
 	return nil
 }
@@ -170,10 +165,8 @@ func (ds *DiscordService) TestConnection() error {
 		return fmt.Errorf("failed to get bot user info: %w", err)
 	}
 
-	logger.Info("Discord connection test successful",
-		"DiscordService",
-		logger.String("bot_id", user.ID),
-		logger.String("bot_username", user.Username))
+	zlogger.Info("Discord connection test successful", zlogger.String("category", "DiscordService"), zlogger.String("bot_id", user.ID),
+		zlogger.String("bot_username", user.Username))
 
 	return nil
 }
@@ -210,10 +203,8 @@ func (ds *DiscordService) ValidateChannel(channelID string) error {
 		return fmt.Errorf("bot lacks Send Messages permission in channel %s", channelID)
 	}
 
-	logger.Info("Discord channel validation successful",
-		"DiscordService",
-		logger.String("channel_id", channelID),
-		logger.String("channel_name", channel.Name))
+	zlogger.Info("Discord channel validation successful", zlogger.String("category", "DiscordService"), zlogger.String("channel_id", channelID),
+		zlogger.String("channel_name", channel.Name))
 
 	return nil
 }
@@ -305,10 +296,8 @@ func (ds *DiscordService) sendLongMessage(channelID, message string) error {
 		}
 	}
 
-	logger.Info("Discord long message sent successfully",
-		"DiscordService",
-		logger.String("channel_id", channelID),
-		logger.Int("chunks", len(chunks)))
+	zlogger.Info("Discord long message sent successfully", zlogger.String("category", "DiscordService"), zlogger.String("channel_id", channelID),
+		zlogger.Int("chunks", len(chunks)))
 
 	return nil
 }

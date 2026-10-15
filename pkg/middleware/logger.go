@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"alert-webhooks/pkg/logger"
+	"github.com/vincent119/zlogger"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,8 +20,8 @@ func Logger() gin.HandlerFunc {
 		c.Set("requestID", requestID)
 		c.Header("X-Request-ID", requestID)
 
-		// 使用 logger.WithContext 將 requestID 添加到 context
-		ctx := logger.WithRequestID(c.Request.Context(), requestID)
+		// 使用 zlogger.WithRequestID 將 requestID 添加到 context
+		ctx := zlogger.WithRequestID(c.Request.Context(), requestID)
 		c.Request = c.Request.WithContext(ctx)
 
 		// 處理請求
@@ -37,25 +37,23 @@ func Logger() gin.HandlerFunc {
 
 		// 使用 Context 版本的日誌記錄函數
 		if len(c.Errors) > 0 {
-			logger.ErrorContext(ctx, "HTTP request",
-				logger.String("method", method),
-				logger.String("path", path),
-				logger.String("query", query),
-				logger.String("client_ip", clientIP),
-				logger.Int("status", status),
-				logger.Duration("latency", latency),
-				logger.String("timestamp", timex.TimeStamp()),
-				logger.String("error", c.Errors.String()),
+			zlogger.ErrorContext(ctx, "HTTP request", zlogger.String("category", "default"), zlogger.String("method", method),
+				zlogger.String("path", path),
+				zlogger.String("query", query),
+				zlogger.String("client_ip", clientIP),
+				zlogger.Int("status", status),
+				zlogger.Duration("latency", latency),
+				zlogger.String("timestamp", timex.TimeStamp()),
+				zlogger.String("error", c.Errors.String()),
 			)
 		} else {
-			logger.InfoContext(ctx, "HTTP request",
-				logger.String("method", method),
-				logger.String("path", path),
-				logger.String("query", query),
-				logger.String("client_ip", clientIP),
-				logger.Int("status", status),
-				logger.Duration("latency", latency),
-				logger.String("timestamp", timex.TimeStamp()),
+			zlogger.InfoContext(ctx, "HTTP request", zlogger.String("category", "default"), zlogger.String("method", method),
+				zlogger.String("path", path),
+				zlogger.String("query", query),
+				zlogger.String("client_ip", clientIP),
+				zlogger.Int("status", status),
+				zlogger.Duration("latency", latency),
+				zlogger.String("timestamp", timex.TimeStamp()),
 			)
 		}
 	}
@@ -79,7 +77,7 @@ func LoggerWithSkipPaths(skipPaths []string) gin.HandlerFunc {
 		c.Set("requestID", requestID)
 		c.Header("X-Request-ID", requestID)
 
-		ctx := logger.WithRequestID(c.Request.Context(), requestID)
+		ctx := zlogger.WithRequestID(c.Request.Context(), requestID)
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()
@@ -92,25 +90,23 @@ func LoggerWithSkipPaths(skipPaths []string) gin.HandlerFunc {
 		query := c.Request.URL.RawQuery
 
 		if len(c.Errors) > 0 {
-			logger.ErrorContext(ctx, "HTTP request",
-				logger.String("method", method),
-				logger.String("path", path),
-				logger.String("query", query),
-				logger.String("client_ip", clientIP),
-				logger.Int("status", status),
-				logger.Duration("latency", latency),
-				logger.String("timestamp", timex.TimeStamp()),
-				logger.String("error", c.Errors.String()),
+			zlogger.ErrorContext(ctx, "HTTP request", zlogger.String("category", "default"), zlogger.String("method", method),
+				zlogger.String("path", path),
+				zlogger.String("query", query),
+				zlogger.String("client_ip", clientIP),
+				zlogger.Int("status", status),
+				zlogger.Duration("latency", latency),
+				zlogger.String("timestamp", timex.TimeStamp()),
+				zlogger.String("error", c.Errors.String()),
 			)
 		} else {
-			logger.InfoContext(ctx, "HTTP request",
-				logger.String("method", method),
-				logger.String("path", path),
-				logger.String("query", query),
-				logger.String("client_ip", clientIP),
-				logger.Int("status", status),
-				logger.Duration("latency", latency),
-				logger.String("timestamp", timex.TimeStamp()),
+			zlogger.InfoContext(ctx, "HTTP request", zlogger.String("category", "default"), zlogger.String("method", method),
+				zlogger.String("path", path),
+				zlogger.String("query", query),
+				zlogger.String("client_ip", clientIP),
+				zlogger.Int("status", status),
+				zlogger.Duration("latency", latency),
+				zlogger.String("timestamp", timex.TimeStamp()),
 			)
 		}
 	}

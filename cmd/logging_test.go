@@ -1,4 +1,4 @@
-package logger
+package main
 
 import (
 	"context"
@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"alert-webhooks/config"
+
+	"github.com/vincent119/zlogger"
 )
 
 func TestNewConfigPatchMapsLogConfiguration(t *testing.T) {
@@ -28,29 +30,29 @@ func TestNewConfigPatchMapsLogConfiguration(t *testing.T) {
 	}
 
 	if resolved.Level != "debug" || resolved.Format != "json" {
-		t.Fatalf("日誌等級或格式未正確映射：%+v", resolved)
+		t.Fatalf("log level or format was not mapped correctly: %+v", resolved)
 	}
 	if got, want := resolved.Outputs, []string{"console", "file"}; len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
-		t.Fatalf("Outputs = %v，預期 %v", got, want)
+		t.Fatalf("Outputs = %v, want %v", got, want)
 	}
 	if resolved.LogPath != logConfig.LogPath || resolved.FileName != logConfig.LogFile {
-		t.Fatalf("檔案設定未正確映射：%+v", resolved)
+		t.Fatalf("file configuration was not mapped correctly: %+v", resolved)
 	}
 	if !resolved.AddCaller || !resolved.AddStacktrace || !resolved.Development {
-		t.Fatalf("布林設定未正確映射：%+v", resolved)
+		t.Fatalf("boolean configuration was not mapped correctly: %+v", resolved)
 	}
 }
 
 func TestConfigureRejectsInvalidOutput(t *testing.T) {
-	cleanup, err := Configure(config.LogConf{
+	cleanup, err := zlogger.Configure(newConfigPatch(config.LogConf{
 		LogFile: "../alerts.log",
 		Outputs: "file",
-	}, false)
+	}, false))
 	if err == nil {
-		t.Fatal("Configure() 預期回傳設定錯誤")
+		t.Fatal("Configure() should return a configuration error")
 	}
 	if cleanup != nil {
-		t.Fatal("Configure() 失敗時不應回傳 cleanup")
+		t.Fatal("Configure() must not return cleanup on failure")
 	}
 }
 
@@ -64,22 +66,22 @@ func TestNewConfigPatchUsesDefaultsForUnsupportedLegacyValues(t *testing.T) {
 		t.Fatalf("Resolve() error = %v", err)
 	}
 	if resolved.Level != "info" || resolved.Format != "console" {
-		t.Fatalf("未使用相容預設值：%+v", resolved)
+		t.Fatalf("compatible defaults were not used: %+v", resolved)
 	}
 	if got, want := resolved.Outputs, []string{"console"}; len(got) != len(want) || got[0] != want[0] {
-		t.Fatalf("Outputs = %v，預期 %v", got, want)
+		t.Fatalf("Outputs = %v, want %v", got, want)
 	}
 }
 
-func TestConfigureWritesCategoryFieldAndCleansUp(t *testing.T) {
+func TestConfigureWritesCategoryAndContextFields(t *testing.T) {
 	logPath := t.TempDir()
-	cleanup, err := Configure(config.LogConf{
+	cleanup, err := zlogger.Configure(newConfigPatch(config.LogConf{
 		Level:   "info",
 		Format:  "json",
 		LogPath: logPath,
 		LogFile: "alerts.log",
 		Outputs: "file",
-	}, false)
+	}, false))
 	if err != nil {
 		t.Fatalf("Configure() error = %v", err)
 	}
@@ -89,42 +91,45 @@ func TestConfigureWritesCategoryFieldAndCleansUp(t *testing.T) {
 		}
 	})
 
-	Info("測試日誌", "logger_test", String("request_id", "req-123"))
-	InfoContext(WithRequestID(context.Background(), "req-456"), "context 日誌", String("operation", "notify"))
+	zlogger.Info("test log", zlogger.String("category", "logger_test"), zlogger.String("request_id", "req-123"))
+	ctx := zlogger.WithRequestID(context.Background(), "req-456")
+	zlogger.InfoContext(ctx, "context log", zlogger.String("category", "default"), zlogger.String("operation", "notify"))
 
-	if err := Sync(); err != nil {
+	if err := zlogger.Sync(); err != nil {
 		t.Fatalf("Sync() error = %v", err)
 	}
 
 	content, err := os.ReadFile(filepath.Join(logPath, "alerts.log"))
 	if err != nil {
-		t.Fatalf("讀取日誌檔失敗：%v", err)
+		t.Fatalf("read log file failed: %v", err)
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(content)), "\n")
 	if len(lines) != 3 {
-		t.Fatalf("日誌行數 = %d，預期 3", len(lines))
+		t.Fatalf("log line count = %d, want 3", len(lines))
 	}
+
 	var entry map[string]interface{}
 	if err := json.Unmarshal([]byte(lines[1]), &entry); err != nil {
-		t.Fatalf("日誌不是有效 JSON：%v", err)
+		t.Fatalf("log is not valid JSON: %v", err)
 	}
 	if got := entry["category"]; got != "logger_test" {
-		t.Fatalf("category = %v，預期 logger_test", got)
+		t.Fatalf("category = %v, want logger_test", got)
 	}
 	if got := entry["request_id"]; got != "req-123" {
-		t.Fatalf("request_id = %v，預期 req-123", got)
+		t.Fatalf("request_id = %v, want req-123", got)
 	}
-	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &entry); err != nil {
-		t.Fatalf("日誌不是有效 JSON：%v", err)
+
+	if err := json.Unmarshal([]byte(lines[2]), &entry); err != nil {
+		t.Fatalf("log is not valid JSON: %v", err)
 	}
 	if got := entry["category"]; got != "default" {
-		t.Fatalf("category = %v，預期 default", got)
+		t.Fatalf("category = %v, want default", got)
 	}
 	if got := entry["request_id"]; got != "req-456" {
-		t.Fatalf("request_id = %v，預期 req-456", got)
+		t.Fatalf("request_id = %v, want req-456", got)
 	}
 	if got := entry["operation"]; got != "notify" {
-		t.Fatalf("operation = %v，預期 notify", got)
+		t.Fatalf("operation = %v, want notify", got)
 	}
 }

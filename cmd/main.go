@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"alert-webhooks/config"
-	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/service"
 	"alert-webhooks/pkg/trace"
 	"alert-webhooks/pkg/watcher"
 	"alert-webhooks/routes"
 
 	"github.com/vincent119/commons/graceful"
+	"github.com/vincent119/zlogger"
 )
 
 const (
@@ -50,7 +51,7 @@ func main() {
 	cfg := config.Current()
 
 	// 初始化日誌系統
-	loggerCleanup, err := logger.Configure(cfg.Log, cfg.App.Mode == "development")
+	loggerCleanup, err := zlogger.Configure(newConfigPatch(cfg.Log, cfg.App.Mode == "development"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "初始化日誌系統失敗：%v\n", err)
 		return
@@ -63,7 +64,7 @@ func main() {
 		cfg.App.AppName,
 	)
 	if err != nil {
-		logger.Error("初始化 TracerProvider 失敗", mainString, logger.Err(err))
+		zlogger.Error("Failed to initialize TracerProvider", zlogger.String("category", mainString), zlogger.Err(err))
 		if cleanupErr := loggerCleanup(); cleanupErr != nil {
 			fmt.Fprintf(os.Stderr, "關閉日誌系統失敗：%v\n", cleanupErr)
 		}
@@ -73,7 +74,7 @@ func main() {
 	// 初始化服務
 	serviceManager := service.GetServiceManager()
 	if err := serviceManager.InitServices(); err != nil {
-		logger.Warn("Failed to initialize services, some features may not be available", mainString, logger.Err(err))
+		zlogger.Warn("Failed to initialize services, some features may not be available", zlogger.String("category", mainString), zlogger.Err(err))
 	}
 
 	startHTTPServer(traceShutdown, loggerCleanup)
@@ -91,14 +92,14 @@ func startHTTPServer(traceShutdown func(context.Context) error, loggerCleanup fu
 	if err := graceful.Run(
 		func(ctx context.Context) error {
 			if err := configWatcher.Start(ctx); err != nil {
-				logger.Warn("Failed to start config watcher", mainString, logger.Err(err))
+				zlogger.Warn("Failed to start config watcher", zlogger.String("category", mainString), zlogger.Err(err))
 			}
 
-			logger.Info("Starting application...", mainString,
-				logger.String("mode", cfg.App.Mode),
-				logger.String("version", cfg.App.Version),
+			zlogger.Info("Starting application...", zlogger.String("category", mainString),
+				zlogger.String("mode", cfg.App.Mode),
+				zlogger.String("version", cfg.App.Version),
 			)
-			logger.Info("Service started", mainString, logger.String("Address", serverAddr))
+			zlogger.Info("Service started", zlogger.String("category", mainString), zlogger.String("Address", serverAddr))
 
 			return graceful.HTTPTask(server)(ctx)
 		},
@@ -115,7 +116,7 @@ func startHTTPServer(traceShutdown func(context.Context) error, loggerCleanup fu
 		}),
 		graceful.WithCleanup(server.Shutdown),
 	); err != nil {
-		logger.Error("HTTP service exited with error", mainString, logger.Err(err))
+		zlogger.Error("HTTP service exited with error", zlogger.String("category", mainString), zlogger.Err(err))
 	}
 }
 
@@ -129,4 +130,70 @@ func newHTTPServer(addr string, handler http.Handler) *http.Server {
 		IdleTimeout:       idleTimeout,
 		MaxHeaderBytes:    maxHeaderBytes,
 	}
+}
+
+func newConfigPatch(logConfig config.LogConf, development bool) *zlogger.ConfigPatch {
+	patch := &zlogger.ConfigPatch{
+		AddCaller:     &logConfig.AddCaller,
+		AddStacktrace: &logConfig.AddStacktrace,
+		Development:   &development,
+	}
+
+	if level := supportedLevel(logConfig.Level); level != "" {
+		patch.Level = &level
+	}
+	if format := supportedFormat(logConfig.Format); format != "" {
+		patch.Format = &format
+	}
+	if logConfig.LogPath != "" {
+		patch.LogPath = &logConfig.LogPath
+	}
+	if logConfig.LogFile != "" {
+		patch.FileName = &logConfig.LogFile
+	}
+	if logConfig.Outputs != "" {
+		outputs := supportedOutputs(logConfig.Outputs)
+		if len(outputs) > 0 {
+			patch.Outputs = &outputs
+		}
+	}
+
+	return patch
+}
+
+func supportedLevel(level string) string {
+	normalized := strings.ToLower(strings.TrimSpace(level))
+	switch normalized {
+	case "debug", "info", "warn", "error", "fatal":
+		return normalized
+	default:
+		return ""
+	}
+}
+
+func supportedFormat(format string) string {
+	normalized := strings.ToLower(strings.TrimSpace(format))
+	switch normalized {
+	case "console", "json":
+		return normalized
+	default:
+		return ""
+	}
+}
+
+func supportedOutputs(rawOutputs string) []string {
+	outputs := make([]string, 0, 2)
+	seen := make(map[string]struct{}, 2)
+	for _, output := range strings.Split(rawOutputs, ",") {
+		normalized := strings.ToLower(strings.TrimSpace(output))
+		if normalized != "console" && normalized != "file" {
+			continue
+		}
+		if _, exists := seen[normalized]; exists {
+			continue
+		}
+		seen[normalized] = struct{}{}
+		outputs = append(outputs, normalized)
+	}
+	return outputs
 }

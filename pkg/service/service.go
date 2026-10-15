@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	"alert-webhooks/config"
-	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/notification"
 	"alert-webhooks/pkg/template"
+	"github.com/vincent119/zlogger"
 )
 
 // Accessor 是路由層取得目前服務組合所需的最小介面。
@@ -178,7 +178,7 @@ func (sm *ServiceManager) retire(b *serviceBundle) {
 		defer sm.retired.Done()
 		<-b.drained
 		if err := b.close(); err != nil {
-			logger.Error("Failed to close retired service bundle", "service_manager", logger.Err(err))
+			zlogger.Error("Failed to close retired service bundle", zlogger.String("category", "service_manager"), zlogger.Err(err))
 		}
 	}()
 }
@@ -282,7 +282,7 @@ func (sm *ServiceManager) GetTemplateEngine() *template.TemplateEngine {
 }
 func (sm *ServiceManager) initializeNotificationManager(b *serviceBundle) {
 	if err := notification.GetNotificationManager().Initialize(sm.GetTemplateEngine(), b.telegram, b.slack, b.discord); err != nil {
-		logger.Error("Failed to initialize notification manager", "service_manager", logger.Err(err))
+		zlogger.Error("Failed to initialize notification manager", zlogger.String("category", "service_manager"), zlogger.Err(err))
 	}
 }
 
@@ -324,14 +324,14 @@ func buildServiceBundle(cfg config.Config, strict bool) (*serviceBundle, error) 
 func newTemplateEngine() *template.TemplateEngine {
 	e := template.NewTemplateEngine()
 	if err := e.LoadConfigFromConfigs(); err != nil {
-		logger.Warn("Failed to load template config, using defaults", "service_manager", logger.Err(err))
+		zlogger.Warn("Failed to load template config, using defaults", zlogger.String("category", "service_manager"), zlogger.Err(err))
 	}
 	for _, p := range []string{"templates/alerts", "./templates/alerts", "../templates/alerts"} {
 		if e.LoadTemplates(p) == nil {
 			return e
 		}
 	}
-	logger.Warn("Failed to load templates from all paths", "service_manager")
+	zlogger.Warn("Failed to load templates from all paths", zlogger.String("category", "service_manager"))
 	return e
 }
 
