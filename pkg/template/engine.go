@@ -770,21 +770,6 @@ func (te *TemplateEngine) formatTime(timeStr string) string {
 	return t.Format("2006-01-02 15:04:05")
 }
 
-// escapeMarkdownV2 轉義 MarkdownV2 特殊字符
-func (te *TemplateEngine) escapeMarkdownV2(text string) string {
-	// MarkdownV2 需要轉義的字符
-	specialChars := []string{
-		"_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!",
-	}
-
-	result := text
-	for _, char := range specialChars {
-		result = strings.ReplaceAll(result, char, "\\"+char)
-	}
-
-	return result
-}
-
 // formatTextForPlatform 根據平台格式化普通文字
 func (te *TemplateEngine) formatTextForPlatform(platform, text string) string {
 	// 回退到簡單處理，避免過度轉義
@@ -862,27 +847,6 @@ func isTelegramExternalURL(rawURL string) bool {
 	return parsedURL.Scheme == "http" || parsedURL.Scheme == "https"
 }
 
-// escapeMarkdownV2Text 轉義 MarkdownV2 文字中的特殊字符
-func (te *TemplateEngine) escapeMarkdownV2Text(text string) string {
-	// MarkdownV2 需要轉義的字符，但要謹慎處理
-	// 只轉義在普通文字中需要轉義的字符
-	specialChars := []string{
-		"_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "=", "|", "{", "}", ".", "!",
-		// 暫時移除 "-"，因為它在很多情況下不需要轉義
-	}
-
-	result := text
-	for _, char := range specialChars {
-		result = strings.ReplaceAll(result, char, "\\"+char)
-	}
-
-	// 只在特定情況下轉義 "-"（避免過度轉義）
-	// 在 MarkdownV2 中，"-" 只在行首作為列表項時需要轉義
-	// 在普通文字中通常不需要轉義
-
-	return result
-}
-
 // formatTimeForPlatform 根據平台格式化時間
 func (te *TemplateEngine) formatTimeForPlatform(platform, timeStr string) string {
 	// 所有平台都使用標準 Markdown，不需要特殊轉義
@@ -953,19 +917,5 @@ func (te *TemplateEngine) GetCurrentFormatOptions() FormatOptions {
 	if te != nil && te.config != nil {
 		return te.config.FormatOptions
 	}
-	return getFullDefaultConfig().FormatOptions
-}
-
-// getFormatOptionsForPlatform 根據平台配置返回對應的 FormatOptions
-func (te *TemplateEngine) getFormatOptionsForPlatform(platform string) FormatOptions {
-	// 由於循環依賴問題，這裡暫時使用配置文件中的默認值
-	// 每個平台的 handler 應該自己設置正確的 FormatOptions
-
-	// 如果模板引擎有配置，使用它；否則使用 full 模式
-	if te.config != nil {
-		return te.config.FormatOptions
-	}
-
-	// 默認使用 full 模式
 	return getFullDefaultConfig().FormatOptions
 }
