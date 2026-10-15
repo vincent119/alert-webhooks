@@ -136,6 +136,8 @@ discord:
   template_language: "eng"
 ```
 
+`webhooks.enable` 僅控制 Webhook API 的 Basic Auth 是否啟用，不影響 Telegram、Slack 或 Discord 的服務啟用與路由註冊。當 `base_auth_user` 與 `base_auth_password` 皆為空字串時，Webhook API 不要求 `Authorization` header；兩者皆有值時才要求 Basic Auth。
+
 ### 生產環境配置 (configs/config.production.yaml)
 
 ```yaml
