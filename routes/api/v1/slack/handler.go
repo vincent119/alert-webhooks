@@ -744,24 +744,24 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 	}
 
 	if alertName != "" {
-		message.WriteString(fmt.Sprintf("*Alert Name:* %s\n", alertName))
+		fmt.Fprintf(&message, "*Alert Name:* %s\n", alertName)
 	}
 	if env != "" {
-		message.WriteString(fmt.Sprintf("*Environment:* %s\n", env))
+		fmt.Fprintf(&message, "*Environment:* %s\n", env)
 	}
 	if severity != "" {
-		message.WriteString(fmt.Sprintf("*嚴重程度:* %s\n", severity))
+		fmt.Fprintf(&message, "*嚴重程度:* %s\n", severity)
 	}
 	if namespace != "" {
-		message.WriteString(fmt.Sprintf("*命名空間:* %s\n", namespace))
+		fmt.Fprintf(&message, "*命名空間:* %s\n", namespace)
 	}
 
-	message.WriteString(fmt.Sprintf("*總警報數:* %d\n", len(req.Alerts)))
+	fmt.Fprintf(&message, "*總警報數:* %d\n", len(req.Alerts))
 	if firingCount > 0 {
-		message.WriteString(fmt.Sprintf("*觸發中:* %d\n", firingCount))
+		fmt.Fprintf(&message, "*觸發中:* %d\n", firingCount)
 	}
 	if resolvedCount > 0 {
-		message.WriteString(fmt.Sprintf("*已解決:* %d\n", resolvedCount))
+		fmt.Fprintf(&message, "*已解決:* %d\n", resolvedCount)
 	}
 
 	// 觸發中的警報詳情
@@ -771,24 +771,24 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 		for _, alert := range req.Alerts {
 			if status, ok := alert["status"].(string); ok && status == "firing" {
 				count++
-				message.WriteString(fmt.Sprintf("*警報 %d:*\n", count))
+				fmt.Fprintf(&message, "*警報 %d:*\n", count)
 
 				// 顯示摘要
 				if annotations, ok := alert["annotations"].(map[string]interface{}); ok {
 					if summary, ok := annotations["summary"].(string); ok {
-						message.WriteString(fmt.Sprintf("• 摘要: %s\n", summary))
+						fmt.Fprintf(&message, "• 摘要: %s\n", summary)
 					}
 				}
 
 				// 顯示啟動時間
 				if startsAt, ok := alert["startsAt"].(string); ok && startsAt != "0001-01-01T00:00:00Z" {
-					message.WriteString(fmt.Sprintf("• 開始時間: %s\n", startsAt))
+					fmt.Fprintf(&message, "• 開始時間: %s\n", startsAt)
 				}
 
 				// 顯示標籤
 				if labels, ok := alert["labels"].(map[string]interface{}); ok {
 					if pod, ok := labels["pod"].(string); ok && pod != "" {
-						message.WriteString(fmt.Sprintf("• Pod: %s\n", pod))
+						fmt.Fprintf(&message, "• Pod: %s\n", pod)
 					}
 				}
 				message.WriteString("\n")
@@ -803,24 +803,24 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 		for _, alert := range req.Alerts {
 			if status, ok := alert["status"].(string); ok && status == "resolved" {
 				count++
-				message.WriteString(fmt.Sprintf("*警報 %d:*\n", count))
+				fmt.Fprintf(&message, "*警報 %d:*\n", count)
 
 				// 顯示摘要
 				if annotations, ok := alert["annotations"].(map[string]interface{}); ok {
 					if summary, ok := annotations["summary"].(string); ok {
-						message.WriteString(fmt.Sprintf("• 摘要: %s\n", summary))
+						fmt.Fprintf(&message, "• 摘要: %s\n", summary)
 					}
 				}
 
 				// 顯示結束時間
 				if endsAt, ok := alert["endsAt"].(string); ok && endsAt != "0001-01-01T00:00:00Z" {
-					message.WriteString(fmt.Sprintf("• 解決時間: %s\n", endsAt))
+					fmt.Fprintf(&message, "• 解決時間: %s\n", endsAt)
 				}
 
 				// 顯示標籤
 				if labels, ok := alert["labels"].(map[string]interface{}); ok {
 					if pod, ok := labels["pod"].(string); ok && pod != "" {
-						message.WriteString(fmt.Sprintf("• Pod: %s\n", pod))
+						fmt.Fprintf(&message, "• Pod: %s\n", pod)
 					}
 				}
 				message.WriteString("\n")
@@ -834,7 +834,7 @@ func (h *Handler) generateBuiltInSlackMessage(req *SendMessageRequest, firingCou
 		serviceManager := service.GetServiceManager()
 		if te := serviceManager.GetTemplateEngine(); te != nil {
 			if te.GetCurrentFormatOptions().ShowExternalURL.Enabled {
-				message.WriteString(fmt.Sprintf("\n🔗 <%s|查看詳情>", req.ExternalURL))
+				fmt.Fprintf(&message, "\n🔗 <%s|查看詳情>", req.ExternalURL)
 			}
 		}
 	}
