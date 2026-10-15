@@ -651,18 +651,18 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 			message.WriteString("✅ *警報已解決*\n\n")
 		}
 
-		message.WriteString(fmt.Sprintf("*狀態:* %s\n", escapeText(webhook.Status)))
-		message.WriteString(fmt.Sprintf("*警報名稱:* %s\n", escapeText(alertName)))
-		message.WriteString(fmt.Sprintf("*環境:* %s\n", escapeText(env)))
-		message.WriteString(fmt.Sprintf("*嚴重程度:* %s\n", escapeText(severity)))
-		message.WriteString(fmt.Sprintf("*命名空間:* %s\n", escapeText(namespace)))
-		message.WriteString(fmt.Sprintf("*總警報數:* %d\n", len(webhook.Alerts)))
+		fmt.Fprintf(&message, "*狀態:* %s\n", escapeText(webhook.Status))
+		fmt.Fprintf(&message, "*警報名稱:* %s\n", escapeText(alertName))
+		fmt.Fprintf(&message, "*環境:* %s\n", escapeText(env))
+		fmt.Fprintf(&message, "*嚴重程度:* %s\n", escapeText(severity))
+		fmt.Fprintf(&message, "*命名空間:* %s\n", escapeText(namespace))
+		fmt.Fprintf(&message, "*總警報數:* %d\n", len(webhook.Alerts))
 
 		if firingCount > 0 {
-			message.WriteString(fmt.Sprintf("*觸發中:* %d\n", firingCount))
+			fmt.Fprintf(&message, "*觸發中:* %d\n", firingCount)
 		}
 		if resolvedCount > 0 {
-			message.WriteString(fmt.Sprintf("*已解決:* %d\n", resolvedCount))
+			fmt.Fprintf(&message, "*已解決:* %d\n", resolvedCount)
 		}
 
 		// 詳細警報列表
@@ -670,21 +670,21 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 			message.WriteString("\n*🚨 觸發中的警報:*\n")
 			for i, alert := range webhook.Alerts {
 				if alert.Status == "firing" {
-					message.WriteString(fmt.Sprintf("\n*警報 %d:*\n", i+1))
-					message.WriteString(fmt.Sprintf("• 摘要: %s\n", escapeText(alert.Annotations["summary"])))
+					fmt.Fprintf(&message, "\n*警報 %d:*\n", i+1)
+					fmt.Fprintf(&message, "• 摘要: %s\n", escapeText(alert.Annotations["summary"]))
 					// 若提供 description，則補充描述
 					if desc, ok := alert.Annotations["description"]; ok && desc != "" {
-						message.WriteString(fmt.Sprintf("• 描述: %s\n", escapeText(desc)))
+						fmt.Fprintf(&message, "• 描述: %s\n", escapeText(desc))
 					}
 					if pod := alert.Labels["pod"]; pod != "" {
-						message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(pod)))
+						fmt.Fprintf(&message, "• Pod: %s\n", escapeText(pod))
 					}
-					message.WriteString(fmt.Sprintf("• 開始時間: %s\n", escapeText(h.formatTime(alert.StartsAt))))
+					fmt.Fprintf(&message, "• 開始時間: %s\n", escapeText(h.formatTime(alert.StartsAt)))
 					if alert.EndsAt != "0001-01-01T00:00:00Z" {
-						message.WriteString(fmt.Sprintf("• 結束時間: %s\n", escapeText(h.formatTime(alert.EndsAt))))
+						fmt.Fprintf(&message, "• 結束時間: %s\n", escapeText(h.formatTime(alert.EndsAt)))
 					}
 					if formatOptions.ShowGeneratorURL.Enabled && alert.GeneratorURL != "" {
-						message.WriteString(fmt.Sprintf("• [查看詳情](%s)\n", alert.GeneratorURL))
+						fmt.Fprintf(&message, "• [查看詳情](%s)\n", alert.GeneratorURL)
 					}
 				}
 			}
@@ -694,26 +694,26 @@ func (h *Handler) generateBuiltInMessage(webhook *AlertManagerWebhook, language 
 			message.WriteString("\n*✅ 已解決的警報:*\n")
 			for i, alert := range webhook.Alerts {
 				if alert.Status == "resolved" {
-					message.WriteString(fmt.Sprintf("\n*警報 %d:*\n", i+1))
-					message.WriteString(fmt.Sprintf("• 摘要: %s\n", escapeText(alert.Annotations["summary"])))
+					fmt.Fprintf(&message, "\n*警報 %d:*\n", i+1)
+					fmt.Fprintf(&message, "• 摘要: %s\n", escapeText(alert.Annotations["summary"]))
 					// 若提供 description，則補充描述
 					if desc, ok := alert.Annotations["description"]; ok && desc != "" {
-						message.WriteString(fmt.Sprintf("• 描述: %s\n", escapeText(desc)))
+						fmt.Fprintf(&message, "• 描述: %s\n", escapeText(desc))
 					}
 					if pod := alert.Labels["pod"]; pod != "" {
-						message.WriteString(fmt.Sprintf("• Pod: %s\n", escapeText(pod)))
+						fmt.Fprintf(&message, "• Pod: %s\n", escapeText(pod))
 					}
-					message.WriteString(fmt.Sprintf("• 開始時間: %s\n", escapeText(h.formatTime(alert.StartsAt))))
-					message.WriteString(fmt.Sprintf("• 結束時間: %s\n", escapeText(h.formatTime(alert.EndsAt))))
+					fmt.Fprintf(&message, "• 開始時間: %s\n", escapeText(h.formatTime(alert.StartsAt)))
+					fmt.Fprintf(&message, "• 結束時間: %s\n", escapeText(h.formatTime(alert.EndsAt)))
 					if formatOptions.ShowGeneratorURL.Enabled && alert.GeneratorURL != "" {
-						message.WriteString(fmt.Sprintf("• [查看詳情](%s)\n", alert.GeneratorURL))
+						fmt.Fprintf(&message, "• [查看詳情](%s)\n", alert.GeneratorURL)
 					}
 				}
 			}
 		}
 
 		if formatOptions.ShowExternalURL.Enabled && webhook.ExternalURL != "" {
-			message.WriteString(fmt.Sprintf("\n[查看所有警報詳情](%s)", webhook.ExternalURL))
+			fmt.Fprintf(&message, "\n[查看所有警報詳情](%s)", webhook.ExternalURL)
 		}
 	} else {
 		// 英文模板
