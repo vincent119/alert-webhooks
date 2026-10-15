@@ -10,7 +10,8 @@ func BasicAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		webhooks := config.Current().Webhooks
 		// 每個請求取得完整快照，避免認證設定跨欄位讀到不同版本。
-		if !webhooks.Enable {
+		// 帳密皆空表示採用免認證的既有 Webhook 設定契約。
+		if !webhooks.Enable || (webhooks.BaseAuthUser == "" && webhooks.BaseAuthPassword == "") {
 			c.Next()
 			return
 		}

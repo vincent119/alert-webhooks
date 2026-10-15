@@ -39,10 +39,12 @@ log:
 ```yaml
 webhooks:
   enable: true           # Enable/disable webhook authentication
-  username: "admin"      # Basic Auth username
-  password: "admin"      # Basic Auth password
+  base_auth_user: "admin"      # Basic Auth username
+  base_auth_password: "admin"  # Basic Auth password
   cors_allowed_origins: [] # Exact browser origins; empty denies CORS
 ```
+
+Webhook authentication is bypassed when `enable` is false or when both `base_auth_user` and `base_auth_password` are empty. This setting does not control Telegram, Slack, or Discord service enablement or route registration.
 
 `cors_allowed_origins` must contain complete origins such as `https://console.example.com`. Wildcards, partial domains, and `null` are not supported. CORS is denied by default; add only browser origins that require cross-origin API access.
 
