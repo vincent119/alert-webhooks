@@ -57,7 +57,7 @@ func (c *sqlProcessingCore) With(fields []zapcore.Field) zapcore.Core {
 
 // Check 實現 zapcore.Core 接口
 func (c *sqlProcessingCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
-	if c.Core.Enabled(ent.Level) {
+	if c.Enabled(ent.Level) {
 		return ce.AddCore(ent, c)
 	}
 	return ce

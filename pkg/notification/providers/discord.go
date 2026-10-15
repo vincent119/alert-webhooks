@@ -183,9 +183,10 @@ func (dp *DiscordProvider) formatBasicMessage(alertData *types.AlertManagerData)
 		resolvedCount := 0
 		for _, alert := range alertData.Alerts {
 			if status, ok := alert["status"].(string); ok {
-				if status == "firing" {
+				switch status {
+				case "firing":
 					firingCount++
-				} else if status == "resolved" {
+				case "resolved":
 					resolvedCount++
 				}
 			}

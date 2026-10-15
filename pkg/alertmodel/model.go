@@ -24,9 +24,10 @@ func BuildTemplateData(
 	resolvedCount := 0
 	for _, alert := range alerts {
 		if s, ok := alert["status"].(string); ok {
-			if s == "firing" {
+			switch s {
+			case "firing":
 				firingCount++
-			} else if s == "resolved" {
+			case "resolved":
 				resolvedCount++
 			}
 		}
