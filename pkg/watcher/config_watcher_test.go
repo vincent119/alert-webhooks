@@ -8,7 +8,7 @@ import (
 )
 
 func TestConfigWatcherStopCancelsPendingDebounce(t *testing.T) {
-	watcher := newTestConfigWatcher(t)
+	watcher := newTestConfigWatcherWithDebounce(t, time.Second)
 	var calls int
 	watcher.reloadMain = func(context.Context) { calls++ }
 
@@ -71,9 +71,57 @@ func TestConfigWatcherDebouncesLatestEvent(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 	if calls[0] != "template" {
-		t.Fatalf("handled %q, wantlast event template", calls[0])
+		t.Fatalf("handled %q, want last event template", calls[0])
 	}
 	watcher.Stop()
+}
+
+func TestConfigWatcherSerializesReloadCallbacks(t *testing.T) {
+	watcher := newTestConfigWatcher(t)
+	started := make(chan string, 2)
+	releaseFirst := make(chan struct{})
+	firstFinished := make(chan struct{})
+
+	watcher.reloadMain = func(context.Context) {
+		started <- "main"
+		<-releaseFirst
+		close(firstFinished)
+	}
+	watcher.reloadTemplate = func(context.Context) {
+		started <- "template"
+	}
+
+	watcher.scheduleConfigChange("configs/config.development.yaml")
+	select {
+	case got := <-started:
+		if got != "main" {
+			t.Fatalf("first callback = %q, want main", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("first callback did not start")
+	}
+
+	watcher.scheduleConfigChange("configs/alert_config.yaml")
+	select {
+	case got := <-started:
+		t.Fatalf("second callback started before first finished: %q", got)
+	case <-time.After(20 * time.Millisecond):
+	}
+
+	close(releaseFirst)
+	select {
+	case <-firstFinished:
+	case <-time.After(time.Second):
+		t.Fatal("first callback did not finish")
+	}
+	select {
+	case got := <-started:
+		if got != "template" {
+			t.Fatalf("second callback = %q, want template", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("second callback did not start")
+	}
 }
 
 func TestConfigWatcherStopIsIdempotent(t *testing.T) {
@@ -83,15 +131,22 @@ func TestConfigWatcherStopIsIdempotent(t *testing.T) {
 }
 
 func newTestConfigWatcher(t *testing.T) *ConfigWatcher {
+	return newTestConfigWatcherWithDebounce(t, time.Millisecond)
+}
+
+func newTestConfigWatcherWithDebounce(t *testing.T, debounce time.Duration) *ConfigWatcher {
 	t.Helper()
 	watcher := NewConfigWatcher()
-	watcher.debounce = time.Millisecond
 	ctx, cancel := context.WithCancel(context.Background())
 	watcher.mu.Lock()
 	watcher.isRunning = true
 	watcher.runCtx = ctx
 	watcher.cancel = cancel
+	watcher.changes = make(chan string, 1)
+	watcher.debounce = debounce
+	watcher.wg.Add(1)
 	watcher.mu.Unlock()
+	go watcher.reloadLoop(ctx, watcher.changes, debounce)
 	t.Cleanup(watcher.Stop)
 	return watcher
 }
