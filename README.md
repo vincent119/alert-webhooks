@@ -476,14 +476,6 @@ alert-webhooks/
 │   ├── config_usage.go           # Configuration usage example
 │   └── config.expamle.yaml       # Configuration example file
 ├── pkg/                          # Core functionality packages
-│   ├── logcore/                  # Logging core
-│   │   └── core.go              # Logging core implementation
-│   ├── logger/                   # Logging system
-│   │   ├── logger.go            # Logger implementation
-│   │   ├── middleware.go        # Logging middleware
-│   │   └── utils.go             # Logging utility functions
-│   ├── logutil/                  # Logging utilities
-│   │   └── context.go           # Context logging utilities
 │   ├── middleware/               # HTTP middleware
 │   │   ├── basic_auth.go        # Basic authentication middleware
 │   │   ├── cors.go              # CORS middleware

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"alert-webhooks/config"
-	"alert-webhooks/pkg/logger"
+	"github.com/vincent119/zlogger"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -43,8 +43,7 @@ func NewTelegramService(token string) (*TelegramService, error) {
 		bot.WithHTTPClient(30*time.Second, httpClient),
 	}
 
-	logger.Info("Creating Telegram bot with extended timeout", "telegram_service",
-		logger.String("timeout", "30s"))
+	zlogger.Info("Creating Telegram bot with extended timeout", zlogger.String("category", "telegram_service"), zlogger.String("timeout", "30s"))
 
 	// 嘗試多次創建 bot，處理網絡連接問題
 	var b *bot.Bot
@@ -52,25 +51,21 @@ func NewTelegramService(token string) (*TelegramService, error) {
 	maxRetries := 3
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		logger.Info("Attempting to create Telegram bot", "telegram_service",
-			logger.Int("attempt", attempt),
-			logger.Int("max_attempts", maxRetries))
+		zlogger.Info("Attempting to create Telegram bot", zlogger.String("category", "telegram_service"), zlogger.Int("attempt", attempt),
+			zlogger.Int("max_attempts", maxRetries))
 
 		b, err = bot.New(token, opts...)
 		if err == nil {
-			logger.Info("Telegram bot created successfully", "telegram_service",
-				logger.Int("attempt", attempt))
+			zlogger.Info("Telegram bot created successfully", zlogger.String("category", "telegram_service"), zlogger.Int("attempt", attempt))
 			break
 		}
 
-		logger.Warn("Failed to create Telegram bot", "telegram_service",
-			logger.Int("attempt", attempt),
-			logger.Err(err))
+		zlogger.Warn("Failed to create Telegram bot", zlogger.String("category", "telegram_service"), zlogger.Int("attempt", attempt),
+			zlogger.Err(err))
 
 		if attempt < maxRetries {
 			backoffTime := time.Duration(attempt) * 2 * time.Second
-			logger.Info("Retrying in", "telegram_service",
-				logger.String("backoff", backoffTime.String()))
+			zlogger.Info("Retrying in", zlogger.String("category", "telegram_service"), zlogger.String("backoff", backoffTime.String()))
 			time.Sleep(backoffTime)
 		}
 	}
@@ -99,23 +94,21 @@ func NewTelegramService(token string) (*TelegramService, error) {
 		if cfg.value != "" {
 			chatID, err := strconv.ParseInt(cfg.value, 10, 64)
 			if err != nil {
-				logger.Warn("Invalid chat ID in config", "telegram",
-					logger.Int("level", cfg.level),
-					logger.String("chat_id", cfg.value),
-					logger.Err(err))
+				zlogger.Warn("Invalid chat ID in config", zlogger.String("category", "telegram"), zlogger.Int("level", cfg.level),
+					zlogger.String("chat_id", cfg.value),
+					zlogger.Err(err))
 				continue
 			}
 
 			chatIDs[cfg.level] = chatID
-			logger.Info("Loaded chat ID from config", "telegram",
-				logger.Int("level", cfg.level),
-				logger.Int64("chat_id", chatID))
+			zlogger.Info("Loaded chat ID from config", zlogger.String("category", "telegram"), zlogger.Int("level", cfg.level),
+				zlogger.Int64("chat_id", chatID))
 		}
 	}
 
 	// 如果沒有從配置檔案讀取到任何 chat_id，使用預設值
 	if len(chatIDs) == 0 {
-		logger.Warn("No valid chat IDs found in config, using default values", "telegram")
+		zlogger.Warn("No valid chat IDs found in config, using default values", zlogger.String("category", "telegram"))
 		chatIDs = map[int]int64{
 			0: -1001234567890, // 替換為實際的 chat_id
 			1: -1001234567891,
@@ -135,8 +128,7 @@ func NewTelegramService(token string) (*TelegramService, error) {
 		return nil, fmt.Errorf("failed to test bot connection: %v", err)
 	}
 
-	logger.Info("Telegram service initialized successfully", "telegram",
-		logger.String("bot_id", fmt.Sprintf("%d", b.ID())))
+	zlogger.Info("Telegram service initialized successfully", zlogger.String("category", "telegram"), zlogger.String("bot_id", fmt.Sprintf("%d", b.ID())))
 
 	return ts, nil
 }
@@ -149,9 +141,8 @@ func (ts *TelegramService) testConnection() error {
 		return err
 	}
 
-	logger.Info("Bot connection test successful", "telegram",
-		logger.String("username", me.Username),
-		logger.String("first_name", me.FirstName))
+	zlogger.Info("Bot connection test successful", zlogger.String("category", "telegram"), zlogger.String("username", me.Username),
+		zlogger.String("first_name", me.FirstName))
 
 	return nil
 }
@@ -173,9 +164,8 @@ func (ts *TelegramService) SendMessage(ctx context.Context, level int, message s
 	// 檢查是否為降級模式
 	if ts.bot == nil {
 		err := fmt.Errorf("telegram service is in degraded mode - bot initialization failed")
-		logger.Error("Telegram service is in degraded mode - bot not available", "telegram_service",
-			logger.Int("level", level),
-			logger.String("message_preview", getMessagePreview(message)))
+		zlogger.Error("Telegram service is in degraded mode - bot not available", zlogger.String("category", "telegram_service"), zlogger.Int("level", level),
+			zlogger.String("message_preview", getMessagePreview(message)))
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
@@ -189,19 +179,17 @@ func (ts *TelegramService) SendMessage(ctx context.Context, level int, message s
 			configuredLevels = append(configuredLevels, l)
 		}
 
-		logger.Error("No chat ID configured for requested level", "telegram_service",
-			logger.Int("requested_level", level),
-			logger.Any("configured_levels", configuredLevels),
-			logger.Int("total_configured", len(ts.chatIDs)))
+		zlogger.Error("No chat ID configured for requested level", zlogger.String("category", "telegram_service"), zlogger.Int("requested_level", level),
+			zlogger.Any("configured_levels", configuredLevels),
+			zlogger.Int("total_configured", len(ts.chatIDs)))
 		err := fmt.Errorf("no chat ID configured for level %d", level)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
-	logger.Debug("Found chat ID for level", "telegram_service",
-		logger.Int("level", level),
-		logger.Int64("chat_id", chatID))
+	zlogger.Debug("Found chat ID for level", zlogger.String("category", "telegram_service"), zlogger.Int("level", level),
+		zlogger.Int64("chat_id", chatID))
 
 	span.SetAttributes(attribute.Int64("messaging.chat_id", chatID))
 
@@ -213,21 +201,19 @@ func (ts *TelegramService) SendMessage(ctx context.Context, level int, message s
 
 	// 在 debug 模式下記錄發送請求的詳細資訊
 	if cfg.App.Mode == "development" || cfg.App.Mode == "debug" || cfg.Log.Level == "debug" {
-		logger.Debug("Sending Telegram message request", "telegram_service",
-			logger.Int("level", level),
-			logger.Int64("chat_id", chatID),
-			logger.String("parse_mode", string(models.ParseModeHTML)),
-			logger.String("message_length", fmt.Sprintf("%d", len(message))),
-			logger.String("message_preview", getMessagePreview(message)))
+		zlogger.Debug("Sending Telegram message request", zlogger.String("category", "telegram_service"), zlogger.Int("level", level),
+			zlogger.Int64("chat_id", chatID),
+			zlogger.String("parse_mode", string(models.ParseModeHTML)),
+			zlogger.String("message_length", fmt.Sprintf("%d", len(message))),
+			zlogger.String("message_preview", getMessagePreview(message)))
 	}
 
 	response, err := ts.bot.SendMessage(ctx, params)
 	if err != nil {
-		logger.Error("Failed to send Telegram message", "telegram_service",
-			logger.Int("level", level),
-			logger.Int64("chat_id", chatID),
-			logger.String("message_preview", getMessagePreview(message)),
-			logger.Err(err))
+		zlogger.Error("Failed to send Telegram message", zlogger.String("category", "telegram_service"), zlogger.Int("level", level),
+			zlogger.Int64("chat_id", chatID),
+			zlogger.String("message_preview", getMessagePreview(message)),
+			zlogger.Err(err))
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
@@ -235,25 +221,23 @@ func (ts *TelegramService) SendMessage(ctx context.Context, level int, message s
 
 	// 在 debug 模式下記錄 Telegram server 的詳細回應
 	if cfg.App.Mode == "development" || cfg.App.Mode == "debug" || cfg.Log.Level == "debug" {
-		logger.Debug("Telegram server response received", "telegram_service",
-			logger.Int("level", level),
-			logger.Int64("chat_id", chatID),
-			logger.Int("message_id", response.ID),
-			logger.String("from_username", response.From.Username),
-			logger.String("from_first_name", response.From.FirstName),
-			logger.Bool("from_is_bot", response.From.IsBot),
-			logger.Int64("chat_id_response", response.Chat.ID),
-			logger.String("chat_type", string(response.Chat.Type)),
-			logger.String("chat_title", response.Chat.Title),
-			logger.Int("date", response.Date),
-			logger.String("response_text_preview", getMessagePreview(response.Text)))
+		zlogger.Debug("Telegram server response received", zlogger.String("category", "telegram_service"), zlogger.Int("level", level),
+			zlogger.Int64("chat_id", chatID),
+			zlogger.Int("message_id", response.ID),
+			zlogger.String("from_username", response.From.Username),
+			zlogger.String("from_first_name", response.From.FirstName),
+			zlogger.Bool("from_is_bot", response.From.IsBot),
+			zlogger.Int64("chat_id_response", response.Chat.ID),
+			zlogger.String("chat_type", string(response.Chat.Type)),
+			zlogger.String("chat_title", response.Chat.Title),
+			zlogger.Int("date", response.Date),
+			zlogger.String("response_text_preview", getMessagePreview(response.Text)))
 	}
 
-	logger.Info("Telegram message sent successfully", "telegram_service",
-		logger.Int("level", level),
-		logger.Int64("chat_id", chatID),
-		logger.Int("message_id", response.ID),
-		logger.String("message_preview", getMessagePreview(message)))
+	zlogger.Info("Telegram message sent successfully", zlogger.String("category", "telegram_service"), zlogger.Int("level", level),
+		zlogger.Int64("chat_id", chatID),
+		zlogger.Int("message_id", response.ID),
+		zlogger.String("message_preview", getMessagePreview(message)))
 
 	return nil
 }
@@ -273,9 +257,8 @@ func (ts *TelegramService) SetChatID(level int, chatID int64) {
 	defer ts.mu.Unlock()
 	ts.chatIDs[level] = chatID
 
-	logger.Info("Chat ID updated", "telegram",
-		logger.Int("level", level),
-		logger.Int64("chat_id", chatID))
+	zlogger.Info("Chat ID updated", zlogger.String("category", "telegram"), zlogger.Int("level", level),
+		zlogger.Int64("chat_id", chatID))
 }
 
 // GetChatID 獲取指定等級的 chat_id

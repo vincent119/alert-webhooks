@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"alert-webhooks/config"
-	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/service"
+	"github.com/vincent119/zlogger"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -66,12 +66,10 @@ func (cw *ConfigWatcher) Start(ctx context.Context) error {
 
 	for _, path := range configPaths {
 		if err := cw.watcher.Add(path); err != nil {
-			logger.Warn("Failed to watch config path", "config_watcher",
-				logger.String("path", path),
-				logger.Err(err))
+			zlogger.Warn("Failed to watch config path", zlogger.String("category", "config_watcher"), zlogger.String("path", path),
+				zlogger.Err(err))
 		} else {
-			logger.Info("Watching config path", "config_watcher",
-				logger.String("path", path))
+			zlogger.Info("Watching config path", zlogger.String("category", "config_watcher"), zlogger.String("path", path))
 		}
 	}
 
@@ -79,7 +77,7 @@ func (cw *ConfigWatcher) Start(ctx context.Context) error {
 	cw.wg.Add(1)
 	go cw.watchLoop(runCtx, watcher)
 
-	logger.Info("Config watcher started", "config_watcher")
+	zlogger.Info("Config watcher started", zlogger.String("category", "config_watcher"))
 	return nil
 }
 
@@ -116,7 +114,7 @@ func (cw *ConfigWatcher) Stop() {
 	}
 	cw.wg.Wait()
 
-	logger.Info("Config watcher stopped", "config_watcher")
+	zlogger.Info("Config watcher stopped", zlogger.String("category", "config_watcher"))
 }
 
 // watchLoop 監控循環
@@ -136,9 +134,8 @@ func (cw *ConfigWatcher) watchLoop(ctx context.Context, watcher *fsnotify.Watche
 			if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
 				// 只監控 YAML 檔案
 				if strings.HasSuffix(event.Name, ".yaml") || strings.HasSuffix(event.Name, ".yml") {
-					logger.Info("Config file changed", "config_watcher",
-						logger.String("file", event.Name),
-						logger.String("operation", event.Op.String()))
+					zlogger.Info("Config file changed", zlogger.String("category", "config_watcher"), zlogger.String("file", event.Name),
+						zlogger.String("operation", event.Op.String()))
 
 					cw.scheduleConfigChange(event.Name)
 				}
@@ -147,7 +144,7 @@ func (cw *ConfigWatcher) watchLoop(ctx context.Context, watcher *fsnotify.Watche
 			if !ok {
 				return
 			}
-			logger.Error("Config watcher error", "config_watcher", logger.Err(err))
+			zlogger.Error("Config watcher error", zlogger.String("category", "config_watcher"), zlogger.Err(err))
 		}
 	}
 }
@@ -190,8 +187,7 @@ func (cw *ConfigWatcher) handleConfigChange(ctx context.Context, filename string
 	if ctx.Err() != nil {
 		return
 	}
-	logger.Info("Handling config change", "config_watcher",
-		logger.String("filename", filename))
+	zlogger.Info("Handling config change", zlogger.String("category", "config_watcher"), zlogger.String("filename", filename))
 
 	baseName := filepath.Base(filename)
 
@@ -203,8 +199,7 @@ func (cw *ConfigWatcher) handleConfigChange(ctx context.Context, filename string
 		// 警報模板配置變更
 		cw.reloadTemplate(ctx)
 	default:
-		logger.Info("Unknown config file changed, skipping", "config_watcher",
-			logger.String("filename", baseName))
+		zlogger.Info("Unknown config file changed, skipping", zlogger.String("category", "config_watcher"), zlogger.String("filename", baseName))
 	}
 }
 
@@ -213,27 +208,27 @@ func (cw *ConfigWatcher) reloadMainConfig(ctx context.Context) {
 	if ctx.Err() != nil {
 		return
 	}
-	logger.Info("Reloading main config", "config_watcher")
+	zlogger.Info("Reloading main config", zlogger.String("category", "config_watcher"))
 
 	// 強制重新載入配置（繞過 sync.Once）
-	logger.Info("Calling config.ForceReload()", "config_watcher")
+	zlogger.Info("Calling config.ForceReload()", zlogger.String("category", "config_watcher"))
 	if ctx.Err() != nil {
 		return
 	}
 	if err := config.ForceReload(); err != nil {
-		logger.Error("Failed to reload main config", "config_watcher", logger.Err(err))
+		zlogger.Error("Failed to reload main config", zlogger.String("category", "config_watcher"), zlogger.Err(err))
 		return
 	}
-	logger.Info("Main config force reloaded", "config_watcher")
+	zlogger.Info("Main config force reloaded", zlogger.String("category", "config_watcher"))
 
 	if ctx.Err() != nil {
 		return
 	}
 	if err := service.GetServiceManager().Reload(ctx); err != nil {
-		logger.Error("Failed to reload services", "config_watcher", logger.Err(err))
+		zlogger.Error("Failed to reload services", zlogger.String("category", "config_watcher"), zlogger.Err(err))
 		return
 	}
-	logger.Info("Main config and services reloaded successfully", "config_watcher")
+	zlogger.Info("Main config and services reloaded successfully", zlogger.String("category", "config_watcher"))
 }
 
 // reloadTemplateConfig 重新載入模板配置
@@ -241,7 +236,7 @@ func (cw *ConfigWatcher) reloadTemplateConfig(ctx context.Context) {
 	if ctx.Err() != nil {
 		return
 	}
-	logger.Info("Reloading template config", "config_watcher")
+	zlogger.Info("Reloading template config", zlogger.String("category", "config_watcher"))
 
 	serviceManager := service.GetServiceManager()
 
@@ -251,7 +246,7 @@ func (cw *ConfigWatcher) reloadTemplateConfig(ctx context.Context) {
 	}
 	serviceManager.ReloadTemplateEngine()
 
-	logger.Info("Template config reloaded successfully", "config_watcher")
+	zlogger.Info("Template config reloaded successfully", zlogger.String("category", "config_watcher"))
 }
 
 // IsRunning 檢查是否正在運行

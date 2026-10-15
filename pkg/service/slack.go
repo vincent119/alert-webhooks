@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"alert-webhooks/config"
-	"alert-webhooks/pkg/logger"
+	"github.com/vincent119/zlogger"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -106,8 +106,7 @@ func NewSlackService(token string) (*SlackService, error) {
 		return nil, fmt.Errorf("failed to test slack connection: %v", err)
 	}
 
-	logger.Info("Slack service initialized successfully", "slack",
-		logger.String("channels_count", fmt.Sprintf("%d", len(channels))))
+	zlogger.Info("Slack service initialized successfully", zlogger.String("category", "slack"), zlogger.String("channels_count", fmt.Sprintf("%d", len(channels))))
 
 	return ss, nil
 }
@@ -144,7 +143,7 @@ func (ss *SlackService) TestConnection() error {
 		return fmt.Errorf("slack auth test failed: %s", slackResp.Error)
 	}
 
-	logger.Info("Slack connection test successful", "slack")
+	zlogger.Info("Slack connection test successful", zlogger.String("category", "slack"))
 	return nil
 }
 
@@ -297,10 +296,9 @@ func (ss *SlackService) sendSlackMessage(ctx context.Context, msg *SlackMessage)
 
 	resp, err := ss.client.Do(req)
 	if err != nil {
-		logger.Error("Failed to send Slack message", "slack",
-			logger.String("channel", msg.Channel),
-			logger.String("text", msg.Text),
-			logger.Err(err))
+		zlogger.Error("Failed to send Slack message", zlogger.String("category", "slack"), zlogger.String("channel", msg.Channel),
+			zlogger.String("text", msg.Text),
+			zlogger.Err(err))
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 	defer closeSlackResponseBody(resp.Body, "send_message")
@@ -316,9 +314,8 @@ func (ss *SlackService) sendSlackMessage(ctx context.Context, msg *SlackMessage)
 	}
 
 	if !slackResp.OK {
-		logger.Error("Slack API returned error", "slack",
-			logger.String("channel", msg.Channel),
-			logger.String("error", slackResp.Error))
+		zlogger.Error("Slack API returned error", zlogger.String("category", "slack"), zlogger.String("channel", msg.Channel),
+			zlogger.String("error", slackResp.Error))
 
 		// Provide more friendly error message
 		var friendlyError string
@@ -338,18 +335,16 @@ func (ss *SlackService) sendSlackMessage(ctx context.Context, msg *SlackMessage)
 		return fmt.Errorf("%s", friendlyError)
 	}
 
-	logger.Info("Slack message sent successfully", "slack",
-		logger.String("channel", msg.Channel),
-		logger.String("text", msg.Text))
+	zlogger.Info("Slack message sent successfully", zlogger.String("category", "slack"), zlogger.String("channel", msg.Channel),
+		zlogger.String("text", msg.Text))
 
 	return nil
 }
 
 func closeSlackResponseBody(body io.Closer, operation string) {
 	if err := body.Close(); err != nil {
-		logger.Warn("Failed to close Slack response body", "slack",
-			logger.String("operation", operation),
-			logger.Err(err))
+		zlogger.Warn("Failed to close Slack response body", zlogger.String("category", "slack"), zlogger.String("operation", operation),
+			zlogger.Err(err))
 	}
 }
 
@@ -359,9 +354,8 @@ func (ss *SlackService) SetChannelForLevel(level, channel string) {
 	defer ss.mu.Unlock()
 	ss.channels[level] = channel
 
-	logger.Info("Slack channel updated", "slack",
-		logger.String("level", level),
-		logger.String("channel", channel))
+	zlogger.Info("Slack channel updated", zlogger.String("category", "slack"), zlogger.String("level", level),
+		zlogger.String("channel", channel))
 }
 
 // GetChannelForLevel 獲取指定等級的頻道

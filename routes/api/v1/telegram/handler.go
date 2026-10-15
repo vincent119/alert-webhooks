@@ -12,9 +12,9 @@ import (
 
 	"alert-webhooks/config"
 	"alert-webhooks/pkg/alertmodel"
-	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/service"
 	"alert-webhooks/pkg/template"
+	"github.com/vincent119/zlogger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-telegram/bot/models"
@@ -28,21 +28,21 @@ type Handler struct {
 
 // NewHandler 創建新的 Telegram 路由處理器
 func NewHandler(services service.Accessor) *Handler {
-	logger.Info("Creating new Telegram handler", "telegram_handler")
+	zlogger.Info("Creating new Telegram handler", zlogger.String("category", "telegram_handler"))
 
 	// 從 ServiceManager 獲取模板引擎
 	serviceManager := service.GetServiceManager()
 	templateEngine := serviceManager.GetTemplateEngine()
 
 	if templateEngine == nil {
-		logger.Error("Template engine not available from service manager", "telegram_handler")
+		zlogger.Error("Template engine not available from service manager", zlogger.String("category", "telegram_handler"))
 		return &Handler{
 			services:       services,
 			templateEngine: template.NewTemplateEngine(), // 後備方案
 		}
 	}
 
-	logger.Info("Template engine obtained from service manager", "telegram_handler")
+	zlogger.Info("Template engine obtained from service manager", zlogger.String("category", "telegram_handler"))
 
 	// 模板引擎現在由 ServiceManager 管理，不需要在 handler 中初始化
 	handler := &Handler{
@@ -50,8 +50,7 @@ func NewHandler(services service.Accessor) *Handler {
 		templateEngine: templateEngine,
 	}
 
-	logger.Info("Telegram handler created", "telegram_handler",
-		logger.Bool("has_template_engine", templateEngine != nil))
+	zlogger.Info("Telegram handler created", zlogger.String("category", "telegram_handler"), zlogger.Bool("has_template_engine", templateEngine != nil))
 
 	return handler
 }
@@ -159,30 +158,27 @@ func (h *Handler) SendMessage(c *gin.Context) {
 	isDebugLevel := strings.ToLower(cfg.Log.Level) == "debug"
 
 	// 先記錄條件判斷的結果用於調試
-	logger.Info("Debug condition check", "telegram_handler",
-		logger.Bool("is_development", isDev),
-		logger.Bool("is_debug_mode", isDebugMode),
-		logger.Bool("is_debug_level", isDebugLevel),
-		logger.String("app_mode", cfg.App.Mode),
-		logger.String("log_level", cfg.Log.Level))
+	zlogger.Info("Debug condition check", zlogger.String("category", "telegram_handler"), zlogger.Bool("is_development", isDev),
+		zlogger.Bool("is_debug_mode", isDebugMode),
+		zlogger.Bool("is_debug_level", isDebugLevel),
+		zlogger.String("app_mode", cfg.App.Mode),
+		zlogger.String("log_level", cfg.Log.Level))
 
 	// 如果滿足任一條件就輸出 debug 日誌
 	if isDev || isDebugMode || isDebugLevel {
-		logger.Debug("Received JSON request body", "telegram_handler",
-			logger.String("chatid", chatIDParam),
-			logger.String("level", levelStr),
-			logger.String("raw_body", string(body)),
-			logger.String("content_type", c.GetHeader("Content-Type")),
-			logger.String("user_agent", c.GetHeader("User-Agent")),
-			logger.String("remote_addr", c.ClientIP()))
+		zlogger.Debug("Received JSON request body", zlogger.String("category", "telegram_handler"), zlogger.String("chatid", chatIDParam),
+			zlogger.String("level", levelStr),
+			zlogger.String("raw_body", string(body)),
+			zlogger.String("content_type", c.GetHeader("Content-Type")),
+			zlogger.String("user_agent", c.GetHeader("User-Agent")),
+			zlogger.String("remote_addr", c.ClientIP()))
 	}
 
 	// 嘗試解析為標準格式
 	if parseErr := c.ShouldBindJSON(&req); parseErr != nil {
 		// Debug 模式下記錄標準格式解析失敗的情況
 		if isDev || isDebugMode || isDebugLevel {
-			logger.Debug("Standard format parsing failed, trying AlertManager format", "telegram_handler",
-				logger.String("parse_error", parseErr.Error()))
+			zlogger.Debug("Standard format parsing failed, trying AlertManager format", zlogger.String("category", "telegram_handler"), zlogger.String("parse_error", parseErr.Error()))
 		}
 
 		// 如果標準格式解析失敗，嘗試解析為直接的 AlertManager 格式
@@ -190,9 +186,8 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		if unmarshalErr := json.Unmarshal(body, &alertManagerData); unmarshalErr != nil {
 			// Debug 模式下記錄 AlertManager 格式解析失敗的情況
 			if isDev || isDebugMode || isDebugLevel {
-				logger.Debug("AlertManager format parsing also failed", "telegram_handler",
-					logger.String("unmarshal_error", unmarshalErr.Error()),
-					logger.String("body_preview", getBodyPreview(body)))
+				zlogger.Debug("AlertManager format parsing also failed", zlogger.String("category", "telegram_handler"), zlogger.String("unmarshal_error", unmarshalErr.Error()),
+					zlogger.String("body_preview", getBodyPreview(body)))
 			}
 
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -204,10 +199,9 @@ func (h *Handler) SendMessage(c *gin.Context) {
 
 		// Debug 模式下記錄成功解析為 AlertManager 格式
 		if isDev || isDebugMode || isDebugLevel {
-			logger.Debug("Successfully parsed as AlertManager format", "telegram_handler",
-				logger.String("status", alertManagerData.Status),
-				logger.Int("alerts_count", len(alertManagerData.Alerts)),
-				logger.String("receiver", alertManagerData.Receiver))
+			zlogger.Debug("Successfully parsed as AlertManager format", zlogger.String("category", "telegram_handler"), zlogger.String("status", alertManagerData.Status),
+				zlogger.Int("alerts_count", len(alertManagerData.Alerts)),
+				zlogger.String("receiver", alertManagerData.Receiver))
 		}
 
 		// 直接設置 AlertManager 數據
@@ -215,10 +209,9 @@ func (h *Handler) SendMessage(c *gin.Context) {
 	} else {
 		// Debug 模式下記錄成功解析為標準格式
 		if isDev || isDebugMode || isDebugLevel {
-			logger.Debug("Successfully parsed as standard format", "telegram_handler",
-				logger.String("message_length", fmt.Sprintf("%d", len(req.Message))),
-				logger.String("template_language", req.TemplateLanguage),
-				logger.Bool("has_alertmanager_data", req.AlertManagerData != nil))
+			zlogger.Debug("Successfully parsed as standard format", zlogger.String("category", "telegram_handler"), zlogger.String("message_length", fmt.Sprintf("%d", len(req.Message))),
+				zlogger.String("template_language", req.TemplateLanguage),
+				zlogger.Bool("has_alertmanager_data", req.AlertManagerData != nil))
 		}
 	}
 
@@ -264,56 +257,49 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		if h.templateEngine != nil {
 			actualLanguage := h.templateEngine.GetDefaultLanguage(templateLanguage)
 
-			logger.Debug("About to render template", "telegram_handler",
-				logger.String("language", actualLanguage),
-				logger.String("platform", "telegram"))
+			zlogger.Debug("About to render template", zlogger.String("category", "telegram_handler"), zlogger.String("language", actualLanguage),
+				zlogger.String("platform", "telegram"))
 
 			msg, rerr := h.templateEngine.RenderTemplateForPlatform(actualLanguage, "telegram", data)
 
 			// 立即記錄渲染結果
-			logger.Debug("Template render returned", "telegram_handler",
-				logger.Bool("success", rerr == nil),
-				logger.String("error", func() string {
+			zlogger.Debug("Template render returned", zlogger.String("category", "telegram_handler"), zlogger.Bool("success", rerr == nil),
+				zlogger.String("error", func() string {
 					if rerr != nil {
 						return rerr.Error()
 					}
 					return "nil"
 				}()),
-				logger.Int("message_length", len(msg)))
+				zlogger.Int("message_length", len(msg)))
 
 			if rerr == nil {
-				logger.Debug("Template rendered successfully, attempting to send", "telegram_handler",
-					logger.Int("level", level),
-					logger.String("language", actualLanguage),
-					logger.Int("message_length", len(msg)))
+				zlogger.Debug("Template rendered successfully, attempting to send", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
+					zlogger.String("language", actualLanguage),
+					zlogger.Int("message_length", len(msg)))
 
 				if sendErr := h.currentTelegram(c).SendMessage(c.Request.Context(), level, msg); sendErr != nil {
-					logger.Error("Failed to send message via template engine path", "telegram_handler",
-						logger.Int("level", level),
-						logger.String("error_detail", sendErr.Error()),
-						logger.Int("message_length", len(msg)))
+					zlogger.Error("Failed to send message via template engine path", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
+						zlogger.String("error_detail", sendErr.Error()),
+						zlogger.Int("message_length", len(msg)))
 					c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to send message: " + sendErr.Error()})
 					return
 				}
 
-				logger.Info("Message sent successfully via template engine", "telegram_handler",
-					logger.Int("level", level))
+				zlogger.Info("Message sent successfully via template engine", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level))
 				c.JSON(http.StatusOK, SendMessageResponse{Success: true, Message: "Successfully sent message to Telegram", Level: level})
 				return
 			}
 
-			logger.Warn("Template rendering failed, falling back to separate messages", "telegram_handler",
-				logger.String("render_error", rerr.Error()))
+			zlogger.Warn("Template rendering failed, falling back to separate messages", zlogger.String("category", "telegram_handler"), zlogger.String("render_error", rerr.Error()))
 		} else {
-			logger.Error("Template engine is nil", "telegram_handler")
+			zlogger.Error("Template engine is nil", zlogger.String("category", "telegram_handler"))
 		}
 
 		// 若模板引擎不可用或渲染失敗，使用既有的分離發送備援
 		err = h.sendSeparateAlertMessages(c.Request.Context(), h.currentTelegram(c), req.AlertManagerData, templateLanguage, level)
 		if err != nil {
-			logger.Error("Failed to send alert messages", "telegram_handler",
-				logger.Int("level", level),
-				logger.Err(err))
+			zlogger.Error("Failed to send alert messages", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
+				zlogger.Err(err))
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "Failed to send alert messages: " + err.Error(),
@@ -324,10 +310,9 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		// 發送普通訊息
 		err = h.currentTelegram(c).SendMessage(c.Request.Context(), level, req.Message)
 		if err != nil {
-			logger.Error("Failed to send Telegram message", "telegram_handler",
-				logger.Int("level", level),
-				logger.String("message", req.Message),
-				logger.Err(err))
+			zlogger.Error("Failed to send Telegram message", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
+				zlogger.String("message", req.Message),
+				zlogger.Err(err))
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "Failed to send message: " + err.Error(),
@@ -386,7 +371,7 @@ func (h *Handler) GetBotInfo(c *gin.Context) {
 	// 獲取機器人資訊
 	meInterface, err := h.currentTelegram(c).GetBotInfo()
 	if err != nil {
-		logger.Error("Failed to get bot info", "telegram_handler", logger.Err(err))
+		zlogger.Error("Failed to get bot info", zlogger.String("category", "telegram_handler"), zlogger.Err(err))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"message": "Failed to get bot info",
@@ -397,7 +382,7 @@ func (h *Handler) GetBotInfo(c *gin.Context) {
 	// 類型斷言到具體的 User 類型
 	me, ok := meInterface.(*models.User)
 	if !ok {
-		logger.Error("Failed to cast bot info to User type", "telegram_handler")
+		zlogger.Error("Failed to cast bot info to User type", zlogger.String("category", "telegram_handler"))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"message": "Invalid bot info type",
@@ -481,24 +466,21 @@ func (h *Handler) generateAlertManagerMessage(webhook *AlertManagerWebhook, lang
 	}
 
 	// 嘗試使用模板引擎渲染
-	logger.Debug("Attempting to use template engine", "telegram_handler",
-		logger.Bool("has_template_engine", h.templateEngine != nil),
-		logger.String("language", language))
+	zlogger.Debug("Attempting to use template engine", zlogger.String("category", "telegram_handler"), zlogger.Bool("has_template_engine", h.templateEngine != nil),
+		zlogger.String("language", language))
 
 	if h.templateEngine != nil {
 		// 獲取合適的語言（包含回退邏輯）
 		actualLanguage := h.templateEngine.GetDefaultLanguage(language)
 		if actualLanguage != language {
-			logger.Info("Language fallback applied", "telegram_handler",
-				logger.String("requested", language),
-				logger.String("actual", actualLanguage))
+			zlogger.Info("Language fallback applied", zlogger.String("category", "telegram_handler"), zlogger.String("requested", language),
+				zlogger.String("actual", actualLanguage))
 		}
 
-		logger.Debug("Calling template engine with data", "telegram_handler",
-			logger.String("actualLanguage", actualLanguage),
-			logger.String("platform", "telegram"),
-			logger.Bool("formatOptions.ShowGeneratorURL", templateData.FormatOptions.ShowGeneratorURL.Enabled),
-			logger.Bool("formatOptions.ShowExternalURL", templateData.FormatOptions.ShowExternalURL.Enabled))
+		zlogger.Debug("Calling template engine with data", zlogger.String("category", "telegram_handler"), zlogger.String("actualLanguage", actualLanguage),
+			zlogger.String("platform", "telegram"),
+			zlogger.Bool("formatOptions.ShowGeneratorURL", templateData.FormatOptions.ShowGeneratorURL.Enabled),
+			zlogger.Bool("formatOptions.ShowExternalURL", templateData.FormatOptions.ShowExternalURL.Enabled))
 
 		message, err := h.templateEngine.RenderTemplateForPlatform(actualLanguage, "telegram", templateData)
 		if err == nil {
@@ -506,17 +488,15 @@ func (h *Handler) generateAlertManagerMessage(webhook *AlertManagerWebhook, lang
 			if len(message) > 100 {
 				messagePreview = message[:100] + "..."
 			}
-			logger.Info("Template rendered successfully", "telegram_handler",
-				logger.String("language", actualLanguage),
-				logger.String("available_languages", fmt.Sprintf("%v", h.templateEngine.GetAvailableLanguages())),
-				logger.String("message_preview", messagePreview))
+			zlogger.Info("Template rendered successfully", zlogger.String("category", "telegram_handler"), zlogger.String("language", actualLanguage),
+				zlogger.String("available_languages", fmt.Sprintf("%v", h.templateEngine.GetAvailableLanguages())),
+				zlogger.String("message_preview", messagePreview))
 			return message
 		}
-		logger.Warn("Failed to render template, using built-in template", "telegram_handler",
-			logger.String("language", actualLanguage),
-			logger.Err(err))
+		zlogger.Warn("Failed to render template, using built-in template", zlogger.String("category", "telegram_handler"), zlogger.String("language", actualLanguage),
+			zlogger.Err(err))
 	} else {
-		logger.Warn("Template engine is nil, using built-in template", "telegram_handler")
+		zlogger.Warn("Template engine is nil, using built-in template", zlogger.String("category", "telegram_handler"))
 	}
 
 	// 如果模板引擎失敗，使用內建的模板邏輯
@@ -553,27 +533,23 @@ func (h *Handler) sendSeparateAlertMessages(ctx context.Context, telegramService
 			TruncatedAlerts:   webhook.TruncatedAlerts,
 		}
 
-		logger.Debug("Generating firing alerts message", "telegram_handler",
-			logger.Int("level", level),
-			logger.Int("firing_count", len(firingAlerts)),
-			logger.String("language", language))
+		zlogger.Debug("Generating firing alerts message", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
+			zlogger.Int("firing_count", len(firingAlerts)),
+			zlogger.String("language", language))
 
 		firingMessage := h.generateAlertManagerMessage(firingWebhook, language)
 
-		logger.Debug("Attempting to send firing alerts", "telegram_handler",
-			logger.Int("level", level),
-			logger.Int("message_length", len(firingMessage)))
+		zlogger.Debug("Attempting to send firing alerts", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
+			zlogger.Int("message_length", len(firingMessage)))
 
 		if err := telegramService.SendMessage(ctx, level, firingMessage); err != nil {
-			logger.Error("Failed to send firing alerts message", "telegram_handler",
-				logger.Int("level", level),
-				logger.String("error_detail", err.Error()))
+			zlogger.Error("Failed to send firing alerts message", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
+				zlogger.String("error_detail", err.Error()))
 			return fmt.Errorf("failed to send firing alerts: %v", err)
 		}
 
-		logger.Info("Firing alerts sent successfully", "telegram_handler",
-			logger.Int("level", level),
-			logger.Int("alerts_count", len(firingAlerts)))
+		zlogger.Info("Firing alerts sent successfully", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
+			zlogger.Int("alerts_count", len(firingAlerts)))
 	}
 
 	// 發送已解決的警報
@@ -591,27 +567,23 @@ func (h *Handler) sendSeparateAlertMessages(ctx context.Context, telegramService
 			TruncatedAlerts:   webhook.TruncatedAlerts,
 		}
 
-		logger.Debug("Generating resolved alerts message", "telegram_handler",
-			logger.Int("level", level),
-			logger.Int("resolved_count", len(resolvedAlerts)),
-			logger.String("language", language))
+		zlogger.Debug("Generating resolved alerts message", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
+			zlogger.Int("resolved_count", len(resolvedAlerts)),
+			zlogger.String("language", language))
 
 		resolvedMessage := h.generateAlertManagerMessage(resolvedWebhook, language)
 
-		logger.Debug("Attempting to send resolved alerts", "telegram_handler",
-			logger.Int("level", level),
-			logger.Int("message_length", len(resolvedMessage)))
+		zlogger.Debug("Attempting to send resolved alerts", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
+			zlogger.Int("message_length", len(resolvedMessage)))
 
 		if err := telegramService.SendMessage(ctx, level, resolvedMessage); err != nil {
-			logger.Error("Failed to send resolved alerts message", "telegram_handler",
-				logger.Int("level", level),
-				logger.String("error_detail", err.Error()))
+			zlogger.Error("Failed to send resolved alerts message", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
+				zlogger.String("error_detail", err.Error()))
 			return fmt.Errorf("failed to send resolved alerts: %v", err)
 		}
 
-		logger.Info("Resolved alerts sent successfully", "telegram_handler",
-			logger.Int("level", level),
-			logger.Int("alerts_count", len(resolvedAlerts)))
+		zlogger.Info("Resolved alerts sent successfully", zlogger.String("category", "telegram_handler"), zlogger.Int("level", level),
+			zlogger.Int("alerts_count", len(resolvedAlerts)))
 	}
 
 	return nil
@@ -821,17 +793,16 @@ func (h *Handler) getFormatOptionsForTelegram() template.FormatOptions {
 		if h.templateEngine != nil {
 			minimalConfig := h.templateEngine.GetMinimalDefaultConfig()
 			if minimalConfig != nil {
-				logger.Debug("Using minimal config FormatOptions for Telegram", "TelegramHandler",
-					logger.Bool("ShowEmoji", minimalConfig.FormatOptions.ShowEmoji.Enabled),
-					logger.Bool("ShowTimestamps", minimalConfig.FormatOptions.ShowTimestamps.Enabled),
-					logger.Bool("ShowGeneratorURL", minimalConfig.FormatOptions.ShowGeneratorURL.Enabled),
-					logger.Bool("ShowExternalURL", minimalConfig.FormatOptions.ShowExternalURL.Enabled))
+				zlogger.Debug("Using minimal config FormatOptions for Telegram", zlogger.String("category", "TelegramHandler"), zlogger.Bool("ShowEmoji", minimalConfig.FormatOptions.ShowEmoji.Enabled),
+					zlogger.Bool("ShowTimestamps", minimalConfig.FormatOptions.ShowTimestamps.Enabled),
+					zlogger.Bool("ShowGeneratorURL", minimalConfig.FormatOptions.ShowGeneratorURL.Enabled),
+					zlogger.Bool("ShowExternalURL", minimalConfig.FormatOptions.ShowExternalURL.Enabled))
 				return minimalConfig.FormatOptions
 			}
 		}
 
 		// 回退到硬編碼配置（如果模板引擎不可用）
-		logger.Debug("Fallback to hardcoded minimal FormatOptions for Telegram", "TelegramHandler")
+		zlogger.Debug("Fallback to hardcoded minimal FormatOptions for Telegram", zlogger.String("category", "TelegramHandler"))
 		return template.FormatOptions{
 			ShowLinks: struct {
 				Enabled     bool   `yaml:"enabled"`

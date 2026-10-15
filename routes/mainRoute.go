@@ -3,9 +3,9 @@ package routes
 
 import (
 	"alert-webhooks/config"
-	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/middleware"
 	v1 "alert-webhooks/routes/api/v1"
+	"github.com/vincent119/zlogger"
 	"io"
 	"net/http"
 	"os"
@@ -51,10 +51,10 @@ func setupSwaggerHost() {
 	// 動態設定 SwaggerInfo
 	if host != "" {
 		docs.SwaggerInfo.Host = host
-		logger.Info("Swagger host set", mainRouteString, logger.String("host", host))
+		zlogger.Info("Swagger host set", zlogger.String("category", mainRouteString), zlogger.String("host", host))
 	} else {
 		docs.SwaggerInfo.Host = ""
-		logger.Info("Swagger host set to auto-detect", mainRouteString)
+		zlogger.Info("Swagger host set to auto-detect", zlogger.String("category", mainRouteString))
 	}
 }
 
@@ -65,16 +65,16 @@ func setupGinMode() {
 	switch mode {
 	case "release", "production":
 		gin.SetMode(gin.ReleaseMode)
-		logger.Info("Gin mode set to release", mainRouteString)
+		zlogger.Info("Gin mode set to release", zlogger.String("category", mainRouteString))
 	case "debug", "development":
 		gin.SetMode(gin.DebugMode)
-		logger.Info("Gin mode set to debug", mainRouteString)
+		zlogger.Info("Gin mode set to debug", zlogger.String("category", mainRouteString))
 	case "test":
 		gin.SetMode(gin.TestMode)
-		logger.Info("Gin mode set to test", mainRouteString)
+		zlogger.Info("Gin mode set to test", zlogger.String("category", mainRouteString))
 	default:
 		gin.SetMode(gin.ReleaseMode)
-		logger.Warn("Unknown mode, defaulting to release", mainRouteString, logger.String("mode", mode))
+		zlogger.Warn("Unknown mode, defaulting to release", zlogger.String("category", mainRouteString), zlogger.String("mode", mode))
 	}
 }
 
@@ -121,13 +121,11 @@ func DefaultRoute() *gin.Engine {
 			"/swagger/*any",
 			"/swagger/doc.json",
 		})),
-
-	// logger.GinLogger()
 	)
 
 	// 設置信任代理
 	if err := setupTrustedProxies(routes); err != nil {
-		logger.Fatal("Failed to set trusted proxies", mainRouteString, logger.Err(err))
+		zlogger.Fatal("Failed to set trusted proxies", zlogger.String("category", mainRouteString), zlogger.Err(err))
 	}
 
 	// for load balancer health check
@@ -135,16 +133,6 @@ func DefaultRoute() *gin.Engine {
 
 	// 設置 Prometheus 監控
 	setupPrometheus(routes)
-
-	// // 如果是本地存儲，則配置靜態文件路由
-	// if config.Upload.StorageType == "local" {
-	// 	uploadPath := config.Upload.BasePath
-	// 	staticPathPrefix := "/uploads/"
-	// 	routes.Static(staticPathPrefix, uploadPath)
-	// 	logger.Info("Local file storage configured",
-	// 		logger.String("path", uploadPath),
-	// 		logger.String("url_prefix", staticPathPrefix))
-	// }
 
 	// Swagger API 文檔
 	routes.GET("/swagger/*any", middleware.BasicAuth(), ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -175,7 +163,7 @@ func setupTrustedProxies(r *gin.Engine) error {
 		}
 	}
 
-	logger.Debug("Setting trusted proxies", mainRouteString, logger.Any("proxies", trustedProxies))
+	zlogger.Debug("Setting trusted proxies", zlogger.String("category", mainRouteString), zlogger.Any("proxies", trustedProxies))
 	return r.SetTrustedProxies(trustedProxies)
 }
 
@@ -192,10 +180,10 @@ func setupPrometheus(r *gin.Engine) {
 	metricPassword := cfg.Metric.Password
 
 	if metricUser != "" && metricPassword != "" {
-		logger.Info("Authentication has been enabled for Prometheus metrics", mainRouteString)
+		zlogger.Info("Authentication has been enabled for Prometheus metrics", zlogger.String("category", mainRouteString))
 		p.UseWithAuth(r, gin.Accounts{metricUser: metricPassword})
 	} else {
-		logger.Warn("Authentication is not enabled for Prometheus metrics; it is recommended to enable it in production environments", mainRouteString)
+		zlogger.Warn("Authentication is not enabled for Prometheus metrics; it is recommended to enable it in production environments", zlogger.String("category", mainRouteString))
 
 		p.Use(r)
 	}

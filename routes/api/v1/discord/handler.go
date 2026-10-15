@@ -9,9 +9,9 @@ import (
 
 	"alert-webhooks/config"
 	"alert-webhooks/pkg/alertmodel"
-	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/notification/types"
 	"alert-webhooks/pkg/service"
+	"github.com/vincent119/zlogger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -523,7 +523,7 @@ func (h *Handler) generateAlertManagerMessage(alertData json.RawMessage) (string
 	// Parse AlertManager JSON
 	var req types.AlertManagerData
 	if err := json.Unmarshal(alertData, &req); err != nil {
-		logger.Error("Failed to parse AlertManager data", "DiscordHandler", logger.String("error", err.Error()))
+		zlogger.Error("Failed to parse AlertManager data", zlogger.String("category", "DiscordHandler"), zlogger.String("error", err.Error()))
 		return h.generateBuiltInMessage(alertData)
 	}
 
@@ -550,7 +550,7 @@ func (h *Handler) generateAlertManagerMessage(alertData json.RawMessage) (string
 			actual := templateEngine.GetDefaultLanguage(language)
 			message, err := templateEngine.RenderTemplateForPlatform(actual, "discord", data)
 			if err != nil {
-				logger.Error("Failed to render template, falling back to built-in", "DiscordHandler", logger.String("error", err.Error()))
+				zlogger.Error("Failed to render template, falling back to built-in", zlogger.String("category", "DiscordHandler"), zlogger.String("error", err.Error()))
 				return h.generateBuiltInMessage(alertData)
 			}
 			return message, nil

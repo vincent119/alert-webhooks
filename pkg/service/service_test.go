@@ -18,13 +18,13 @@ func TestServiceManagerRetiresBundleAfterLastLease(t *testing.T) {
 	manager := &ServiceManager{current: old}
 	lease := manager.Acquire()
 	if lease == nil {
-		t.Fatal("預期可取得舊服務 lease")
+		t.Fatal("expected old service lease to be available")
 	}
 
 	manager.swap(testBundle(nil))
 	select {
 	case <-closed:
-		t.Fatal("舊服務在 lease 釋放前即被關閉")
+		t.Fatal("old service was closed before the lease was released")
 	case <-time.After(50 * time.Millisecond):
 	}
 
@@ -32,16 +32,16 @@ func TestServiceManagerRetiresBundleAfterLastLease(t *testing.T) {
 	select {
 	case <-closed:
 	case <-time.After(time.Second):
-		t.Fatal("lease 釋放後未關閉舊服務")
+		t.Fatal("old service was not closed after the lease was released")
 	}
 
 	if current := manager.Acquire(); current == nil {
-		t.Fatal("交換後應可取得新服務 lease")
+		t.Fatal("new service lease should be available after swap")
 	} else {
 		current.Release()
 	}
 	if err := manager.Close(testContext(t)); err != nil {
-		t.Fatalf("關閉服務管理器失敗: %v", err)
+		t.Fatalf("close service manager failed: %v", err)
 	}
 }
 
@@ -52,17 +52,17 @@ func TestServiceManagerFailedReloadKeepsCurrentBundle(t *testing.T) {
 	if err := manager.reload(func() (*serviceBundle, error) {
 		return nil, buildErr
 	}); !errors.Is(err, buildErr) {
-		t.Fatalf("預期保留候選建立錯誤，實際為: %v", err)
+		t.Fatalf("expected candidate creation error to be preserved, got: %v", err)
 	}
 
 	manager.mu.RLock()
 	current := manager.current
 	manager.mu.RUnlock()
 	if current != old {
-		t.Fatal("候選建立失敗後不應替換現有服務")
+		t.Fatal("candidate creation failure must not replace the current service")
 	}
 	if err := manager.Close(testContext(t)); err != nil {
-		t.Fatalf("關閉服務管理器失敗: %v", err)
+		t.Fatalf("close service manager failed: %v", err)
 	}
 }
 
@@ -73,13 +73,13 @@ func TestServiceBundleCloseOnlyRunsOnce(t *testing.T) {
 		return nil
 	})
 	if err := bundle.close(); err != nil {
-		t.Fatalf("第一次關閉失敗: %v", err)
+		t.Fatalf("first close failed: %v", err)
 	}
 	if err := bundle.close(); err != nil {
-		t.Fatalf("第二次關閉失敗: %v", err)
+		t.Fatalf("second close failed: %v", err)
 	}
 	if got := calls.Load(); got != 1 {
-		t.Fatalf("關閉函式執行 %d 次，預期 1 次", got)
+		t.Fatalf("close function ran %d times, want 1 times", got)
 	}
 }
 
@@ -111,7 +111,7 @@ func TestServiceManagerConcurrentAcquireAndSwap(t *testing.T) {
 	close(stop)
 	workers.Wait()
 	if err := manager.Close(testContext(t)); err != nil {
-		t.Fatalf("並行交換後關閉服務管理器失敗: %v", err)
+		t.Fatalf("close service manager after concurrent swap failed: %v", err)
 	}
 }
 

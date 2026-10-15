@@ -2,10 +2,10 @@ package providers
 
 import (
 	"alert-webhooks/config"
-	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/notification/types"
 	"context"
 	"fmt"
+	"github.com/vincent119/zlogger"
 	"strings"
 	"time"
 
@@ -47,7 +47,7 @@ func NewSlackProvider(slackService SlackService, templateEngine types.TemplateEn
 		},
 	}
 
-	logger.Info("Slack provider initialized", "slack_provider")
+	zlogger.Info("Slack provider initialized", zlogger.String("category", "slack_provider"))
 	return provider, nil
 }
 
@@ -68,9 +68,8 @@ func (sp *SlackProvider) SendMessage(ctx context.Context, req *types.Notificatio
 		attribute.String("messaging.channel", req.Channel),
 	)
 
-	logger.Info("Sending Slack message", "slack_provider",
-		logger.String("level", req.Level),
-		logger.String("channel", req.Channel))
+	zlogger.Info("Sending Slack message", zlogger.String("category", "slack_provider"), zlogger.String("level", req.Level),
+		zlogger.String("channel", req.Channel))
 
 	var channel string
 	var err error
@@ -100,9 +99,8 @@ func (sp *SlackProvider) SendMessage(ctx context.Context, req *types.Notificatio
 		sp.stats.MessagesError++
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		logger.Error("Failed to send Slack message", "slack_provider",
-			logger.String("channel", channel),
-			logger.Err(err))
+		zlogger.Error("Failed to send Slack message", zlogger.String("category", "slack_provider"), zlogger.String("channel", channel),
+			zlogger.Err(err))
 		return err
 	}
 
@@ -110,8 +108,7 @@ func (sp *SlackProvider) SendMessage(ctx context.Context, req *types.Notificatio
 	sp.stats.MessagesSent++
 	sp.stats.LastMessageTime = time.Now().Unix()
 
-	logger.Info("Slack message sent successfully", "slack_provider",
-		logger.String("channel", channel))
+	zlogger.Info("Slack message sent successfully", zlogger.String("category", "slack_provider"), zlogger.String("channel", channel))
 
 	return nil
 }

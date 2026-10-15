@@ -16,7 +16,7 @@ func TestConfigWatcherStopCancelsPendingDebounce(t *testing.T) {
 	watcher.Stop()
 
 	if calls != 0 {
-		t.Fatalf("停止後仍執行 %d 次主設定重載", calls)
+		t.Fatalf("executed after stop %d main configuration reloads", calls)
 	}
 }
 
@@ -34,14 +34,14 @@ func TestConfigWatcherStopWaitsForRunningCallback(t *testing.T) {
 	select {
 	case <-started:
 	case <-time.After(time.Second):
-		t.Fatal("debounce callback 未開始")
+		t.Fatal("debounce callback did not start")
 	}
 
 	watcher.Stop()
 	select {
 	case <-finished:
 	case <-time.After(time.Second):
-		t.Fatal("Stop 未等待執行中的 callback 結束")
+		t.Fatal("Stop did not wait for the running callback to finish")
 	}
 }
 
@@ -71,7 +71,7 @@ func TestConfigWatcherDebouncesLatestEvent(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 	if calls[0] != "template" {
-		t.Fatalf("處理 %q，預期最後事件 template", calls[0])
+		t.Fatalf("handled %q, wantlast event template", calls[0])
 	}
 	watcher.Stop()
 }
@@ -105,5 +105,5 @@ func eventually(t *testing.T, condition func() bool) {
 		}
 		time.Sleep(time.Millisecond)
 	}
-	t.Fatal("條件未在期限內成立")
+	t.Fatal("condition was not met before the deadline")
 }

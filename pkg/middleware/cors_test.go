@@ -17,7 +17,7 @@ func TestCORSAllowsConfiguredOrigin(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	if response.Code != http.StatusNoContent {
-		t.Fatalf("狀態碼 = %d，預期 %d", response.Code, http.StatusNoContent)
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusNoContent)
 	}
 	if got := response.Header().Get("Access-Control-Allow-Origin"); got != "https://console.example.com" {
 		t.Fatalf("Access-Control-Allow-Origin = %q", got)
@@ -26,7 +26,7 @@ func TestCORSAllowsConfiguredOrigin(t *testing.T) {
 		t.Fatalf("Access-Control-Allow-Credentials = %q", got)
 	}
 	if got := response.Header().Get("Vary"); got != "Origin" {
-		t.Fatalf("Vary = %q，預期 Origin", got)
+		t.Fatalf("Vary = %q, want Origin", got)
 	}
 }
 
@@ -39,10 +39,10 @@ func TestCORSRejectsUnconfiguredOrigin(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	if got := response.Header().Get("Access-Control-Allow-Origin"); got != "" {
-		t.Fatalf("拒絕的 origin 仍收到 Allow-Origin: %q", got)
+		t.Fatalf("rejected origin still received Allow-Origin: %q", got)
 	}
 	if got := response.Header().Get("Access-Control-Allow-Credentials"); got != "" {
-		t.Fatalf("拒絕的 origin 仍收到 Allow-Credentials: %q", got)
+		t.Fatalf("rejected origin still received Allow-Credentials: %q", got)
 	}
 }
 
@@ -55,10 +55,10 @@ func TestCORSDoesNotAllowWildcardOrigin(t *testing.T) {
 	router.ServeHTTP(response, request)
 
 	if got := response.Header().Get("Access-Control-Allow-Origin"); got != "" {
-		t.Fatalf("wildcard 不得授權 origin，實際為 %q", got)
+		t.Fatalf("wildcard must not authorize origin, got %q", got)
 	}
 	if got := response.Header().Get("Access-Control-Allow-Credentials"); got != "" {
-		t.Fatalf("wildcard 不得允許 credentials，實際為 %q", got)
+		t.Fatalf("wildcard must not allow credentials, got %q", got)
 	}
 }
 

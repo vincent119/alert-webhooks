@@ -12,13 +12,13 @@ func TestCloseDiscordSessionAfterUserLookupFailurePreservesPrimaryError(t *testi
 
 	err := closeDiscordSessionAfterUserLookupFailure(session, userErr)
 	if !errors.Is(err, userErr) {
-		t.Fatalf("主要 user lookup 錯誤未保留：%v", err)
+		t.Fatalf("primary user lookup error was not preserved: %v", err)
 	}
 	if errors.Is(err, closeErr) {
-		t.Fatalf("cleanup 錯誤不應覆蓋主要錯誤：%v", err)
+		t.Fatalf("cleanup error must not replace the primary error: %v", err)
 	}
 	if got, want := session.closeCount, 1; got != want {
-		t.Fatalf("Discord session 關閉次數不正確：got %d, want %d", got, want)
+		t.Fatalf("Discord session close count is incorrect: got %d, want %d", got, want)
 	}
 }
 

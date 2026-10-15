@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"alert-webhooks/config"
-	"alert-webhooks/pkg/logger"
 	"alert-webhooks/pkg/notification/types"
+	"github.com/vincent119/zlogger"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -48,7 +48,7 @@ func NewTelegramProvider(telegramService TelegramService, templateEngine types.T
 		},
 	}
 
-	logger.Info("Telegram provider initialized", "telegram_provider")
+	zlogger.Info("Telegram provider initialized", zlogger.String("category", "telegram_provider"))
 	return provider, nil
 }
 
@@ -69,9 +69,8 @@ func (tp *TelegramProvider) SendMessage(ctx context.Context, req *types.Notifica
 		attribute.String("messaging.chat_id", req.ChatID),
 	)
 
-	logger.Info("Sending Telegram message", "telegram_provider",
-		logger.String("level", req.Level),
-		logger.String("chat_id", req.ChatID))
+	zlogger.Info("Sending Telegram message", zlogger.String("category", "telegram_provider"), zlogger.String("level", req.Level),
+		zlogger.String("chat_id", req.ChatID))
 
 	// 解析等級
 	level, err := tp.parseLevelFromRequest(req)
@@ -92,12 +91,11 @@ func (tp *TelegramProvider) SendMessage(ctx context.Context, req *types.Notifica
 			messagePreview += "..."
 		}
 
-		logger.Debug("Telegram provider sending message", "telegram_provider",
-			logger.String("level", req.Level),
-			logger.String("chat_id", req.ChatID),
-			logger.Int("parsed_level", level),
-			logger.String("message_length", fmt.Sprintf("%d", len(req.Message))),
-			logger.String("message_preview", messagePreview))
+		zlogger.Debug("Telegram provider sending message", zlogger.String("category", "telegram_provider"), zlogger.String("level", req.Level),
+			zlogger.String("chat_id", req.ChatID),
+			zlogger.Int("parsed_level", level),
+			zlogger.String("message_length", fmt.Sprintf("%d", len(req.Message))),
+			zlogger.String("message_preview", messagePreview))
 	}
 
 	// Send message
@@ -106,9 +104,8 @@ func (tp *TelegramProvider) SendMessage(ctx context.Context, req *types.Notifica
 		tp.stats.MessagesError++
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		logger.Error("Failed to send Telegram message", "telegram_provider",
-			logger.Int("level", level),
-			logger.Err(err))
+		zlogger.Error("Failed to send Telegram message", zlogger.String("category", "telegram_provider"), zlogger.Int("level", level),
+			zlogger.Err(err))
 		return err
 	}
 
@@ -116,9 +113,8 @@ func (tp *TelegramProvider) SendMessage(ctx context.Context, req *types.Notifica
 	tp.stats.MessagesSent++
 	tp.stats.LastMessageTime = time.Now().Unix()
 
-	logger.Info("Telegram message sent successfully", "telegram_provider",
-		logger.Int("level", level),
-		logger.Int64("messages_sent_total", tp.stats.MessagesSent))
+	zlogger.Info("Telegram message sent successfully", zlogger.String("category", "telegram_provider"), zlogger.Int("level", level),
+		zlogger.Int64("messages_sent_total", tp.stats.MessagesSent))
 
 	return nil
 }
