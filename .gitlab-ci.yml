@@ -1,5 +1,6 @@
 stages:
   - build_and_push
+  - container_scan
 
 variables:
   TimeZone: "Asia/Taipei"
@@ -45,3 +46,58 @@ build_and_push_ecr:
       -t "${IMAGE}" \
       --push \
       .
+
+container_cve_scan:
+  stage: container_scan
+  tags:
+    - gitlab-runner1-1
+  needs:
+    - job: build_and_push_ecr
+  allow_failure: true
+  rules:
+    - if: "$CI_COMMIT_TAG"
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+  script: |
+    set -euo pipefail
+    TAGS="${CI_COMMIT_TAG:-$(git describe --tags --abbrev=0 --always)}"
+    if [ -z "${TAGS}" ]; then TAGS="${CI_COMMIT_SHORT_SHA}"; fi
+
+    REPO_NAME="$(echo "${CI_PROJECT_NAME}" | tr '[:upper:]' '[:lower:]')"
+
+    if [ -z "${ECR_REGION:-}" ] || [ -z "${ECR_URL:-}" ]; then
+      echo "缺少必要變數：ECR_REGION 或 ECR_URL"; exit 1
+    fi
+
+    IMAGE_DIGEST="$(aws ecr describe-images \
+      --region "${ECR_REGION}" \
+      --repository-name "${REPO_NAME}" \
+      --image-ids imageTag="${TAGS}" \
+      --query 'imageDetails[0].imageDigest' \
+      --output text)"
+    if [ -z "${IMAGE_DIGEST}" ] || [ "${IMAGE_DIGEST}" = "None" ]; then
+      echo "無法解析 image digest"; exit 1
+    fi
+
+    IMAGE_REF="${ECR_URL}/${REPO_NAME}@${IMAGE_DIGEST}"
+
+    scan_image() {
+      platform="$1"
+      echo "掃描平台：${platform}"
+      aws ecr get-login-password --region "${ECR_REGION}" | \
+        docker run --rm -i \
+          public.ecr.aws/aquasecurity/trivy:0.75.0 \
+          image \
+          --image-src remote \
+          --username AWS \
+          --password-stdin \
+          --scanners vuln \
+          --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+          --format table \
+          --exit-code 0 \
+          --platform "${platform}" \
+          "${IMAGE_REF}"
+    }
+
+    scan_image linux/amd64
+    scan_image linux/arm64
