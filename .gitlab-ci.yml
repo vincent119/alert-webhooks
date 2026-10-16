@@ -7,11 +7,12 @@ variables:
   DOCKER_BUILDKIT: "1"
   GIT_DEPTH: "0"
   GIT_STRATEGY: fetch
+  GITLAB_RUNNER_TAGS: "gitlab-runner1-1"
 
 build_and_push_ecr:
   stage: build_and_push
   tags:
-    - gitlab-runner1-1
+    - ${GITLAB_RUNNER_TAGS}
   rules:
     - if: "$CI_COMMIT_TAG"
     - if: '$CI_COMMIT_BRANCH == "main"'
@@ -50,7 +51,7 @@ build_and_push_ecr:
 container_cve_scan:
   stage: container_scan
   tags:
-    - gitlab-runner1-1
+    - ${GITLAB_RUNNER_TAGS}
   needs:
     - job: build_and_push_ecr
   allow_failure: true
