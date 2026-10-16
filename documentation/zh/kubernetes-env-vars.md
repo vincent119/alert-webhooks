@@ -190,10 +190,12 @@ Override trace auth password from env var: [REDACTED]
 
 ## 完整範例
 
-查看 `kubernetes/deployment-example.yaml` 檔案以獲取完整的 Kubernetes 部署範例。
+請使用目前維護的 Kubernetes 部署指南：
+
+- [Helm 安裝指南](../../kubernetes/helm/alert-webhooks-chart/README.md)
+- [Kustomize 安裝指南](../../kubernetes/kustomize/README.md)
 
 ## 相關文件
 
-- [Kubernetes 基本配置](./kubernetes-basic.md)
 - [Telegram 設定指南](./telegram_setup.md)
 - [Slack 設定指南](./slack_setup.md)

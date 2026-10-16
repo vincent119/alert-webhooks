@@ -123,6 +123,8 @@ Complete setup and usage guides are available in multiple languages in the **[do
 - **[Configuration Guide](./documentation/en/config_guide.md)** - Detailed configuration instructions
 - **[Service Enable Configuration](./documentation/en/service-enable-config.md)** - Service enablement settings
 - **[Kubernetes Environment Variables](./documentation/en/kubernetes-env-vars.md)** - K8s deployment configuration
+- **[Helm Installation](./kubernetes/helm/alert-webhooks-chart/README.md)** - Install, upgrade, verify, and roll back with Helm
+- **[Kustomize Installation](./kubernetes/kustomize/README.md)** - Render, deploy, verify, and clean up with Kustomize
 - **[Swagger Troubleshooting](./documentation/en/swagger-troubleshooting.md)** - API documentation issue resolution
 
 #### 📝 Template System
@@ -524,7 +526,8 @@ alert-webhooks/
 │       ├── alert_template_tw.tmpl   # Traditional Chinese alert template
 │       └── alert_template_zh.tmpl   # Simplified Chinese alert template
 ├── kubernetes/                   # Kubernetes deployment configuration
-│   └── deployment-example.yaml  # Deployment example configuration
+│   ├── helm/                    # Helm chart and installation guide
+│   └── kustomize/               # Kustomize manifests and installation guide
 ├── docker-compose.yml           # Docker Compose configuration
 ├── docker-compose.dev.yml       # Development environment Docker Compose
 ├── Dockerfile                   # Docker image build file

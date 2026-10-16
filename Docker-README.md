@@ -142,37 +142,20 @@ docker exec -it alert-webhooks /bin/sh
 
 ## 🎯 Kubernetes 部署
 
-### 創建 Secret
+Repository 提供兩種 Kubernetes 部署方式。詳細的 Secret、image、Ingress、render、驗證與清理步驟請使用對應指南：
+
+- [Helm 安裝指南](./kubernetes/helm/alert-webhooks-chart/README.md)
+- [Kustomize 安裝指南](./kubernetes/kustomize/README.md)
+
+部署前先確認 Kubernetes context，並執行不會修改 cluster 的 render 驗證：
 
 ```bash
-kubectl create secret generic alert-webhooks-secrets \
-  --from-literal=telegram-token="your-telegram-token" \
-  --from-literal=slack-token="your-slack-token" \
-  --from-literal=metric-user="admin" \
-  --from-literal=metric-password="password" \
-  --from-literal=webhooks-user="admin" \
-  --from-literal=webhooks-password="password"
+kubectl config current-context
+helm lint kubernetes/helm/alert-webhooks-chart --values /secure/path/alert-webhooks-values.yaml
+kubectl kustomize kubernetes/kustomize > /tmp/alert-webhooks-kustomize.yaml
 ```
 
-### 部署應用
-
-```bash
-# 使用提供的 Kubernetes 部署文件
-kubectl apply -f kubernetes/deployment-example.yaml
-```
-
-### 查看部署狀態
-
-```bash
-# 查看 Pod 狀態
-kubectl get pods -l app=alert-webhooks
-
-# 查看日誌
-kubectl logs deployment/alert-webhooks
-
-# 查看服務
-kubectl get svc alert-webhooks-service
-```
+不要把實際 Secret 放入命令、shell history、CI log 或 repository。
 
 ## 📊 監控和日誌
 

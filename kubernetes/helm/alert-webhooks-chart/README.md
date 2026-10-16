@@ -16,13 +16,121 @@ A Helm chart for Alert Webhooks - Monitoring notification service
 
 * <https://github.com/vincent119/alert-webhooks>
 
+## 前置條件
+
+- 可連線的 Kubernetes cluster，以及具備目標 namespace 權限的 kubeconfig。
+- Helm 與 kubectl。macOS 可使用 Homebrew 安裝：
+
+```bash
+brew install helm kubectl
+helm version
+kubectl version --client
+kubectl config current-context
+```
+
+其他作業系統請參考 [Helm 安裝文件](https://helm.sh/docs/intro/install/) 與 [kubectl 安裝文件](https://kubernetes.io/docs/tasks/tools/)。執行部署前，必須確認 `kubectl config current-context` 指向正確 cluster。
+
 ## 安全設定
 
 Chart 不提供 webhook、metric 或通知服務 Token 的預設值。安裝時必須以私有 values 檔提供 `secrets.metric.user`、`secrets.metric.password`、`secrets.webhooks.user` 與 `secrets.webhooks.password`。
 
 當 `config.telegram.enable`、`config.slack.enable` 或 `config.discord.enable` 為 `true` 時，必須分別提供對應的 `secrets.<service>.token`。Trace 認證維持選填。
 
-請勿將實際憑證提交至 repository，並避免在 shell history 或 CI log 以明文傳遞。可使用受控的私有 values 檔進行安裝。
+請勿將實際憑證提交至 repository，也不要透過 `--set` 把 Secret 留在 shell history 或 CI log。私有 values 檔應放在 repository 外，並限制檔案權限。
+
+以下最小範例停用通知服務；需要啟用時再於私有 values 檔加入對應 Token：
+
+```yaml
+ingress:
+  enabled: false
+
+config:
+  telegram:
+    enable: false
+  slack:
+    enable: false
+  discord:
+    enable: false
+
+secrets:
+  metric:
+    user: "REPLACE_METRIC_USER"
+    password: "REPLACE_METRIC_PASSWORD"
+  webhooks:
+    user: "REPLACE_WEBHOOKS_USER"
+    password: "REPLACE_WEBHOOKS_PASSWORD"
+```
+
+## 安裝與升級
+
+以下命令預設從 repository root 執行。先指定 repository 外的私有 values 路徑：
+
+```bash
+PRIVATE_VALUES_FILE=/secure/path/alert-webhooks-values.yaml
+CHART_DIR=kubernetes/helm/alert-webhooks-chart
+```
+
+先執行本機驗證，不連線修改 cluster：
+
+```bash
+helm lint "${CHART_DIR}" --values "${PRIVATE_VALUES_FILE}"
+helm template alert-webhooks "${CHART_DIR}" \
+  --namespace alert-webhooks \
+  --values "${PRIVATE_VALUES_FILE}" \
+  > /tmp/alert-webhooks-rendered.yaml
+```
+
+確認 render 結果後安裝或升級：
+
+```bash
+helm upgrade --install alert-webhooks "${CHART_DIR}" \
+  --namespace alert-webhooks \
+  --create-namespace \
+  --values "${PRIVATE_VALUES_FILE}" \
+  --atomic \
+  --wait \
+  --timeout 5m
+```
+
+## 驗證部署
+
+```bash
+helm status alert-webhooks --namespace alert-webhooks
+kubectl get pods,service,ingress --namespace alert-webhooks
+kubectl rollout status deployment \
+  --namespace alert-webhooks \
+  --selector app.kubernetes.io/instance=alert-webhooks \
+  --timeout 5m
+```
+
+## 回滾與移除
+
+先查看 release revision，再指定實際 revision 回滾：
+
+```bash
+helm history alert-webhooks --namespace alert-webhooks
+REVISION_NUMBER=1
+helm rollback alert-webhooks "${REVISION_NUMBER}" \
+  --namespace alert-webhooks \
+  --wait \
+  --timeout 5m
+```
+
+移除 release：
+
+```bash
+helm uninstall alert-webhooks --namespace alert-webhooks
+```
+
+`helm uninstall` 不會自動刪除 namespace。刪除 namespace 前，先確認其中沒有其他工作負載。
+
+## 維護 README
+
+人工內容維護於 `README.md.gotmpl`，values 表格由固定版本的 `helm-docs` 產生：
+
+```bash
+make helm-docs
+```
 
 ## Values
 
@@ -166,13 +274,22 @@ Chart 不提供 webhook、metric 或通知服務 Token 的預設值。安裝時�
 | config.telegram.enable | bool | `true` |  |
 | config.telegram.template_language | string | `"tw"` |  |
 | config.telegram.template_mode | string | `"full"` |  |
+| config.trace.authPasswd | string | `""` |  |
+| config.trace.authUser | string | `""` |  |
+| config.trace.enable | bool | `false` |  |
+| config.trace.insecure | bool | `false` |  |
+| config.trace.port | string | `""` |  |
+| config.trace.sampleRate | float | `1` |  |
+| config.trace.tlsSkipVerify | bool | `false` |  |
+| config.trace.url | string | `""` |  |
+| config.trace.urlPath | string | `""` |  |
 | config.webhooks.enable | bool | `true` |  |
 | env[0].name | string | `"SWAGGER_HOST"` |  |
 | env[0].value | string | `"alert-webhooks.domain.com"` |  |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"vincent119/alert-webhooks"` |  |
-| image.tag | string | `"v1.0.0"` |  |
+| image.tag | string | `"v1.0.1"` |  |
 | imagePullSecrets | list | `[]` |  |
 | ingress.annotations."alb.ingress.kubernetes.io/backend-protocol" | string | `"HTTP"` |  |
 | ingress.annotations."alb.ingress.kubernetes.io/certificate-arn" | string | `"arn:aws:acm:ap-northeast-1:{aws_account}:certificate/hash"` |  |
@@ -210,13 +327,15 @@ Chart 不提供 webhook、metric 或通知服務 Token 的預設值。安裝時�
 | resources.limits.memory | string | `"512Mi"` |  |
 | resources.requests.cpu | string | `"200m"` |  |
 | resources.requests.memory | string | `"256Mi"` |  |
-| secrets.discord.token | string | `""` | 當 `config.discord.enable=true` 時必填 |
-| secrets.metric.password | string | `""` | 必填 |
-| secrets.metric.user | string | `""` | 必填 |
-| secrets.slack.token | string | `""` | 當 `config.slack.enable=true` 時必填 |
-| secrets.telegram.token | string | `""` | 當 `config.telegram.enable=true` 時必填 |
-| secrets.webhooks.password | string | `""` | 必填 |
-| secrets.webhooks.user | string | `""` | 必填 |
+| secrets.discord.token | string | `""` |  |
+| secrets.metric.password | string | `""` |  |
+| secrets.metric.user | string | `""` |  |
+| secrets.slack.token | string | `""` |  |
+| secrets.telegram.token | string | `""` |  |
+| secrets.trace.authPasswd | string | `""` |  |
+| secrets.trace.authUser | string | `""` |  |
+| secrets.webhooks.password | string | `""` |  |
+| secrets.webhooks.user | string | `""` |  |
 | securityContext | object | `{}` |  |
 | service.port | int | `80` |  |
 | service.targetPort | int | `9999` |  |

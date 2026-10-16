@@ -192,10 +192,12 @@ Override trace auth password from env var: [REDACTED]
 
 ## Complete Example
 
-See `kubernetes/deployment-example.yaml` file for a complete Kubernetes deployment example.
+Use one of the maintained Kubernetes deployment guides:
+
+- [Helm installation](../../kubernetes/helm/alert-webhooks-chart/README.md)
+- [Kustomize installation](../../kubernetes/kustomize/README.md)
 
 ## Related Documentation
 
-- [Kubernetes Basic Configuration](./kubernetes-basic.md)
 - [Telegram Setup Guide](./telegram_setup.md)
 - [Slack Setup Guide](./slack_setup.md)

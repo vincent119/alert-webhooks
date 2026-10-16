@@ -2,8 +2,11 @@ SHELL := /bin/bash
 
 # Makefile for Alert Webhooks project
 
-.PHONY: swagger-generate print-swag-dirs swagger-clean swagger-manual run dev test build deps fmt lint upgrade-swag \
+.PHONY: swagger-generate print-swag-dirs swagger-clean swagger-manual helm-docs run dev test build deps fmt lint upgrade-swag \
         docker-build docker-build-dev docker-run docker-dev docker-stop docker-clean docker-logs docker-logs-dev docker-shell help
+
+HELM_DOCS_VERSION := 1.14.2
+HELM_DOCS_CHART_ROOT := kubernetes/helm
 
 # Generate Swagger documentation
 SWAG_DIRS := cmd,$(shell \
@@ -37,6 +40,12 @@ swagger-manual:
 swagger-fix:
 	@echo "Fixing Swagger documentation issues..."
 	@go run scripts/fix_swagger_docs.go
+
+helm-docs:
+	@command -v helm-docs >/dev/null 2>&1 || (echo "請先安裝 helm-docs $(HELM_DOCS_VERSION)"; exit 1)
+	@test "$$(helm-docs --version 2>&1)" = "helm-docs version $(HELM_DOCS_VERSION)" || \
+		(echo "helm-docs 版本必須為 $(HELM_DOCS_VERSION)"; exit 1)
+	@helm-docs --chart-search-root "$(HELM_DOCS_CHART_ROOT)" --template-files README.md.gotmpl
 
 # Run in development mode
 dev:
@@ -156,6 +165,7 @@ help:
 	@echo "  swagger-manual   - Manually regenerate Swagger documentation"
 	@echo "  swagger-fix      - Fix Swagger documentation issues"
 	@echo "  upgrade-swag     - Upgrade swag tool"
+	@echo "  helm-docs        - 重新產生 Helm Chart README"
 	@echo ""
 	@echo "Utility commands:"
 	@echo "  deps             - Install dependencies"

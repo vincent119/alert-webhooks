@@ -123,6 +123,8 @@ go run cmd/main.go -e production
 - **[配置指南](./documentation/zh/config_guide.md)** - 詳細配置說明
 - **[服務啟用配置](./documentation/zh/service-enable-config.md)** - 服務啟用設定
 - **[Kubernetes 環境變數](./documentation/zh/kubernetes-env-vars.md)** - K8s 部署配置
+- **[Helm 安裝指南](./kubernetes/helm/alert-webhooks-chart/README.md)** - 使用 Helm 安裝、升級、驗證與回滾
+- **[Kustomize 安裝指南](./kubernetes/kustomize/README.md)** - 使用 Kustomize render、部署、驗證與清理
 - **[Swagger 疑難排解](./documentation/zh/swagger-troubleshooting.md)** - API 文檔問題解決
 
 #### 📝 模板系統
@@ -532,7 +534,8 @@ alert-webhooks/
 │       ├── alert_template_tw.tmpl   # 繁體中文警報模板
 │       └── alert_template_zh.tmpl   # 簡體中文警報模板
 ├── kubernetes/                   # Kubernetes 部署配置
-│   └── deployment-example.yaml  # 部署範例配置
+│   ├── helm/                    # Helm chart 與安裝指南
+│   └── kustomize/               # Kustomize manifests 與安裝指南
 ├── docker-compose.yml           # Docker Compose 配置
 ├── docker-compose.dev.yml       # 開發環境 Docker Compose
 ├── Dockerfile                   # Docker 映像構建文件

@@ -9,6 +9,8 @@ This directory contains comprehensive English documentation for the Alert Webhoo
 - **[config_guide.md](./config_guide.md)** - Detailed configuration file guide
 - **[service-enable-config.md](./service-enable-config.md)** - Service enable configuration guide
 - **[kubernetes-env-vars.md](./kubernetes-env-vars.md)** - Kubernetes environment variables configuration
+- **[Helm installation](../../kubernetes/helm/alert-webhooks-chart/README.md)** - Helm prerequisites, installation, upgrade, and rollback
+- **[Kustomize installation](../../kubernetes/kustomize/README.md)** - Kustomize prerequisites, deployment, verification, and cleanup
 - **[telegram_setup.md](./telegram_setup.md)** - Telegram bot setup guide
 - **[slack_setup.md](./slack_setup.md)** - Slack bot setup guide
 - **[template_mode_config.md](./template_mode_config.md)** - Template mode configuration
