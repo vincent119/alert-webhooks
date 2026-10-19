@@ -39,3 +39,7 @@ bin/
 .aws/
 
 kubernetes/helm/alert-webhooks-chart/values-*.yaml
+
+
+
+temp.md
