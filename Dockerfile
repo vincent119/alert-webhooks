@@ -54,6 +54,7 @@ ENV TZ=${timezone}
 # Install runtime dependencies
 RUN apk add --no-cache \
     "zlib>=1.3.2-r1" \
+    "curl>=8.23.0-r0" \
     ca-certificates \
     tzdata \
     curl \

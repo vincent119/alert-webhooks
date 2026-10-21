@@ -73,6 +73,14 @@ func TestNewConfigPatchUsesDefaultsForUnsupportedLegacyValues(t *testing.T) {
 	}
 }
 
+func TestSupportedOutputsNormalizesAndDeduplicatesValues(t *testing.T) {
+	got := supportedOutputs(" CONSOLE,console,file,unknown ")
+	want := []string{"console", "file"}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("supportedOutputs() = %v，預期 %v", got, want)
+	}
+}
+
 func TestConfigureWritesCategoryAndContextFields(t *testing.T) {
 	logPath := t.TempDir()
 	cleanup, err := zlogger.Configure(newConfigPatch(config.LogConf{

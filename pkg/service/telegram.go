@@ -22,13 +22,36 @@ import (
 // TelegramService Telegram 服務
 type TelegramService struct {
 	bot     *bot.Bot
+	client  telegramBotClient
 	mu      sync.RWMutex
 	chatIDs map[int]int64 // level -> chat_id 映射
 }
 
+type telegramBotClient interface {
+	ID() int64
+	GetMe(context.Context) (*models.User, error)
+	SendMessage(context.Context, *bot.SendMessageParams) (*models.Message, error)
+}
+
+type telegramServiceDependencies struct {
+	currentConfig func() config.Config
+	newBot        func(string, ...bot.Option) (telegramBotClient, error)
+	sleep         func(time.Duration)
+}
+
 // NewTelegramService 創建新的 Telegram 服務
 func NewTelegramService(token string) (*TelegramService, error) {
-	cfg := config.Current()
+	return newTelegramService(token, telegramServiceDependencies{
+		currentConfig: config.Current,
+		newBot: func(token string, options ...bot.Option) (telegramBotClient, error) {
+			return bot.New(token, options...)
+		},
+		sleep: time.Sleep,
+	})
+}
+
+func newTelegramService(token string, dependencies telegramServiceDependencies) (*TelegramService, error) {
+	cfg := dependencies.currentConfig()
 	if token == "" {
 		return nil, fmt.Errorf("telegram token is required")
 	}
@@ -46,7 +69,7 @@ func NewTelegramService(token string) (*TelegramService, error) {
 	zlogger.Info("Creating Telegram bot with extended timeout", zlogger.String("category", "telegram_service"), zlogger.String("timeout", "30s"))
 
 	// 嘗試多次創建 bot，處理網絡連接問題
-	var b *bot.Bot
+	var client telegramBotClient
 	var err error
 	maxRetries := 3
 
@@ -54,7 +77,7 @@ func NewTelegramService(token string) (*TelegramService, error) {
 		zlogger.Info("Attempting to create Telegram bot", zlogger.String("category", "telegram_service"), zlogger.Int("attempt", attempt),
 			zlogger.Int("max_attempts", maxRetries))
 
-		b, err = bot.New(token, opts...)
+		client, err = dependencies.newBot(token, opts...)
 		if err == nil {
 			zlogger.Info("Telegram bot created successfully", zlogger.String("category", "telegram_service"), zlogger.Int("attempt", attempt))
 			break
@@ -66,7 +89,7 @@ func NewTelegramService(token string) (*TelegramService, error) {
 		if attempt < maxRetries {
 			backoffTime := time.Duration(attempt) * 2 * time.Second
 			zlogger.Info("Retrying in", zlogger.String("category", "telegram_service"), zlogger.String("backoff", backoffTime.String()))
-			time.Sleep(backoffTime)
+			dependencies.sleep(backoffTime)
 		}
 	}
 
@@ -119,8 +142,11 @@ func NewTelegramService(token string) (*TelegramService, error) {
 	}
 
 	ts := &TelegramService{
-		bot:     b,
+		client:  client,
 		chatIDs: chatIDs,
+	}
+	if concreteBot, ok := client.(*bot.Bot); ok {
+		ts.bot = concreteBot
 	}
 
 	// 測試機器人連接
@@ -128,7 +154,7 @@ func NewTelegramService(token string) (*TelegramService, error) {
 		return nil, fmt.Errorf("failed to test bot connection: %v", err)
 	}
 
-	zlogger.Info("Telegram service initialized successfully", zlogger.String("category", "telegram"), zlogger.String("bot_id", fmt.Sprintf("%d", b.ID())))
+	zlogger.Info("Telegram service initialized successfully", zlogger.String("category", "telegram"), zlogger.String("bot_id", fmt.Sprintf("%d", client.ID())))
 
 	return ts, nil
 }
@@ -136,7 +162,7 @@ func NewTelegramService(token string) (*TelegramService, error) {
 // testConnection 測試機器人連接
 func (ts *TelegramService) testConnection() error {
 	ctx := context.Background()
-	me, err := ts.bot.GetMe(ctx)
+	me, err := ts.client.GetMe(ctx)
 	if err != nil {
 		return err
 	}
@@ -162,7 +188,7 @@ func (ts *TelegramService) SendMessage(ctx context.Context, level int, message s
 	defer ts.mu.RUnlock()
 
 	// 檢查是否為降級模式
-	if ts.bot == nil {
+	if ts.client == nil {
 		err := fmt.Errorf("telegram service is in degraded mode - bot initialization failed")
 		zlogger.Error("Telegram service is in degraded mode - bot not available", zlogger.String("category", "telegram_service"), zlogger.Int("level", level),
 			zlogger.String("message_preview", getMessagePreview(message)))
@@ -208,7 +234,7 @@ func (ts *TelegramService) SendMessage(ctx context.Context, level int, message s
 			zlogger.String("message_preview", getMessagePreview(message)))
 	}
 
-	response, err := ts.bot.SendMessage(ctx, params)
+	response, err := ts.client.SendMessage(ctx, params)
 	if err != nil {
 		zlogger.Error("Failed to send Telegram message", zlogger.String("category", "telegram_service"), zlogger.Int("level", level),
 			zlogger.Int64("chat_id", chatID),
@@ -277,5 +303,5 @@ func (ts *TelegramService) GetBot() *bot.Bot {
 // GetBotInfo 獲取機器人資訊
 func (ts *TelegramService) GetBotInfo() (interface{}, error) {
 	ctx := context.Background()
-	return ts.bot.GetMe(ctx)
+	return ts.client.GetMe(ctx)
 }

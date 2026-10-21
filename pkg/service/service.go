@@ -286,10 +286,24 @@ func (sm *ServiceManager) initializeNotificationManager(b *serviceBundle) {
 	}
 }
 
+type serviceFactorySet struct {
+	newTelegram func(string) (*TelegramService, error)
+	newSlack    func(string) (*SlackService, error)
+	newDiscord  func(config.DiscordConf) (*DiscordService, error)
+}
+
 func buildServiceBundle(cfg config.Config, strict bool) (*serviceBundle, error) {
+	return buildServiceBundleWithFactories(cfg, strict, serviceFactorySet{
+		newTelegram: NewTelegramService,
+		newSlack:    NewSlackService,
+		newDiscord:  NewDiscordService,
+	})
+}
+
+func buildServiceBundleWithFactories(cfg config.Config, strict bool, factories serviceFactorySet) (*serviceBundle, error) {
 	b := &serviceBundle{drained: make(chan struct{})}
 	if cfg.Telegram.Enable && cfg.Telegram.Token != "" {
-		s, e := NewTelegramService(cfg.Telegram.Token)
+		s, e := factories.newTelegram(cfg.Telegram.Token)
 		if e != nil {
 			if strict {
 				return nil, fmt.Errorf("建立 Telegram 服務失敗: %w", e)
@@ -300,7 +314,7 @@ func buildServiceBundle(cfg config.Config, strict bool) (*serviceBundle, error) 
 		}
 	}
 	if cfg.Slack.Enable && cfg.Slack.Token != "" {
-		s, e := NewSlackService(cfg.Slack.Token)
+		s, e := factories.newSlack(cfg.Slack.Token)
 		if e != nil {
 			if strict {
 				return nil, fmt.Errorf("建立 Slack 服務失敗: %w", e)
@@ -310,7 +324,7 @@ func buildServiceBundle(cfg config.Config, strict bool) (*serviceBundle, error) 
 		}
 	}
 	if cfg.Discord.Enable && cfg.Discord.Token != "" {
-		s, e := NewDiscordService(cfg.Discord)
+		s, e := factories.newDiscord(cfg.Discord)
 		if e != nil {
 			if strict {
 				return nil, fmt.Errorf("建立 Discord 服務失敗: %w", e)

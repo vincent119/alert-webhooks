@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -79,4 +81,88 @@ func TestRequestBodyLimit(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRequestBodyLimitSkipsWhenLimitOrBodyDoesNotRequireReading(t *testing.T) {
+	tests := []struct {
+		name      string
+		limit     int64
+		body      io.Reader
+		setNoBody bool
+	}{
+		{name: "非正數上限", limit: 0, body: strings.NewReader("payload")},
+		{name: "沒有 request body", limit: 10, setNoBody: true},
+		{name: "空 request body", limit: 10, body: strings.NewReader("")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gin.SetMode(gin.TestMode)
+			router := gin.New()
+			router.Use(RequestBodyLimit(tt.limit))
+			router.POST("/", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+			request := httptest.NewRequest(http.MethodPost, "/", tt.body)
+			if tt.setNoBody {
+				request.Body = nil
+			}
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+
+			if response.Code != http.StatusNoContent {
+				t.Fatalf("status = %d, want %d", response.Code, http.StatusNoContent)
+			}
+		})
+	}
+}
+
+func TestRequestBodyLimitRejectsReadOrCloseFailure(t *testing.T) {
+	tests := []struct {
+		name string
+		body io.ReadCloser
+	}{
+		{name: "讀取失敗", body: &failingRequestBody{readErr: errors.New("read failed")}},
+		{name: "關閉失敗", body: &failingRequestBody{content: []byte("ok"), closeErr: errors.New("close failed")}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gin.SetMode(gin.TestMode)
+			router := gin.New()
+			router.Use(RequestBodyLimit(10))
+			router.POST("/", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+			request := httptest.NewRequest(http.MethodPost, "/", nil)
+			request.Body = tt.body
+			request.ContentLength = -1
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+
+			if response.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want %d", response.Code, http.StatusBadRequest)
+			}
+		})
+	}
+}
+
+type failingRequestBody struct {
+	content  []byte
+	readErr  error
+	closeErr error
+	read     bool
+}
+
+func (b *failingRequestBody) Read(p []byte) (int, error) {
+	if b.readErr != nil {
+		return 0, b.readErr
+	}
+	if b.read {
+		return 0, io.EOF
+	}
+	b.read = true
+	return copy(p, b.content), nil
+}
+
+func (b *failingRequestBody) Close() error {
+	return b.closeErr
 }

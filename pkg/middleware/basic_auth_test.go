@@ -131,6 +131,39 @@ func TestCredentialsMatchRequiresBothCredentials(t *testing.T) {
 	}
 }
 
+func TestBasicAuthWithConfig(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(BasicAuthWithConfig("test-user", "test-password"))
+	router.GET("/protected", func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+
+	tests := []struct {
+		name       string
+		username   string
+		password   string
+		wantStatus int
+	}{
+		{name: "正確認證", username: "test-user", password: "test-password", wantStatus: http.StatusNoContent},
+		{name: "錯誤認證", username: "test-user", password: "invalid", wantStatus: http.StatusUnauthorized},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "/protected", nil)
+			request.SetBasicAuth(tt.username, tt.password)
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			if response.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", response.Code, tt.wantStatus)
+			}
+		})
+	}
+}
+
 func newBasicAuthTestRouter(t *testing.T, enabled bool, username, password string) *gin.Engine {
 	t.Helper()
 	originalWebhooks := config.Webhooks

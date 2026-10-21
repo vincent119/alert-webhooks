@@ -75,13 +75,12 @@ type SlackResponse struct {
 
 // NewSlackService 創建新的 Slack 服務
 func NewSlackService(token string) (*SlackService, error) {
-	cfg := config.Current()
+	return newSlackService(token, config.Current(), &http.Client{Timeout: 30 * time.Second})
+}
+
+func newSlackService(token string, cfg config.Config, client *http.Client) (*SlackService, error) {
 	if token == "" {
 		return nil, fmt.Errorf("slack token is required")
-	}
-
-	client := &http.Client{
-		Timeout: 30 * time.Second,
 	}
 
 	// 從配置檔案讀取頻道映射
