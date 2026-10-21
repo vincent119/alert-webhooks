@@ -7,6 +7,9 @@ ARG GOLANG_ALPINE_VERSION=3.24
 # -----------------------------------------------------------------------------
 FROM --platform=$BUILDPLATFORM golang:${GOLANG_VERSION}-alpine${GOLANG_ALPINE_VERSION}@sha256:f92b6ef800e499660581efdabdf25d9d817a9d124eaf900924f0504e7e27e12d AS builder
 
+ARG TARGETOS
+ARG TARGETARCH
+
 # Install build dependencies
 RUN apk add --no-cache \
     git \
@@ -31,10 +34,10 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Copy source code
 COPY . .
 
-# Cross-compile for linux/amd64（Go 原生支援，不需要 QEMU）
+# 依 BuildKit 目標平台交叉編譯，避免 arm64 image 包入 amd64 binary。
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    CGO_ENABLED=0 GOOS="${TARGETOS}" GOARCH="${TARGETARCH}" \
     go build -trimpath -ldflags="-s -w" -o /build/alert-webhooks ./cmd/main.go
 
 # Verify the binary
