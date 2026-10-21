@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.0.7] - 2026-10-21
+
+### Added
+- Added Helm and Kustomize deployment guides covering validation, upgrade, rollback, and cleanup procedures.
+
+### Changed
+- Migrated application logging to zlogger v1.2.0 and integrated logger cleanup with graceful shutdown.
+- Pinned Docker builder and runtime base images to verified digests while retaining amd64 and arm64 builds.
+
+### Security
+- Restricted browser CORS to configured origins, hardened webhook Basic Auth comparison, and redacted sensitive notification payloads and handler error responses.
+- Updated container dependencies and added multi-platform container vulnerability verification to the release workflow.
+
+### Fixed
+- Serialized configuration reload callbacks, applied HTTP request resource limits, and propagated request context through Slack delivery.
+- Corrected Telegram HTML escaping and handled resource-cleanup failures without masking primary errors.
+
 ## [v2.0.6] - 2026-04-14
 
 ### Added

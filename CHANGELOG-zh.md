@@ -5,6 +5,23 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/)，
 版本號遵循 [語意化版本](https://semver.org/lang/zh-TW/spec/v2.0.0.html)。
 
+## [v2.0.7] - 2026-10-21
+
+### 新增
+- 新增 Helm 與 Kustomize 部署指南，涵蓋驗證、升級、回滾與清理程序。
+
+### 變更
+- 將應用程式日誌遷移至 zlogger v1.2.0，並將日誌清理納入優雅關閉流程。
+- 固定 Docker builder 與 runtime base image 的已驗證 digest，同時保留 amd64 與 arm64 建置。
+
+### 安全性
+- 將瀏覽器 CORS 限制為明確設定的來源，強化 webhook Basic Auth 比對，並遮罩通知 payload 與 handler error response 中的敏感資料。
+- 更新容器相依套件，並在發布流程加入雙平台容器弱點驗證。
+
+### 修正
+- 序列化設定重載 callback、套用 HTTP request 資源限制，並將 request context 傳遞至 Slack 發送流程。
+- 修正 Telegram HTML escaping，並處理資源 cleanup failure，避免覆蓋主要錯誤。
+
 ## [v2.0.6] - 2026-04-14
 
 ### 新增
