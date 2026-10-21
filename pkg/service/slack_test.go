@@ -21,7 +21,6 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	defer os.RemoveAll(logPath)
 
 	level := "info"
 	format := "json"
@@ -41,6 +40,9 @@ func TestMain(m *testing.M) {
 	slackLogFile = filepath.Join(logPath, fileName)
 	code := m.Run()
 	if err := cleanup(); err != nil && code == 0 {
+		code = 1
+	}
+	if err := os.RemoveAll(logPath); err != nil && code == 0 {
 		code = 1
 	}
 	os.Exit(code)
