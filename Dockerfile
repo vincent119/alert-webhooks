@@ -5,7 +5,7 @@ ARG GOLANG_ALPINE_VERSION=3.24
 # -----------------------------------------------------------------------------
 # Stage 1: Builder（使用本機架構編譯，Go cross-compile 產出目標平台 binary）
 # -----------------------------------------------------------------------------
-FROM --platform=$BUILDPLATFORM golang:${GOLANG_VERSION}-alpine${GOLANG_ALPINE_VERSION} AS builder
+FROM --platform=$BUILDPLATFORM golang:${GOLANG_VERSION}-alpine${GOLANG_ALPINE_VERSION}@sha256:f92b6ef800e499660581efdabdf25d9d817a9d124eaf900924f0504e7e27e12d AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -43,7 +43,7 @@ RUN file /build/alert-webhooks && ls -la /build/alert-webhooks
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime（使用目標平台架構）
 # -----------------------------------------------------------------------------
-FROM alpine:${ALPINE_VERSION} AS runtime
+FROM alpine:${ALPINE_VERSION}@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS runtime
 
 ARG timezone=UTC
 ENV TZ=${timezone}
