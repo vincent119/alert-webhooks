@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.0.8] - 2026-10-21
+
+### Added
+- Added a GitHub release-tag workflow for validating and publishing immutable Docker Hub images for linux/amd64 and linux/arm64.
+
+### Security
+- Excluded environment-specific configuration files from the Docker build context to prevent local credentials from entering image layers.
+- Restricted public image publishing to semantic version tags, read-only source permissions, pinned action revisions, and non-overwriting Docker Hub tags.
+
+### Fixed
+- Fixed multi-platform Docker builds so each image contains a binary compiled for its BuildKit target operating system and architecture.
+
 ## [v2.0.7] - 2026-10-21
 
 ### Added

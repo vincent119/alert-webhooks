@@ -5,6 +5,18 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/)，
 版本號遵循 [語意化版本](https://semver.org/lang/zh-TW/spec/v2.0.0.html)。
 
+## [v2.0.8] - 2026-10-21
+
+### 新增
+- 新增 GitHub release tag workflow，用於驗證並發布 linux/amd64 與 linux/arm64 的不可變 Docker Hub 映像。
+
+### 安全性
+- 從 Docker build context 排除環境專用設定檔，防止本機 credential 進入映像 layer。
+- 將公開映像發布限制為語意化版本 tag、唯讀 source 權限、固定 action revision 與不可覆寫的 Docker Hub tag。
+
+### 修正
+- 修正多平台 Docker 建置，確保每個映像包含依 BuildKit 目標作業系統與架構編譯的 binary。
+
 ## [v2.0.7] - 2026-10-21
 
 ### 新增
