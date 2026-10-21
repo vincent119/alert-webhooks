@@ -11,6 +11,10 @@
 .env.local
 .env.development
 .env.test
+configs/config.yaml
+configs/config.*.yaml
+configs/**/config.yaml
+configs/**/config.*.yaml
 
 # Documentation (exclude from Docker image)
 *.md

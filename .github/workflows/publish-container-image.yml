@@ -1,0 +1,259 @@
+name: 發布公開 container image
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "既有 application release tag，例如 v2.0.13"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-container-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: 驗證並發布 Docker Hub image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      IMAGE_NAME: docker.io/vincent119/alert-webhooks
+
+    steps:
+      - name: 解析 release tag
+        id: release
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            release_tag="${INPUT_TAG}"
+          else
+            release_tag="${GITHUB_REF_NAME}"
+          fi
+
+          if [[ ! "${release_tag}" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "release tag 必須符合 v<major>.<minor>.<patch>" >&2
+            exit 1
+          fi
+
+          echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout release tag
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ steps.release.outputs.release_tag }}
+          fetch-depth: 0
+
+      - name: 驗證 tag 與 source commit
+        id: source
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          git ls-remote --exit-code origin "refs/tags/${RELEASE_TAG}" >/dev/null
+          tag_commit="$(git rev-parse "${RELEASE_TAG}^{commit}")"
+          head_commit="$(git rev-parse HEAD)"
+
+          if [[ "${tag_commit}" != "${head_commit}" ]]; then
+            echo "checkout commit 與 release tag 不一致" >&2
+            exit 1
+          fi
+
+          echo "source_sha=${head_commit}" >> "${GITHUB_OUTPUT}"
+
+      - name: 確認 Docker Hub tag 尚未存在
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          status_code="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            "https://hub.docker.com/v2/repositories/vincent119/alert-webhooks/tags/${RELEASE_TAG}")"
+
+          case "${status_code}" in
+            404)
+              ;;
+            200)
+              echo "Docker Hub tag 已存在，拒絕覆寫：${RELEASE_TAG}" >&2
+              exit 1
+              ;;
+            *)
+              echo "無法確認 Docker Hub tag 狀態，HTTP ${status_code}" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: 確認 Docker Hub Secrets
+        shell: bash
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${DOCKERHUB_USERNAME}" || -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "缺少 DOCKERHUB_USERNAME 或 DOCKERHUB_TOKEN" >&2
+            exit 1
+          fi
+
+          if [[ "${DOCKERHUB_USERNAME}" != "vincent119" ]]; then
+            echo "DOCKERHUB_USERNAME 與目標 namespace 不一致" >&2
+            exit 1
+          fi
+
+      - name: 設定 Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: 執行 Go 測試
+        run: go test ./...
+
+      - name: 設定 QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+        with:
+          platforms: amd64,arm64
+
+      - name: 設定 Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: 驗證兩平台 image runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          container_id=""
+          cleanup() {
+            if [[ -n "${container_id}" ]]; then
+              docker rm --force "${container_id}" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+
+          for platform in linux/amd64 linux/arm64; do
+            arch="${platform#linux/}"
+            local_image="alert-webhooks-ci:${arch}-${GITHUB_RUN_ID}"
+
+            docker buildx build \
+              --platform "${platform}" \
+              --build-arg timezone=UTC \
+              --load \
+              --tag "${local_image}" \
+              .
+
+            container_id="$(docker run --detach \
+              --platform "${platform}" \
+              --publish 127.0.0.1::9999 \
+              --mount "type=bind,source=${GITHUB_WORKSPACE}/examples/config.expamle.yaml,target=/app/configs/config.production.yaml,readonly" \
+              --env APP_ENV=production \
+              "${local_image}")"
+
+            uid="$(docker exec "${container_id}" id -u)"
+            if [[ "${uid}" != "1500" ]]; then
+              echo "${platform} container UID 不符合預期" >&2
+              exit 1
+            fi
+
+            host_binding="$(docker port "${container_id}" 9999/tcp | head -n 1)"
+            host_port="${host_binding##*:}"
+            healthy=false
+            for _ in $(seq 1 30); do
+              if curl --fail --silent --show-error "http://127.0.0.1:${host_port}/healthy" >/dev/null; then
+                healthy=true
+                break
+              fi
+              sleep 1
+            done
+
+            if [[ "${healthy}" != "true" ]]; then
+              docker logs "${container_id}" >&2
+              echo "${platform} container 健康檢查失敗" >&2
+              exit 1
+            fi
+
+            docker rm --force "${container_id}" >/dev/null
+            container_id=""
+            docker image rm "${local_image}" >/dev/null
+          done
+
+      - name: 登入 Docker Hub
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          logout: true
+
+      - name: 建置並推送雙平台 image
+        id: push
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ steps.release.outputs.release_tag }}
+          build-args: |
+            timezone=UTC
+          labels: |
+            org.opencontainers.image.source=https://github.com/vincent119/alert-webhooks
+            org.opencontainers.image.revision=${{ steps.source.outputs.source_sha }}
+            org.opencontainers.image.version=${{ steps.release.outputs.release_tag }}
+          cache-from: type=gha,scope=public-container
+          cache-to: type=gha,mode=max,scope=public-container
+
+      - name: 登出 Docker Hub
+        if: always()
+        run: docker logout docker.io || true
+
+      - name: 匿名驗證公開 manifest 與 pull
+        if: ${{ success() }}
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+          PUBLISHED_DIGEST: ${{ steps.push.outputs.digest }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+
+          image_ref="${IMAGE_NAME}:${RELEASE_TAG}"
+          raw_manifest="$(docker buildx imagetools inspect --raw "${image_ref}")"
+
+          echo "${raw_manifest}" | jq -e '
+            any(.manifests[]; .platform.os == "linux" and .platform.architecture == "amd64") and
+            any(.manifests[]; .platform.os == "linux" and .platform.architecture == "arm64")
+          ' >/dev/null
+
+          observed_digest="$(docker buildx imagetools inspect "${image_ref}" | awk '/^Digest:/ {print $2; exit}')"
+          if [[ -z "${observed_digest}" || "${observed_digest}" != "${PUBLISHED_DIGEST}" ]]; then
+            echo "公開 manifest digest 與發布結果不一致" >&2
+            exit 1
+          fi
+
+          docker pull --platform linux/amd64 "${image_ref}" >/dev/null
+          docker image rm "${image_ref}" >/dev/null
+          docker pull --platform linux/arm64 "${image_ref}" >/dev/null
+          docker image rm "${image_ref}" >/dev/null
+
+          {
+            echo "## Docker Hub 發布結果"
+            echo
+            echo "- Tag：\`${RELEASE_TAG}\`"
+            echo "- Source commit：\`${SOURCE_SHA}\`"
+            echo "- Manifest digest：\`${observed_digest}\`"
+            echo "- Platforms：\`linux/amd64\`、\`linux/arm64\`"
+            echo "- 匿名 pull：通過"
+          } >> "${GITHUB_STEP_SUMMARY}"
