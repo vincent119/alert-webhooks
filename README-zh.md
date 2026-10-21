@@ -7,7 +7,7 @@
 [![Go Version](https://img.shields.io/badge/go-1.19%2B-blue?logo=go)](go.mod)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/vincent119/alert-webhooks/actions)
 [![Coverage](https://codecov.io/gh/vincent119/alert-webhooks/branch/main/graph/badge.svg)](https://codecov.io/gh/vincent119/alert-webhooks)
-[![Score](https://img.shields.io/badge/score-9.2-brightgreen)](https://goreportcard.com/report/github.com/vincent119/alert-webhooks)
+[![Go lint](https://github.com/vincent119/alert-webhooks/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/vincent119/alert-webhooks/actions/workflows/lint.yml)
 [![GitHub stars](https://img.shields.io/github/stars/vincent119/alert-webhooks?style=flat&color=yellow&logo=github&logoColor=white)](https://github.com/vincent119/alert-webhooks/stargazers)
 ![GitHub release](https://img.shields.io/github/v/release/awslabs/mcp)
 
