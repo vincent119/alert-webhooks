@@ -3,13 +3,13 @@
 An efficient AlertManager webhook processing service with multi-platform notifications and multilingual template support.
 
 [![GitHub](https://img.shields.io/badge/github-vincent119%2Falert--webhooks-blue?logo=github)](https://github.com/vincent119/alert-webhooks)
-![License](https://img.shields.io/github/license/awslabs/mcp)
+[![License](https://img.shields.io/github/license/vincent119/alert-webhooks)](LICENSE)
 [![Go Version](https://img.shields.io/badge/go-1.19%2B-blue?logo=go)](go.mod)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/vincent119/alert-webhooks/actions)
+[![Go test coverage](https://github.com/vincent119/alert-webhooks/actions/workflows/coverage.yml/badge.svg?branch=main)](https://github.com/vincent119/alert-webhooks/actions/workflows/coverage.yml)
 [![Coverage](https://codecov.io/gh/vincent119/alert-webhooks/branch/main/graph/badge.svg)](https://codecov.io/gh/vincent119/alert-webhooks)
 [![Go lint](https://github.com/vincent119/alert-webhooks/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/vincent119/alert-webhooks/actions/workflows/lint.yml)
 [![GitHub stars](https://img.shields.io/github/stars/vincent119/alert-webhooks?style=flat&color=yellow&logo=github&logoColor=white)](https://github.com/vincent119/alert-webhooks/stargazers)
-![GitHub release](https://img.shields.io/github/v/release/awslabs/mcp)
+[![GitHub release](https://img.shields.io/github/v/release/vincent119/alert-webhooks)](https://github.com/vincent119/alert-webhooks/releases/latest)
 
 ## 📋 Table of Contents
 
