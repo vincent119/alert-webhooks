@@ -1,6 +1,7 @@
 package slack
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -19,6 +20,15 @@ import (
 type Handler struct {
 	services       service.Accessor
 	templateEngine *template.TemplateEngine
+	resolveService func(*gin.Context) slackService
+}
+
+type slackService interface {
+	SendMessage(context.Context, string, string) error
+	SendMessageWithOptions(context.Context, string, string, *service.SlackMessage) error
+	SendMessageToLevel(context.Context, string, string) error
+	SendRichMessage(context.Context, string, string, string, string, []service.Field) error
+	GetChannels() map[string]string
 }
 
 // NewHandler 創建新的 Slack 路由處理器
@@ -34,6 +44,7 @@ func NewHandler(services service.Accessor) *Handler {
 		return &Handler{
 			services:       services,
 			templateEngine: template.NewTemplateEngine(), // 後備方案
+			resolveService: slackServiceFromLease,
 		}
 	}
 
@@ -42,10 +53,18 @@ func NewHandler(services service.Accessor) *Handler {
 	return &Handler{
 		services:       services,
 		templateEngine: templateEngine,
+		resolveService: slackServiceFromLease,
 	}
 }
 
-func (h *Handler) currentSlack(c *gin.Context) *service.SlackService {
+func (h *Handler) currentSlack(c *gin.Context) slackService {
+	if h.resolveService != nil {
+		return h.resolveService(c)
+	}
+	return slackServiceFromLease(c)
+}
+
+func slackServiceFromLease(c *gin.Context) slackService {
 	lease, ok := c.Get("slack_service_lease")
 	if !ok {
 		return nil

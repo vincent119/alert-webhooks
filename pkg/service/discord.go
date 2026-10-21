@@ -16,14 +16,50 @@ import (
 
 // DiscordService provides Discord messaging functionality
 type DiscordService struct {
-	session  *discordgo.Session
+	session  discordSessionClient
 	config   config.DiscordConf
 	guildID  string
 	channels map[string]string // level -> channel ID mapping
 }
 
+type discordSessionClient interface {
+	SetIntents(discordgo.Intent)
+	Open() error
+	User(string, ...discordgo.RequestOption) (*discordgo.User, error)
+	Channel(string, ...discordgo.RequestOption) (*discordgo.Channel, error)
+	UserChannelPermissions(string, string, ...discordgo.RequestOption) (int64, error)
+	ChannelMessageSend(string, string, ...discordgo.RequestOption) (*discordgo.Message, error)
+	CurrentUserID() string
+	Close() error
+}
+
+type discordSessionAdapter struct {
+	*discordgo.Session
+}
+
+func (a *discordSessionAdapter) SetIntents(intents discordgo.Intent) {
+	a.Identify.Intents = intents
+}
+
+func (a *discordSessionAdapter) CurrentUserID() string {
+	if a.State == nil || a.State.User == nil {
+		return ""
+	}
+	return a.State.User.ID
+}
+
 // NewDiscordService creates a new Discord service instance
 func NewDiscordService(cfg config.DiscordConf) (*DiscordService, error) {
+	return newDiscordService(cfg, func(token string) (discordSessionClient, error) {
+		session, err := discordgo.New(token)
+		if err != nil {
+			return nil, err
+		}
+		return &discordSessionAdapter{Session: session}, nil
+	})
+}
+
+func newDiscordService(cfg config.DiscordConf, newSession func(string) (discordSessionClient, error)) (*DiscordService, error) {
 	if !cfg.Enable {
 		return &DiscordService{config: cfg}, nil
 	}
@@ -33,13 +69,13 @@ func NewDiscordService(cfg config.DiscordConf) (*DiscordService, error) {
 	}
 
 	// Create Discord session
-	session, err := discordgo.New("Bot " + cfg.Token)
+	session, err := newSession("Bot " + cfg.Token)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Discord session: %w", err)
 	}
 
 	// Test connection
-	session.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildMessages
+	session.SetIntents(discordgo.IntentsGuilds | discordgo.IntentsGuildMessages)
 
 	err = session.Open()
 	if err != nil {
@@ -193,7 +229,7 @@ func (ds *DiscordService) ValidateChannel(channelID string) error {
 	}
 
 	// Check bot permissions in the channel
-	permissions, err := ds.session.UserChannelPermissions(ds.session.State.User.ID, channelID)
+	permissions, err := ds.session.UserChannelPermissions(ds.session.CurrentUserID(), channelID)
 	if err != nil {
 		return fmt.Errorf("failed to check bot permissions: %w", err)
 	}

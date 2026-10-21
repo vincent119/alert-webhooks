@@ -17,16 +17,19 @@ import (
 
 // ConfigWatcher 配置檔案監控器
 type ConfigWatcher struct {
-	watcher        *fsnotify.Watcher
-	mu             sync.RWMutex
-	isRunning      bool
-	debounce       time.Duration
-	runCtx         context.Context
-	cancel         context.CancelFunc
-	changes        chan string
-	wg             sync.WaitGroup
-	reloadMain     func(context.Context)
-	reloadTemplate func(context.Context)
+	watcher         *fsnotify.Watcher
+	mu              sync.RWMutex
+	isRunning       bool
+	debounce        time.Duration
+	runCtx          context.Context
+	cancel          context.CancelFunc
+	changes         chan string
+	wg              sync.WaitGroup
+	reloadMain      func(context.Context)
+	reloadTemplate  func(context.Context)
+	forceReload     func() error
+	reloadServices  func(context.Context) error
+	reloadTemplates func()
 }
 
 // NewConfigWatcher 創建新的配置監控器
@@ -34,6 +37,9 @@ func NewConfigWatcher() *ConfigWatcher {
 	cw := &ConfigWatcher{debounce: time.Second}
 	cw.reloadMain = cw.reloadMainConfig
 	cw.reloadTemplate = cw.reloadTemplateConfig
+	cw.forceReload = config.ForceReload
+	cw.reloadServices = service.GetServiceManager().Reload
+	cw.reloadTemplates = service.GetServiceManager().ReloadTemplateEngine
 	return cw
 }
 
@@ -252,7 +258,7 @@ func (cw *ConfigWatcher) reloadMainConfig(ctx context.Context) {
 	if ctx.Err() != nil {
 		return
 	}
-	if err := config.ForceReload(); err != nil {
+	if err := cw.forceReload(); err != nil {
 		zlogger.Error("Failed to reload main config", zlogger.String("category", "config_watcher"), zlogger.Err(err))
 		return
 	}
@@ -261,7 +267,7 @@ func (cw *ConfigWatcher) reloadMainConfig(ctx context.Context) {
 	if ctx.Err() != nil {
 		return
 	}
-	if err := service.GetServiceManager().Reload(ctx); err != nil {
+	if err := cw.reloadServices(ctx); err != nil {
 		zlogger.Error("Failed to reload services", zlogger.String("category", "config_watcher"), zlogger.Err(err))
 		return
 	}
@@ -275,13 +281,11 @@ func (cw *ConfigWatcher) reloadTemplateConfig(ctx context.Context) {
 	}
 	zlogger.Info("Reloading template config", zlogger.String("category", "config_watcher"))
 
-	serviceManager := service.GetServiceManager()
-
 	// 重新載入模板引擎
 	if ctx.Err() != nil {
 		return
 	}
-	serviceManager.ReloadTemplateEngine()
+	cw.reloadTemplates()
 
 	zlogger.Info("Template config reloaded successfully", zlogger.String("category", "config_watcher"))
 }

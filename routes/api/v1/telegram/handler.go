@@ -24,6 +24,12 @@ import (
 type Handler struct {
 	services       service.Accessor
 	templateEngine *template.TemplateEngine
+	resolveService func(*gin.Context) telegramService
+}
+
+type telegramService interface {
+	SendMessage(context.Context, int, string) error
+	GetBotInfo() (interface{}, error)
 }
 
 // NewHandler 創建新的 Telegram 路由處理器
@@ -39,6 +45,7 @@ func NewHandler(services service.Accessor) *Handler {
 		return &Handler{
 			services:       services,
 			templateEngine: template.NewTemplateEngine(), // 後備方案
+			resolveService: telegramServiceFromLease,
 		}
 	}
 
@@ -48,6 +55,7 @@ func NewHandler(services service.Accessor) *Handler {
 	handler := &Handler{
 		services:       services,
 		templateEngine: templateEngine,
+		resolveService: telegramServiceFromLease,
 	}
 
 	zlogger.Info("Telegram handler created", zlogger.String("category", "telegram_handler"), zlogger.Bool("has_template_engine", templateEngine != nil))
@@ -55,7 +63,14 @@ func NewHandler(services service.Accessor) *Handler {
 	return handler
 }
 
-func (h *Handler) currentTelegram(c *gin.Context) *service.TelegramService {
+func (h *Handler) currentTelegram(c *gin.Context) telegramService {
+	if h.resolveService != nil {
+		return h.resolveService(c)
+	}
+	return telegramServiceFromLease(c)
+}
+
+func telegramServiceFromLease(c *gin.Context) telegramService {
 	lease, ok := c.Get("telegram_service_lease")
 	if !ok {
 		return nil
@@ -579,7 +594,7 @@ func (h *Handler) generateAlertManagerMessage(webhook *AlertManagerWebhook, lang
 }
 
 // sendSeparateAlertMessages 分別發送觸發中和已解決的警報
-func (h *Handler) sendSeparateAlertMessages(ctx context.Context, telegramService *service.TelegramService, webhook *AlertManagerWebhook, language string, level int) error {
+func (h *Handler) sendSeparateAlertMessages(ctx context.Context, telegramService telegramService, webhook *AlertManagerWebhook, language string, level int) error {
 	// 分離觸發中和已解決的警報
 	var firingAlerts []Alert
 	var resolvedAlerts []Alert

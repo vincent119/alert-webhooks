@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,15 +19,31 @@ import (
 
 // Handler handles Discord API requests
 type Handler struct {
-	services service.Accessor
+	services       service.Accessor
+	resolveService func(*gin.Context) discordService
+}
+
+type discordService interface {
+	SendMessage(context.Context, string, string) error
+	SendMessageToChannel(string, string) error
+	TestConnection() error
+	GetBotInfo() (interface{}, error)
+	ValidateChannel(string) error
 }
 
 // NewHandler creates a new Discord handler
 func NewHandler(services service.Accessor) *Handler {
-	return &Handler{services: services}
+	return &Handler{services: services, resolveService: discordServiceFromLease}
 }
 
-func (h *Handler) currentDiscord(c *gin.Context) *service.DiscordService {
+func (h *Handler) currentDiscord(c *gin.Context) discordService {
+	if h.resolveService != nil {
+		return h.resolveService(c)
+	}
+	return discordServiceFromLease(c)
+}
+
+func discordServiceFromLease(c *gin.Context) discordService {
 	lease, ok := c.Get("discord_service_lease")
 	if !ok {
 		return nil
