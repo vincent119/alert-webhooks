@@ -1,0 +1,62 @@
+name: Go test coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: coverage-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    name: 執行測試並上傳 coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout 原始碼
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: 設定 Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: 執行測試並產生 coverage report
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+
+      - name: 驗證 coverage report
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s coverage.out
+          coverage_summary="$(go tool cover -func=coverage.out)"
+          printf '%s\n' "${coverage_summary}"
+
+          total="$(awk '/^total:/ {print $3}' <<< "${coverage_summary}")"
+          test -n "${total}"
+
+          {
+            echo "## Go test coverage"
+            echo
+            echo "- Total: \`${total}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: 上傳 coverage report 至 Codecov
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: ./coverage.out
+          flags: unittests
+          disable_search: true
+          fail_ci_if_error: true
+          use_oidc: true
