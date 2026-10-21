@@ -3,7 +3,6 @@ package telegram
 import (
 	"context"
 	"errors"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -34,12 +33,25 @@ func TestTelegramSendMessageValidationAndDirectMessage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			response := invokeTelegramHandlerReplay(t, http.MethodPost, tt.body, map[string]string{"chatid": tt.chatID}, newTelegramHandlerForTest(tt.service, nil).SendMessage)
+			response := invokeTelegramHandler(t, http.MethodPost, tt.body, map[string]string{"chatid": tt.chatID}, newTelegramHandlerForTest(tt.service, nil).SendMessage)
 			if response.Code != tt.wantStatus {
 				t.Fatalf("status = %d, want %d, body = %s", response.Code, tt.wantStatus, response.Body.String())
 			}
-			if tt.wantStatus == http.StatusOK && (tt.service.lastLevel != 2 || tt.service.messages[0] != "hello") {
-				t.Fatalf("level = %d, messages = %#v", tt.service.lastLevel, tt.service.messages)
+			if tt.name == "invalid JSON" && !strings.Contains(response.Body.String(), `"code":"TELEGRAM_INVALID_REQUEST_FORMAT"`) {
+				t.Fatalf("body = %s, want invalid request format code", response.Body.String())
+			}
+			if tt.name == "direct success" {
+				if tt.service.lastLevel != 2 || len(tt.service.messages) != 1 || tt.service.messages[0] != "hello" {
+					t.Fatalf("level = %d, messages = %#v", tt.service.lastLevel, tt.service.messages)
+				}
+			}
+			if tt.name == "direct failure" {
+				if len(tt.service.messages) != 1 {
+					t.Fatalf("provider calls = %d, want 1", len(tt.service.messages))
+				}
+				if !strings.Contains(response.Body.String(), `"code":"TELEGRAM_MESSAGE_SEND_FAILED"`) {
+					t.Fatalf("body = %s, want message send failure code", response.Body.String())
+				}
 			}
 		})
 	}
@@ -61,7 +73,7 @@ func TestTelegramSendAlertManagerMessages(t *testing.T) {
 
 	t.Run("fallback 分離傳送成功", func(t *testing.T) {
 		fake := &telegramServiceForTest{}
-		response := invokeTelegramHandlerReplay(t, http.MethodPost, body, map[string]string{"chatid": "L1"}, newTelegramHandlerForTest(fake, nil).SendMessage)
+		response := invokeTelegramHandler(t, http.MethodPost, body, map[string]string{"chatid": "L1"}, newTelegramHandlerForTest(fake, nil).SendMessage)
 		if response.Code != http.StatusOK || len(fake.messages) != 2 {
 			t.Fatalf("status = %d, messages = %#v, body = %s", response.Code, fake.messages, response.Body.String())
 		}
@@ -72,23 +84,23 @@ func TestTelegramSendAlertManagerMessages(t *testing.T) {
 
 	t.Run("firing 傳送失敗", func(t *testing.T) {
 		fake := &telegramServiceForTest{sendErrors: []error{errors.New("firing failed")}}
-		response := invokeTelegramHandlerReplay(t, http.MethodPost, body, map[string]string{"chatid": "1"}, newTelegramHandlerForTest(fake, nil).SendMessage)
-		if response.Code != http.StatusInternalServerError {
+		response := invokeTelegramHandler(t, http.MethodPost, body, map[string]string{"chatid": "1"}, newTelegramHandlerForTest(fake, nil).SendMessage)
+		if response.Code != http.StatusInternalServerError || !strings.Contains(response.Body.String(), `"code":"TELEGRAM_ALERT_MESSAGE_SEND_FAILED"`) {
 			t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
 		}
 	})
 
 	t.Run("resolved 傳送失敗", func(t *testing.T) {
 		fake := &telegramServiceForTest{sendErrors: []error{nil, errors.New("resolved failed")}}
-		response := invokeTelegramHandlerReplay(t, http.MethodPost, body, map[string]string{"chatid": "1"}, newTelegramHandlerForTest(fake, nil).SendMessage)
-		if response.Code != http.StatusInternalServerError || len(fake.messages) != 2 {
+		response := invokeTelegramHandler(t, http.MethodPost, body, map[string]string{"chatid": "1"}, newTelegramHandlerForTest(fake, nil).SendMessage)
+		if response.Code != http.StatusInternalServerError || len(fake.messages) != 2 || !strings.Contains(response.Body.String(), `"code":"TELEGRAM_ALERT_MESSAGE_SEND_FAILED"`) {
 			t.Fatalf("status = %d, messages = %#v", response.Code, fake.messages)
 		}
 	})
 
 	t.Run("template engine render fallback", func(t *testing.T) {
 		fake := &telegramServiceForTest{}
-		response := invokeTelegramHandlerReplay(t, http.MethodPost, body, map[string]string{"chatid": "1"}, newTelegramHandlerForTest(fake, template.NewTemplateEngine()).SendMessage)
+		response := invokeTelegramHandler(t, http.MethodPost, body, map[string]string{"chatid": "1"}, newTelegramHandlerForTest(fake, template.NewTemplateEngine()).SendMessage)
 		if response.Code != http.StatusOK {
 			t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
 		}
@@ -112,7 +124,7 @@ func TestTelegramDirectAlertManagerFallbackAndDebugPaths(t *testing.T) {
 		t.Fatalf("status = %d, messages = %#v, body = %s", response.Code, fake.messages, response.Body.String())
 	}
 
-	invalid := invokeTelegramHandlerReplay(t, http.MethodPost, `{`, map[string]string{"chatid": "L0"}, newTelegramHandlerForTest(&telegramServiceForTest{}, nil).SendMessage)
+	invalid := invokeTelegramHandler(t, http.MethodPost, `{`, map[string]string{"chatid": "L0"}, newTelegramHandlerForTest(&telegramServiceForTest{}, nil).SendMessage)
 	if invalid.Code != http.StatusBadRequest {
 		t.Fatalf("invalid status = %d, body = %s", invalid.Code, invalid.Body.String())
 	}
@@ -126,14 +138,14 @@ func TestTelegramTemplateRenderSuccessAndFailure(t *testing.T) {
 	body := `{"template_language":"eng","alertmanager_data":{"status":"firing","alerts":[{"status":"firing","labels":{"alertname":"CPU"},"annotations":{"summary":"high"}}]}}`
 
 	success := &telegramServiceForTest{}
-	response := invokeTelegramHandlerReplay(t, http.MethodPost, body, map[string]string{"chatid": "L0"}, newTelegramHandlerForTest(success, engine).SendMessage)
+	response := invokeTelegramHandler(t, http.MethodPost, body, map[string]string{"chatid": "L0"}, newTelegramHandlerForTest(success, engine).SendMessage)
 	if response.Code != http.StatusOK || len(success.messages) != 1 {
 		t.Fatalf("status = %d, messages = %#v, body = %s", response.Code, success.messages, response.Body.String())
 	}
 
 	failure := &telegramServiceForTest{sendErrors: []error{errors.New("send failed")}}
-	response = invokeTelegramHandlerReplay(t, http.MethodPost, body, map[string]string{"chatid": "L0"}, newTelegramHandlerForTest(failure, engine).SendMessage)
-	if response.Code != http.StatusInternalServerError {
+	response = invokeTelegramHandler(t, http.MethodPost, body, map[string]string{"chatid": "L0"}, newTelegramHandlerForTest(failure, engine).SendMessage)
+	if response.Code != http.StatusInternalServerError || !strings.Contains(response.Body.String(), `"code":"TELEGRAM_MESSAGE_SEND_FAILED"`) {
 		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
 	}
 }
@@ -245,10 +257,10 @@ func TestTelegramRoutesRejectUnavailableService(t *testing.T) {
 	}
 }
 
-func TestTelegramDirectMessageCurrentBodyConsumptionBehavior(t *testing.T) {
+func TestTelegramDirectMessageUsesOrdinaryRequestBody(t *testing.T) {
 	fake := &telegramServiceForTest{}
 	response := invokeTelegramHandler(t, http.MethodPost, `{"message":"hello"}`, map[string]string{"chatid": "L0"}, newTelegramHandlerForTest(fake, nil).SendMessage)
-	if response.Code != http.StatusOK || len(fake.messages) != 0 {
+	if response.Code != http.StatusOK || fake.lastLevel != 0 || len(fake.messages) != 1 || fake.messages[0] != "hello" {
 		t.Fatalf("status = %d, messages = %#v, body = %s", response.Code, fake.messages, response.Body.String())
 	}
 }
@@ -282,23 +294,11 @@ func newTelegramHandlerForTest(value *telegramServiceForTest, engine *template.T
 }
 
 func invokeTelegramHandler(t *testing.T, method, body string, params map[string]string, callback gin.HandlerFunc) *httptest.ResponseRecorder {
-	return invokeTelegramHandlerWithBody(t, method, body, params, callback, false)
-}
-
-func invokeTelegramHandlerReplay(t *testing.T, method, body string, params map[string]string, callback gin.HandlerFunc) *httptest.ResponseRecorder {
-	return invokeTelegramHandlerWithBody(t, method, body, params, callback, true)
-}
-
-func invokeTelegramHandlerWithBody(t *testing.T, method, body string, params map[string]string, callback gin.HandlerFunc, replay bool) *httptest.ResponseRecorder {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	response := httptest.NewRecorder()
 	contextValue, _ := gin.CreateTestContext(response)
 	contextValue.Request = httptest.NewRequest(method, "/", strings.NewReader(body))
-	if replay {
-		contextValue.Request.Body = &replayRequestBody{content: []byte(body)}
-		contextValue.Request.ContentLength = int64(len(body))
-	}
 	contextValue.Request.Header.Set("Content-Type", "application/json")
 	for key, value := range params {
 		contextValue.Params = append(contextValue.Params, gin.Param{Key: key, Value: value})
@@ -306,23 +306,6 @@ func invokeTelegramHandlerWithBody(t *testing.T, method, body string, params map
 	callback(contextValue)
 	return response
 }
-
-type replayRequestBody struct {
-	content []byte
-	offset  int
-}
-
-func (b *replayRequestBody) Read(destination []byte) (int, error) {
-	if b.offset == len(b.content) {
-		b.offset = 0
-		return 0, io.EOF
-	}
-	written := copy(destination, b.content[b.offset:])
-	b.offset += written
-	return written, nil
-}
-
-func (b *replayRequestBody) Close() error { return nil }
 
 func setTelegramHandlerConfig(t *testing.T, value config.TelegramConf) {
 	t.Helper()

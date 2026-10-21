@@ -145,6 +145,37 @@ func errorResponse(message, code string) gin.H {
 	return gin.H{"success": false, "message": message, "code": code}
 }
 
+func parseSendMessageRequest(body []byte) (SendMessageRequest, bool, error) {
+	var payloadFields map[string]json.RawMessage
+	if err := json.Unmarshal(body, &payloadFields); err != nil {
+		return SendMessageRequest{}, false, err
+	}
+
+	_, hasMessage := payloadFields["message"]
+	_, hasAlertManagerData := payloadFields["alertmanager_data"]
+	if hasMessage || hasAlertManagerData {
+		var req SendMessageRequest
+		if err := json.Unmarshal(body, &req); err != nil {
+			return SendMessageRequest{}, false, err
+		}
+		return req, false, nil
+	}
+
+	if _, hasAlerts := payloadFields["alerts"]; hasAlerts {
+		var alertManagerData AlertManagerWebhook
+		if err := json.Unmarshal(body, &alertManagerData); err != nil {
+			return SendMessageRequest{}, true, err
+		}
+		return SendMessageRequest{AlertManagerData: &alertManagerData}, true, nil
+	}
+
+	var req SendMessageRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		return SendMessageRequest{}, false, err
+	}
+	return req, false, nil
+}
+
 func sanitizeDebugPayload(body []byte) (string, bool) {
 	var payload interface{}
 	if err := json.Unmarshal(body, &payload); err != nil {
@@ -233,10 +264,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	// 從請求體獲取訊息內容
-	var req SendMessageRequest
-
-	// 先嘗試解析為標準格式
+	// Request stream 只讀取一次，後續解析與 debug redaction 共用同一份 bytes。
 	body, err := c.GetRawData()
 	if err != nil {
 		zlogger.Warn("Failed to read Telegram request body", zlogger.String("category", "telegram_handler"), zlogger.Err(err))
@@ -272,39 +300,24 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		zlogger.Debug("Received Telegram request", fields...)
 	}
 
-	// 嘗試解析為標準格式
-	if parseErr := c.ShouldBindJSON(&req); parseErr != nil {
-		// Debug 模式下記錄標準格式解析失敗的情況
+	req, directAlertManager, parseErr := parseSendMessageRequest(body)
+	if parseErr != nil {
 		if isDev || isDebugMode || isDebugLevel {
-			zlogger.Debug("Standard format parsing failed, trying AlertManager format", zlogger.String("category", "telegram_handler"), zlogger.String("parse_error", parseErr.Error()))
+			zlogger.Debug("Telegram request parsing failed", zlogger.String("category", "telegram_handler"), zlogger.String("parse_error", parseErr.Error()),
+				zlogger.Int("request_body_bytes", len(body)))
 		}
 
-		// 如果標準格式解析失敗，嘗試解析為直接的 AlertManager 格式
-		var alertManagerData AlertManagerWebhook
-		if unmarshalErr := json.Unmarshal(body, &alertManagerData); unmarshalErr != nil {
-			// Debug 模式下記錄 AlertManager 格式解析失敗的情況
-			if isDev || isDebugMode || isDebugLevel {
-				zlogger.Debug("AlertManager format parsing also failed", zlogger.String("category", "telegram_handler"), zlogger.String("unmarshal_error", unmarshalErr.Error()),
-					zlogger.Int("request_body_bytes", len(body)))
-			}
+		zlogger.Warn("Invalid Telegram request body format", zlogger.String("category", "telegram_handler"), zlogger.Err(parseErr))
+		c.JSON(http.StatusBadRequest, errorResponse("Invalid request body format", "TELEGRAM_INVALID_REQUEST_FORMAT"))
+		return
+	}
 
-			zlogger.Warn("Invalid Telegram request body format", zlogger.String("category", "telegram_handler"), zlogger.Err(unmarshalErr))
-			c.JSON(http.StatusBadRequest, errorResponse("Invalid request body format", "TELEGRAM_INVALID_REQUEST_FORMAT"))
-			return
-		}
-
-		// Debug 模式下記錄成功解析為 AlertManager 格式
-		if isDev || isDebugMode || isDebugLevel {
-			zlogger.Debug("Successfully parsed as AlertManager format", zlogger.String("category", "telegram_handler"), zlogger.String("status", alertManagerData.Status),
-				zlogger.Int("alerts_count", len(alertManagerData.Alerts)),
-				zlogger.String("receiver", alertManagerData.Receiver))
-		}
-
-		// 直接設置 AlertManager 數據
-		req.AlertManagerData = &alertManagerData
-	} else {
-		// Debug 模式下記錄成功解析為標準格式
-		if isDev || isDebugMode || isDebugLevel {
+	if isDev || isDebugMode || isDebugLevel {
+		if directAlertManager {
+			zlogger.Debug("Successfully parsed as AlertManager format", zlogger.String("category", "telegram_handler"), zlogger.String("status", req.AlertManagerData.Status),
+				zlogger.Int("alerts_count", len(req.AlertManagerData.Alerts)),
+				zlogger.String("receiver", req.AlertManagerData.Receiver))
+		} else {
 			zlogger.Debug("Successfully parsed as standard format", zlogger.String("category", "telegram_handler"), zlogger.String("message_length", fmt.Sprintf("%d", len(req.Message))),
 				zlogger.String("template_language", req.TemplateLanguage),
 				zlogger.Bool("has_alertmanager_data", req.AlertManagerData != nil))
