@@ -16,6 +16,7 @@ An efficient AlertManager webhook processing service with multi-platform notific
 - [🌟 Key Features](#-key-features)
 - [🚀 Supported Platforms](#-supported-platforms)
 - [⚡ Quick Start](#-quick-start)
+- [Public Container Image](#public-container-image)
 - [📊 Chat IDs Level Mapping](#-chat-ids-level-mapping)
 - [📖 Documentation](#-documentation)
 - [🛠️ Development](#️-development)
@@ -96,7 +97,38 @@ go run cmd/main.go -e production
 
 Open browser: <http://localhost:9999/swagger/index.html>
 
-### 📊 Chat IDs Level Mapping
+## Public Container Image
+
+The public release image is available from Docker Hub as
+`docker.io/vincent119/alert-webhooks:v2.0.8`. It supports `linux/amd64` and
+`linux/arm64`.
+
+Only immutable release tags are published. A Docker `latest` tag is not
+published, so deployments must select an explicit version. Docker Hub is the
+public distribution source; the existing private ECR production deployment
+remains unchanged.
+
+```bash
+docker pull docker.io/vincent119/alert-webhooks:v2.0.8
+
+config_file="$(pwd)/examples/config.expamle.yaml"
+docker run --detach \
+  --name alert-webhooks \
+  --publish 127.0.0.1:9999:9999 \
+  --volume "${config_file}:/app/configs/config.production.yaml:ro" \
+  --env APP_ENV=production \
+  docker.io/vincent119/alert-webhooks:v2.0.8
+
+curl --fail http://127.0.0.1:9999/healthy
+```
+
+The container runs as non-root UID `1500`. See the
+[v2.0.8 release](https://github.com/vincent119/alert-webhooks/releases/tag/v2.0.8)
+and the
+[Docker deployment guide](./documentation/en/docker-deployment.md) for the
+publication and deployment contract.
+
+## 📊 Chat IDs Level Mapping
 
 | Chat IDs  | Level | Group Purpose               | Description                                        |
 | --------- | ----- | --------------------------- | -------------------------------------------------- |
@@ -123,8 +155,10 @@ Complete setup and usage guides are available in multiple languages in the **[do
 - **[Configuration Guide](./documentation/en/config_guide.md)** - Detailed configuration instructions
 - **[Service Enable Configuration](./documentation/en/service-enable-config.md)** - Service enablement settings
 - **[Kubernetes Environment Variables](./documentation/en/kubernetes-env-vars.md)** - K8s deployment configuration
-- **[Helm Installation](./kubernetes/helm/alert-webhooks-chart/README.md)** - Install, upgrade, verify, and roll back with Helm
-- **[Kustomize Installation](./kubernetes/kustomize/README.md)** - Render, deploy, verify, and clean up with Kustomize
+- **[Helm Installation](./kubernetes/helm/alert-webhooks-chart/README.en.md)** - Install,
+  upgrade, verify, and roll back with Helm
+- **[Kustomize Installation](./kubernetes/kustomize/README.en.md)** -
+  Render, deploy, verify, and clean up with Kustomize
 - **[Swagger Troubleshooting](./documentation/en/swagger-troubleshooting.md)** - API documentation issue resolution
 
 #### 📝 Template System

@@ -6,11 +6,15 @@ This directory contains comprehensive English documentation for the Alert Webhoo
 
 ### 🔧 Configuration Documentation
 
+- **[docker-deployment.md](./docker-deployment.md)** - Public Docker image
+  deployment, verification, rollback, and troubleshooting
 - **[config_guide.md](./config_guide.md)** - Detailed configuration file guide
 - **[service-enable-config.md](./service-enable-config.md)** - Service enable configuration guide
 - **[kubernetes-env-vars.md](./kubernetes-env-vars.md)** - Kubernetes environment variables configuration
-- **[Helm installation](../../kubernetes/helm/alert-webhooks-chart/README.md)** - Helm prerequisites, installation, upgrade, and rollback
-- **[Kustomize installation](../../kubernetes/kustomize/README.md)** - Kustomize prerequisites, deployment, verification, and cleanup
+- **[Helm installation](../../kubernetes/helm/alert-webhooks-chart/README.en.md)** -
+  Helm prerequisites, installation, upgrade, and rollback
+- **[Kustomize installation](../../kubernetes/kustomize/README.en.md)** -
+  Kustomize prerequisites, deployment, verification, and cleanup
 - **[telegram_setup.md](./telegram_setup.md)** - Telegram bot setup guide
 - **[slack_setup.md](./slack_setup.md)** - Slack bot setup guide
 - **[template_mode_config.md](./template_mode_config.md)** - Template mode configuration
@@ -48,10 +52,11 @@ alert-webhooks/
 
 ## 🚀 Quick Start
 
-1. **Configuration Setup**: Read [config_guide.md](./config_guide.md)
-2. **Notification Setup**: Read [telegram_setup.md](./telegram_setup.md) or [slack_setup.md](./slack_setup.md)
-3. **Template Configuration**: Read [template_guide.md](./template_guide.md)
-4. **API Documentation**: Visit `/swagger/index.html`
+1. **Docker Deployment**: Read [docker-deployment.md](./docker-deployment.md)
+2. **Configuration Setup**: Read [config_guide.md](./config_guide.md)
+3. **Notification Setup**: Read [telegram_setup.md](./telegram_setup.md) or [slack_setup.md](./slack_setup.md)
+4. **Template Configuration**: Read [template_guide.md](./template_guide.md)
+5. **API Documentation**: Visit `/swagger/index.html`
 
 ## 📊 API Documentation
 

@@ -194,8 +194,8 @@ Override trace auth password from env var: [REDACTED]
 
 Use one of the maintained Kubernetes deployment guides:
 
-- [Helm installation](../../kubernetes/helm/alert-webhooks-chart/README.md)
-- [Kustomize installation](../../kubernetes/kustomize/README.md)
+- [Helm installation](../../kubernetes/helm/alert-webhooks-chart/README.en.md)
+- [Kustomize installation](../../kubernetes/kustomize/README.en.md)
 
 ## Related Documentation
 
