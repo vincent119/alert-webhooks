@@ -2,11 +2,87 @@ package main
 
 import (
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestSwaggerFixMainRepairsAndValidatesDocument(t *testing.T) {
+	workingDir := useSwaggerFixWorkingDirectory(t)
+	docsDir := filepath.Join(workingDir, "docs")
+	if err := os.MkdirAll(docsDir, 0o700); err != nil {
+		t.Fatalf("建立 temporary docs 目錄失敗：%v", err)
+	}
+	docsFile := filepath.Join(docsDir, "docs.go")
+	content := `package docs
+
+import "github.com/swaggo/swag"
+
+var SwaggerInfo = &swag.Spec{
+	Version: "1.0",,
+	SwaggerTemplate: ` + "`valid`" + `,
+	LeftDelim: "{{",
+	RightDelim: "}}",
+}
+`
+	if err := os.WriteFile(docsFile, []byte(content), 0o600); err != nil {
+		t.Fatalf("建立 temporary Swagger 文件失敗：%v", err)
+	}
+
+	output := captureSwaggerFixOutput(t, main)
+	for _, expected := range []string{
+		"移除 LeftDelim 欄位",
+		"移除 RightDelim 欄位",
+		"清理多餘逗號",
+		"Swagger 文檔修復完成",
+	} {
+		if !strings.Contains(output, expected) {
+			t.Fatalf("Swagger fix output 未包含 %q：%s", expected, output)
+		}
+	}
+
+	updated, err := os.ReadFile(docsFile)
+	if err != nil {
+		t.Fatalf("讀取修復後 Swagger 文件失敗：%v", err)
+	}
+	updatedText := string(updated)
+	if strings.Contains(updatedText, "LeftDelim") || strings.Contains(updatedText, "RightDelim") || strings.Contains(updatedText, ",,") {
+		t.Fatalf("Swagger 文件仍包含已知問題：%s", updatedText)
+	}
+	if !strings.Contains(updatedText, "SwaggerTemplate: `valid`,") {
+		t.Fatalf("SwaggerTemplate 未補上尾隨逗號：%s", updatedText)
+	}
+	if _, err := os.Stat(docsFile + ".backup"); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("成功後 backup 應移除：%v", err)
+	}
+}
+
+func TestSwaggerFixMainReturnsWithoutChangingValidDocument(t *testing.T) {
+	workingDir := useSwaggerFixWorkingDirectory(t)
+	docsDir := filepath.Join(workingDir, "docs")
+	if err := os.MkdirAll(docsDir, 0o700); err != nil {
+		t.Fatalf("建立 temporary docs 目錄失敗：%v", err)
+	}
+	docsFile := filepath.Join(docsDir, "docs.go")
+	content := "package docs\nvar value = struct { SwaggerTemplate string }{\nSwaggerTemplate: `valid`,\n}\n"
+	if err := os.WriteFile(docsFile, []byte(content), 0o600); err != nil {
+		t.Fatalf("建立有效 Swagger 文件失敗：%v", err)
+	}
+
+	output := captureSwaggerFixOutput(t, main)
+	if !strings.Contains(output, "文檔已經是正確的，無需修復") {
+		t.Fatalf("no-op output 不符預期：%s", output)
+	}
+	updated, err := os.ReadFile(docsFile)
+	if err != nil {
+		t.Fatalf("讀取 no-op Swagger 文件失敗：%v", err)
+	}
+	if string(updated) != content {
+		t.Fatalf("有效 Swagger 文件不應被修改：%s", updated)
+	}
+}
 
 func TestValidateSwaggerDocsAcceptsValidFile(t *testing.T) {
 	path := writeSwaggerValidationFile(t, "package docs\nvar value = struct { SwaggerTemplate string }{\nSwaggerTemplate: `valid`,\n}\n")
@@ -115,4 +191,48 @@ func writeSwaggerValidationFile(t *testing.T, content string) string {
 		t.Fatalf("建立 Swagger 驗證檔案失敗：%v", err)
 	}
 	return path
+}
+
+func useSwaggerFixWorkingDirectory(t *testing.T) string {
+	t.Helper()
+	workingDir := t.TempDir()
+	previousDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("取得工作目錄失敗：%v", err)
+	}
+	if err := os.Chdir(workingDir); err != nil {
+		t.Fatalf("切換 temporary directory 失敗：%v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(previousDir); err != nil {
+			t.Errorf("還原工作目錄失敗：%v", err)
+		}
+	})
+	return workingDir
+}
+
+func captureSwaggerFixOutput(t *testing.T, run func()) string {
+	t.Helper()
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("建立 stdout pipe 失敗：%v", err)
+	}
+	previousStdout := os.Stdout
+	os.Stdout = writer
+	t.Cleanup(func() { os.Stdout = previousStdout })
+
+	run()
+	if err := writer.Close(); err != nil {
+		t.Fatalf("關閉 stdout writer 失敗：%v", err)
+	}
+	os.Stdout = previousStdout
+
+	output, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("讀取 stdout 失敗：%v", err)
+	}
+	if err := reader.Close(); err != nil {
+		t.Fatalf("關閉 stdout reader 失敗：%v", err)
+	}
+	return string(output)
 }
