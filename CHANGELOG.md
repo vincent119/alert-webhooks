@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - Updated the pinned Docker builder from Go 1.27.2 to Go 1.27.3 to address `CVE-2026-111943` in the compiled standard library.
+- Updated Alpine runtime `musl` and `musl-utils` to 1.2.6-r3 to address `CVE-2026-107891` without changing the pinned base image digest or runtime contract.
 - Confirmed that the application build graph uses `golang.org/x/crypto/nacl/secretbox` for Discord support and does not include the unmaintained `openpgp` package reported by module-level scanners.
 
 ## [v2.0.8] - 2026-10-21
