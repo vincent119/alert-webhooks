@@ -5,6 +5,11 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/)，
 版本號遵循 [語意化版本](https://semver.org/lang/zh-TW/spec/v2.0.0.html)。
 
+## [v2.0.10] - 2026-10-22
+
+### 安全性
+- 從 runtime image 移除 curl 與 libcurl，並將 container health check 改用 BusyBox `wget`，在不變更 health endpoint 契約的前提下排除 `CVE-2026-92392`。
+
 ## [v2.0.9] - 2026-10-22
 
 ### 變更
