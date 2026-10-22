@@ -208,6 +208,7 @@ jobs:
           touch pages/.nojekyll
 
       - name: 提交 gh-pages 發布內容
+        id: pages_commit
         shell: bash
         env:
           CHART_VERSION: ${{ steps.release.outputs.chart_version }}
@@ -219,21 +220,43 @@ jobs:
           git -C pages add .nojekyll index.yaml "alert-webhooks-chart-${CHART_VERSION}.tgz"
           git -C pages commit -m "chore: 發布 Helm Chart ${CHART_VERSION}"
           git -C pages push origin HEAD:gh-pages
+          echo "sha=$(git -C pages rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
 
-      - name: 要求 GitHub Pages build
+      - name: 確認或要求 GitHub Pages build
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          PAGES_SHA: ${{ steps.pages_commit.outputs.sha }}
         run: |
           set -euo pipefail
 
-          curl --fail --silent --show-error \
-            --request POST \
-            --header "Authorization: Bearer ${GH_TOKEN}" \
-            --header "Accept: application/vnd.github+json" \
-            --header "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/builds" \
-            >/dev/null
+          build_detected=false
+          for _ in $(seq 1 15); do
+            if latest_build="$(curl --fail --silent --show-error \
+                --header "Authorization: Bearer ${GH_TOKEN}" \
+                --header "Accept: application/vnd.github+json" \
+                --header "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/builds/latest")"; then
+              latest_commit="$(jq -r '.commit // empty' <<< "${latest_build}")"
+              if [[ "${latest_commit}" == "${PAGES_SHA}" ]]; then
+                echo "GitHub Pages build 已由 branch push 建立：${PAGES_SHA}"
+                build_detected=true
+                break
+              fi
+            fi
+            sleep 2
+          done
+
+          if [[ "${build_detected}" == "false" ]]; then
+            echo "branch push 尚未建立 Pages build，改用 API fallback：${PAGES_SHA}"
+            curl --fail --silent --show-error \
+              --request POST \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/builds" \
+              >/dev/null
+          fi
 
       - name: 驗證公開 Helm repository
         shell: bash
