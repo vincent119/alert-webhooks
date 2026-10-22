@@ -100,7 +100,7 @@ Open browser: <http://localhost:9999/swagger/index.html>
 ## Public Container Image
 
 The public release image is available from Docker Hub as
-`docker.io/vincent119/alert-webhooks:v2.0.8`. It supports `linux/amd64` and
+`docker.io/vincent119/alert-webhooks:v2.0.10`. It supports `linux/amd64` and
 `linux/arm64`.
 
 Only immutable release tags are published. A Docker `latest` tag is not
@@ -109,7 +109,7 @@ public distribution source; the existing private ECR production deployment
 remains unchanged.
 
 ```bash
-docker pull docker.io/vincent119/alert-webhooks:v2.0.8
+docker pull docker.io/vincent119/alert-webhooks:v2.0.10
 
 config_file="$(pwd)/examples/config.expamle.yaml"
 docker run --detach \
@@ -117,13 +117,13 @@ docker run --detach \
   --publish 127.0.0.1:9999:9999 \
   --volume "${config_file}:/app/configs/config.production.yaml:ro" \
   --env APP_ENV=production \
-  docker.io/vincent119/alert-webhooks:v2.0.8
+  docker.io/vincent119/alert-webhooks:v2.0.10
 
 curl --fail http://127.0.0.1:9999/healthy
 ```
 
 The container runs as non-root UID `1500`. See the
-[v2.0.8 release](https://github.com/vincent119/alert-webhooks/releases/tag/v2.0.8)
+[v2.0.10 release](https://github.com/vincent119/alert-webhooks/releases/tag/v2.0.10)
 and the
 [Docker deployment guide](./documentation/en/docker-deployment.md) for the
 publication and deployment contract.

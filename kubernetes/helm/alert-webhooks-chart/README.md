@@ -1,6 +1,6 @@
 # alert-webhooks-chart
 
-![Version: 1.0.1](https://img.shields.io/badge/Version-1.0.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v2.0.8](https://img.shields.io/badge/AppVersion-v2.0.8-informational?style=flat-square)
+![Version: 1.0.2](https://img.shields.io/badge/Version-1.0.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v2.0.10](https://img.shields.io/badge/AppVersion-v2.0.10-informational?style=flat-square)
 
 A Helm chart for Alert Webhooks - Monitoring notification service
 
@@ -65,7 +65,7 @@ secrets:
 
 - Chart versions and application versions are managed independently.
 - A `chart-v<Chart version>` tag publishes only the matching immutable Chart package.
-- This release uses Chart version `1.0.1`, application version `v2.0.8`, and container image tag `v2.0.8` by default.
+- This release uses Chart version `1.0.2`, application version `v2.0.10`, and container image tag `v2.0.10` by default.
 - Published Chart versions are not overwritten, and the repository does not provide a mutable `latest` Chart.
 
 ## Install from the public repository
@@ -75,7 +75,7 @@ Add the public Helm repository and select an explicit Chart version:
 ```bash
 helm repo add alert-webhooks https://vincent119.github.io/alert-webhooks
 helm repo update
-helm show chart alert-webhooks/alert-webhooks-chart --version 1.0.1
+helm show chart alert-webhooks/alert-webhooks-chart --version 1.0.2
 ```
 
 Set the path to a private values file outside the repository:
@@ -88,7 +88,7 @@ Render the Chart without modifying the cluster:
 
 ```bash
 helm template alert-webhooks alert-webhooks/alert-webhooks-chart \
-  --version 1.0.1 \
+  --version 1.0.2 \
   --namespace alert-webhooks \
   --values "${PRIVATE_VALUES_FILE}" \
   > /tmp/alert-webhooks-rendered.yaml
@@ -100,7 +100,7 @@ Install or upgrade after the rendered output has been reviewed:
 
 ```bash
 helm upgrade --install alert-webhooks alert-webhooks/alert-webhooks-chart \
-  --version 1.0.1 \
+  --version 1.0.2 \
   --namespace alert-webhooks \
   --create-namespace \
   --values "${PRIVATE_VALUES_FILE}" \
@@ -262,7 +262,7 @@ Do not edit the generated values table manually. The [Traditional Chinese guide]
 | alertTemplateConfigMinimal.template_config.version | string | `"1.0.0"` |  |
 | app.environment | string | `"production"` |  |
 | app.name | string | `"alert-webhooks"` |  |
-| app.version | string | `"v2.0.8"` |  |
+| app.version | string | `"v2.0.10"` |  |
 | autoscaling.enabled | bool | `false` |  |
 | autoscaling.maxReplicas | int | `5` |  |
 | autoscaling.minReplicas | int | `1` |  |
@@ -270,7 +270,7 @@ Do not edit the generated values table manually. The [Traditional Chinese guide]
 | autoscaling.targetMemoryUtilizationPercentage | int | `80` |  |
 | config.app.mode | string | `"production"` |  |
 | config.app.port | string | `"9999"` |  |
-| config.app.version | string | `"v2.0.8"` |  |
+| config.app.version | string | `"v2.0.10"` |  |
 | config.discord.avatar_url | string | `""` |  |
 | config.discord.channels | object | `{}` |  |
 | config.discord.enable | bool | `false` |  |
