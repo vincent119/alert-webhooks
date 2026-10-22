@@ -4,6 +4,44 @@ entries:
   - annotations:
       artifacthub.io/category: monitoring-logging
       artifacthub.io/changes: |
+        - kind: security
+          description: Use the v2.0.10 runtime image without curl and libcurl to remediate CVE-2026-92392.
+        - kind: changed
+          description: Publish the main Chart documentation in English while retaining the Traditional Chinese guide.
+      artifacthub.io/images: |
+        - name: alert-webhooks
+          image: docker.io/vincent119/alert-webhooks:v2.0.10
+          platforms:
+            - linux/amd64
+            - linux/arm64
+      artifacthub.io/license: Apache-2.0
+    apiVersion: v2
+    appVersion: v2.0.10
+    created: "2026-10-22T05:56:39.052918613Z"
+    description: A Helm chart for Alert Webhooks - Monitoring notification service
+    digest: 5e058870934ed0fa47ddeae097ae085cf74ca5af302523424757d0aff2cc2ee3
+    home: https://github.com/vincent119/alert-webhooks
+    keywords:
+    - monitoring
+    - alerting
+    - webhooks
+    - notifications
+    - telegram
+    - slack
+    - discord
+    maintainers:
+    - email: vincent119@gmail.com
+      name: vincent119
+    name: alert-webhooks-chart
+    sources:
+    - https://github.com/vincent119/alert-webhooks
+    type: application
+    urls:
+    - https://vincent119.github.io/alert-webhooks/alert-webhooks-chart-1.0.2.tgz
+    version: 1.0.2
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
         - kind: added
           description: 新增公開 GitHub Pages Helm repository 發布流程。
         - kind: changed
@@ -17,7 +55,7 @@ entries:
       artifacthub.io/license: Apache-2.0
     apiVersion: v2
     appVersion: v2.0.8
-    created: "2026-10-22T02:14:09.551417559Z"
+    created: "2026-10-22T05:56:39.051831554Z"
     description: A Helm chart for Alert Webhooks - Monitoring notification service
     digest: f2de833940e7304d774ed2bd3762fb4ff0901e2d1807eb83bd63390bbbbaf5a5
     home: https://github.com/vincent119/alert-webhooks
@@ -39,4 +77,4 @@ entries:
     urls:
     - https://vincent119.github.io/alert-webhooks/alert-webhooks-chart-1.0.1.tgz
     version: 1.0.1
-generated: "2026-10-22T02:14:09.549125508Z"
+generated: "2026-10-22T05:56:39.050385543Z"
