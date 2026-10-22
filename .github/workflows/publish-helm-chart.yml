@@ -1,0 +1,296 @@
+name: 發布公開 Helm Chart
+
+on:
+  push:
+    tags:
+      - "chart-v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "既有 Chart release tag，格式為 chart-v<major>.<minor>.<patch>"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: publish-helm-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: 驗證並發布 Helm Chart
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CHART_DIR: kubernetes/helm/alert-webhooks-chart
+      HELM_REPOSITORY_URL: https://vincent119.github.io/alert-webhooks
+
+    steps:
+      - name: 解析 Chart release tag
+        id: release
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            release_tag="${INPUT_TAG}"
+          else
+            release_tag="${GITHUB_REF_NAME}"
+          fi
+
+          if [[ ! "${release_tag}" =~ ^chart-v((0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$ ]]; then
+            echo "Chart release tag 必須符合 chart-v<major>.<minor>.<patch>" >&2
+            exit 1
+          fi
+
+          echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+          echo "chart_version=${BASH_REMATCH[1]}" >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout Chart release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.release.outputs.release_tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 驗證 tag 與 Chart metadata
+        id: metadata
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+          CHART_VERSION: ${{ steps.release.outputs.chart_version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          git ls-remote --exit-code origin "refs/tags/${RELEASE_TAG}" >/dev/null
+          if [[ "$(git cat-file -t "${RELEASE_TAG}")" != "tag" ]]; then
+            echo "Chart release tag 必須是 annotated tag" >&2
+            exit 1
+          fi
+
+          tag_commit="$(git rev-parse "${RELEASE_TAG}^{commit}")"
+          head_commit="$(git rev-parse HEAD)"
+          if [[ "${tag_commit}" != "${head_commit}" ]]; then
+            echo "checkout commit 與 Chart release tag 不一致" >&2
+            exit 1
+          fi
+
+          metadata="$(helm show chart "${CHART_DIR}")"
+          metadata_version="$(awk '$1 == "version:" {print $2}' <<< "${metadata}")"
+          app_version="$(awk '$1 == "appVersion:" {print $2}' <<< "${metadata}")"
+
+          if [[ "${metadata_version}" != "${CHART_VERSION}" ]]; then
+            echo "Chart.yaml version 與 release tag 不一致" >&2
+            exit 1
+          fi
+          if [[ ! "${app_version}" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "appVersion 必須符合 v<major>.<minor>.<patch>" >&2
+            exit 1
+          fi
+
+          git ls-remote --exit-code origin "refs/tags/${app_version}" >/dev/null
+          release_json="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${app_version}")"
+          jq -e '.draft == false and .prerelease == false' <<< "${release_json}" >/dev/null
+
+          echo "app_version=${app_version}" >> "${GITHUB_OUTPUT}"
+          echo "source_sha=${head_commit}" >> "${GITHUB_OUTPUT}"
+
+      - name: 驗證公開雙平台 image
+        shell: bash
+        env:
+          APP_VERSION: ${{ steps.metadata.outputs.app_version }}
+        run: |
+          set -euo pipefail
+
+          image="docker.io/vincent119/alert-webhooks:${APP_VERSION}"
+          manifest="$(docker buildx imagetools inspect "${image}")"
+          grep -F 'linux/amd64' <<< "${manifest}" >/dev/null
+          grep -F 'linux/arm64' <<< "${manifest}" >/dev/null
+
+      - name: 驗證並打包 Chart
+        id: package
+        shell: bash
+        env:
+          CHART_VERSION: ${{ steps.release.outputs.chart_version }}
+        run: |
+          set -euo pipefail
+
+          test_values="${RUNNER_TEMP}/chart-test-values.yaml"
+          printf '%s\n' \
+            'secrets:' \
+            '  metric:' \
+            '    user: ci-metric-user' \
+            '    password: ci-metric-password' \
+            '  webhooks:' \
+            '    user: ci-webhook-user' \
+            '    password: ci-webhook-password' \
+            > "${test_values}"
+
+          helm lint "${CHART_DIR}" --values "${test_values}"
+          helm template alert-webhooks "${CHART_DIR}" \
+            --namespace alert-webhooks \
+            --values "${test_values}" \
+            > "${RUNNER_TEMP}/rendered.yaml"
+
+          package_dir="${RUNNER_TEMP}/package"
+          unpack_dir="${RUNNER_TEMP}/unpacked"
+          mkdir -p "${package_dir}" "${unpack_dir}"
+          helm package "${CHART_DIR}" --destination "${package_dir}"
+
+          package_path="${package_dir}/alert-webhooks-chart-${CHART_VERSION}.tgz"
+          test -s "${package_path}"
+          package_files="$(tar -tzf "${package_path}")"
+          if grep -Eq 'values-[^/]+\.yaml$' <<< "${package_files}"; then
+            echo "公開 package 含環境專用 values" >&2
+            exit 1
+          fi
+
+          tar -xzf "${package_path}" -C "${unpack_dir}"
+          if grep -REq 'amazonaws\.com|aws_account|xox[baprs]-|certificate/' "${unpack_dir}"; then
+            echo "公開 package 含私有環境或 credential 特徵" >&2
+            exit 1
+          fi
+
+          packaged_metadata="$(helm show chart "${package_path}")"
+          packaged_version="$(awk '$1 == "version:" {print $2}' <<< "${packaged_metadata}")"
+          packaged_app_version="$(awk '$1 == "appVersion:" {print $2}' <<< "${packaged_metadata}")"
+          if [[ "${packaged_version}" != "${CHART_VERSION}" || \
+                "${packaged_app_version}" != "${{ steps.metadata.outputs.app_version }}" ]]; then
+            echo "package metadata 與已驗證版本不一致" >&2
+            exit 1
+          fi
+
+          echo "package_path=${package_path}" >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: gh-pages
+          path: pages
+          fetch-depth: 0
+
+      - name: 更新 Helm repository index
+        shell: bash
+        env:
+          CHART_VERSION: ${{ steps.release.outputs.chart_version }}
+          PACKAGE_PATH: ${{ steps.package.outputs.package_path }}
+        run: |
+          set -euo pipefail
+
+          package_name="alert-webhooks-chart-${CHART_VERSION}.tgz"
+          if [[ -e "pages/${package_name}" ]]; then
+            echo "Chart package 已存在，拒絕覆寫：${package_name}" >&2
+            exit 1
+          fi
+          if [[ -f pages/index.yaml ]] && \
+             grep -Eq "^[[:space:]]+version:[[:space:]]+${CHART_VERSION}$" pages/index.yaml; then
+            echo "index.yaml 已存在相同 Chart version，拒絕覆寫：${CHART_VERSION}" >&2
+            exit 1
+          fi
+
+          cp "${PACKAGE_PATH}" "pages/${package_name}"
+          if [[ -f pages/index.yaml ]]; then
+            helm repo index pages --url "${HELM_REPOSITORY_URL}" --merge pages/index.yaml
+          else
+            helm repo index pages --url "${HELM_REPOSITORY_URL}"
+          fi
+
+          touch pages/.nojekyll
+
+      - name: 提交 gh-pages 發布內容
+        shell: bash
+        env:
+          CHART_VERSION: ${{ steps.release.outputs.chart_version }}
+        run: |
+          set -euo pipefail
+
+          git -C pages config user.name github-actions[bot]
+          git -C pages config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git -C pages add .nojekyll index.yaml "alert-webhooks-chart-${CHART_VERSION}.tgz"
+          git -C pages commit -m "chore: 發布 Helm Chart ${CHART_VERSION}"
+          git -C pages push origin HEAD:gh-pages
+
+      - name: 要求 GitHub Pages build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/builds" \
+            >/dev/null
+
+      - name: 驗證公開 Helm repository
+        shell: bash
+        env:
+          CHART_VERSION: ${{ steps.release.outputs.chart_version }}
+          APP_VERSION: ${{ steps.metadata.outputs.app_version }}
+        run: |
+          set -euo pipefail
+
+          index_file="${RUNNER_TEMP}/public-index.yaml"
+          published=false
+          for _ in $(seq 1 30); do
+            if curl --fail --silent --show-error \
+              --header 'Cache-Control: no-cache' \
+              "${HELM_REPOSITORY_URL}/index.yaml?run=${GITHUB_RUN_ID}" \
+              --output "${index_file}" && \
+               grep -Eq "^[[:space:]]+version:[[:space:]]+${CHART_VERSION}$" "${index_file}"; then
+              published=true
+              break
+            fi
+            sleep 10
+          done
+
+          if [[ "${published}" != "true" ]]; then
+            echo "GitHub Pages 尚未提供新 Chart version" >&2
+            exit 1
+          fi
+
+          export HELM_CONFIG_HOME="${RUNNER_TEMP}/helm/config"
+          export HELM_CACHE_HOME="${RUNNER_TEMP}/helm/cache"
+          export HELM_DATA_HOME="${RUNNER_TEMP}/helm/data"
+          helm repo add alert-webhooks "${HELM_REPOSITORY_URL}"
+          helm repo update
+
+          public_metadata="$(helm show chart alert-webhooks/alert-webhooks-chart --version "${CHART_VERSION}")"
+          public_version="$(awk '$1 == "version:" {print $2}' <<< "${public_metadata}")"
+          public_app_version="$(awk '$1 == "appVersion:" {print $2}' <<< "${public_metadata}")"
+          if [[ "${public_version}" != "${CHART_VERSION}" || \
+                "${public_app_version}" != "${APP_VERSION}" ]]; then
+            echo "公開 Chart metadata 與發布版本不一致" >&2
+            exit 1
+          fi
+
+          helm template alert-webhooks alert-webhooks/alert-webhooks-chart \
+            --version "${CHART_VERSION}" \
+            --namespace alert-webhooks \
+            --set-string secrets.metric.user=ci-metric-user \
+            --set-string secrets.metric.password=ci-metric-password \
+            --set-string secrets.webhooks.user=ci-webhook-user \
+            --set-string secrets.webhooks.password=ci-webhook-password \
+            > "${RUNNER_TEMP}/public-rendered.yaml"
+
+          {
+            echo "## Helm Chart 發布結果"
+            echo
+            echo "- Chart version：\`${CHART_VERSION}\`"
+            echo "- appVersion：\`${APP_VERSION}\`"
+            echo "- Repository：${HELM_REPOSITORY_URL}"
+            echo "- Source commit：\`${{ steps.metadata.outputs.source_sha }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"

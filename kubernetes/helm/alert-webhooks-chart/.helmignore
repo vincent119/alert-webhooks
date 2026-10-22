@@ -21,3 +21,5 @@
 .idea/
 *.tmproj
 .vscode/
+# 環境專用 values 不得進入公開 Chart package。
+values-*.yaml

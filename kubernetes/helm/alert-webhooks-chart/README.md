@@ -1,6 +1,6 @@
 # alert-webhooks-chart
 
-![Version: 1.0.0](https://img.shields.io/badge/Version-1.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.0](https://img.shields.io/badge/AppVersion-v1.0-informational?style=flat-square)
+![Version: 1.0.1](https://img.shields.io/badge/Version-1.0.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v2.0.8](https://img.shields.io/badge/AppVersion-v2.0.8-informational?style=flat-square)
 
 A Helm chart for Alert Webhooks - Monitoring notification service
 
@@ -10,7 +10,7 @@ A Helm chart for Alert Webhooks - Monitoring notification service
 
 | Name | Email | Url |
 | ---- | ------ | --- |
-| DevOps Team | <vincent119@gmail.com> |  |
+| vincent119 | <vincent119@gmail.com> |  |
 
 ## Source Code
 
@@ -61,20 +61,34 @@ secrets:
     password: "REPLACE_WEBHOOKS_PASSWORD"
 ```
 
-## 安裝與升級
+## 版本契約
 
-以下命令預設從 repository root 執行。先指定 repository 外的私有 values 路徑：
+- Chart version 與 application version 分開管理。
+- `chart-v<Chart version>` tag 只發布對應的不可變 Chart package。
+- 本版本的 Chart version 為 `1.0.1`，`appVersion` 與預設 container image tag 為 `v2.0.8`。
+- 公開 repository 不提供 `latest` Chart，也不覆寫已發布的版本。
+
+## 從公開 repository 安裝
+
+先加入公開 Helm repository，並固定使用所需 Chart version：
+
+```bash
+helm repo add alert-webhooks https://vincent119.github.io/alert-webhooks
+helm repo update
+helm show chart alert-webhooks/alert-webhooks-chart --version 1.0.1
+```
+
+指定 repository 外的私有 values 路徑：
 
 ```bash
 PRIVATE_VALUES_FILE=/secure/path/alert-webhooks-values.yaml
-CHART_DIR=kubernetes/helm/alert-webhooks-chart
 ```
 
-先執行本機驗證，不連線修改 cluster：
+先執行 render 驗證，不連線修改 cluster：
 
 ```bash
-helm lint "${CHART_DIR}" --values "${PRIVATE_VALUES_FILE}"
-helm template alert-webhooks "${CHART_DIR}" \
+helm template alert-webhooks alert-webhooks/alert-webhooks-chart \
+  --version 1.0.1 \
   --namespace alert-webhooks \
   --values "${PRIVATE_VALUES_FILE}" \
   > /tmp/alert-webhooks-rendered.yaml
@@ -83,13 +97,29 @@ helm template alert-webhooks "${CHART_DIR}" \
 確認 render 結果後安裝或升級：
 
 ```bash
-helm upgrade --install alert-webhooks "${CHART_DIR}" \
+helm upgrade --install alert-webhooks alert-webhooks/alert-webhooks-chart \
+  --version 1.0.1 \
   --namespace alert-webhooks \
   --create-namespace \
   --values "${PRIVATE_VALUES_FILE}" \
   --atomic \
   --wait \
   --timeout 5m
+```
+
+## 從原始碼驗證
+
+以下命令預設從 repository root 執行：
+
+```bash
+PRIVATE_VALUES_FILE=/secure/path/alert-webhooks-values.yaml
+CHART_DIR=kubernetes/helm/alert-webhooks-chart
+
+helm lint "${CHART_DIR}" --values "${PRIVATE_VALUES_FILE}"
+helm template alert-webhooks "${CHART_DIR}" \
+  --namespace alert-webhooks \
+  --values "${PRIVATE_VALUES_FILE}" \
+  > /tmp/alert-webhooks-rendered.yaml
 ```
 
 ## 驗證部署
@@ -226,7 +256,7 @@ make helm-docs
 | alertTemplateConfigMinimal.template_config.version | string | `"1.0.0"` |  |
 | app.environment | string | `"production"` |  |
 | app.name | string | `"alert-webhooks"` |  |
-| app.version | string | `"1.0.0"` |  |
+| app.version | string | `"v2.0.8"` |  |
 | autoscaling.enabled | bool | `false` |  |
 | autoscaling.maxReplicas | int | `5` |  |
 | autoscaling.minReplicas | int | `1` |  |
@@ -234,29 +264,19 @@ make helm-docs
 | autoscaling.targetMemoryUtilizationPercentage | int | `80` |  |
 | config.app.mode | string | `"production"` |  |
 | config.app.port | string | `"9999"` |  |
-| config.app.version | string | `"1.0.0"` |  |
+| config.app.version | string | `"v2.0.8"` |  |
 | config.discord.avatar_url | string | `""` |  |
-| config.discord.channels.chat_ids0 | string | `"ID"` |  |
-| config.discord.channels.chat_ids1 | string | `"ID"` |  |
-| config.discord.channels.chat_ids2 | string | `"ID"` |  |
-| config.discord.channels.chat_ids3 | string | `"ID"` |  |
-| config.discord.channels.chat_ids4 | string | `"ID"` |  |
-| config.discord.channels.chat_ids5 | string | `"ID"` |  |
-| config.discord.enable | bool | `true` |  |
-| config.discord.guild_id | string | `"ID"` |  |
+| config.discord.channels | object | `{}` |  |
+| config.discord.enable | bool | `false` |  |
+| config.discord.guild_id | string | `""` |  |
 | config.discord.template_language | string | `"tw"` |  |
 | config.discord.template_mode | string | `"full"` |  |
 | config.discord.username | string | `"AlertBot"` |  |
 | config.log.format | string | `"json"` |  |
 | config.log.level | string | `"info"` |  |
-| config.slack.channel | string | `"#alerts"` |  |
-| config.slack.channels.chat_ids0 | string | `"#alert0"` |  |
-| config.slack.channels.chat_ids1 | string | `"#alert1"` |  |
-| config.slack.channels.chat_ids2 | string | `"#alert2"` |  |
-| config.slack.channels.chat_ids3 | string | `"#alert3"` |  |
-| config.slack.channels.chat_ids4 | string | `"#alert4"` |  |
-| config.slack.channels.chat_ids5 | string | `"#alert5"` |  |
-| config.slack.enable | bool | `true` |  |
+| config.slack.channel | string | `""` |  |
+| config.slack.channels | object | `{}` |  |
+| config.slack.enable | bool | `false` |  |
 | config.slack.icon_emoji | string | `":warning:"` |  |
 | config.slack.link_names | bool | `true` |  |
 | config.slack.template_language | string | `"tw"` |  |
@@ -264,14 +284,8 @@ make helm-docs
 | config.slack.unfurl_links | bool | `false` |  |
 | config.slack.unfurl_media | bool | `false` |  |
 | config.slack.username | string | `"AlertBot"` |  |
-| config.telegram.chat_ids[0] | string | `"ID"` |  |
-| config.telegram.chat_ids[1] | string | `"ID"` |  |
-| config.telegram.chat_ids[2] | string | `"ID"` |  |
-| config.telegram.chat_ids[3] | string | `"ID"` |  |
-| config.telegram.chat_ids[4] | string | `"ID"` |  |
-| config.telegram.chat_ids[5] | string | `"ID"` |  |
-| config.telegram.chat_ids[6] | string | `"ID"` |  |
-| config.telegram.enable | bool | `true` |  |
+| config.telegram.chat_ids | list | `[]` |  |
+| config.telegram.enable | bool | `false` |  |
 | config.telegram.template_language | string | `"tw"` |  |
 | config.telegram.template_mode | string | `"full"` |  |
 | config.trace.authPasswd | string | `""` |  |
@@ -285,24 +299,16 @@ make helm-docs
 | config.trace.urlPath | string | `""` |  |
 | config.webhooks.enable | bool | `true` |  |
 | env[0].name | string | `"SWAGGER_HOST"` |  |
-| env[0].value | string | `"alert-webhooks.domain.com"` |  |
+| env[0].value | string | `"localhost:9999"` |  |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"vincent119/alert-webhooks"` |  |
-| image.tag | string | `"v1.0.1"` |  |
+| image.repository | string | `"docker.io/vincent119/alert-webhooks"` |  |
+| image.tag | string | `""` |  |
 | imagePullSecrets | list | `[]` |  |
-| ingress.annotations."alb.ingress.kubernetes.io/backend-protocol" | string | `"HTTP"` |  |
-| ingress.annotations."alb.ingress.kubernetes.io/certificate-arn" | string | `"arn:aws:acm:ap-northeast-1:{aws_account}:certificate/hash"` |  |
-| ingress.annotations."alb.ingress.kubernetes.io/group.name" | string | `"infra"` |  |
-| ingress.annotations."alb.ingress.kubernetes.io/listen-ports" | string | `"[{\"HTTP\": 80}, {\"HTTPS\": 443}]"` |  |
-| ingress.annotations."alb.ingress.kubernetes.io/load-balancer-attributes" | string | `"deletion_protection.enabled=true,idle_timeout.timeout_seconds=60"` |  |
-| ingress.annotations."alb.ingress.kubernetes.io/load-balancer-name" | string | `"infra"` |  |
-| ingress.annotations."alb.ingress.kubernetes.io/target-type" | string | `"ip"` |  |
-| ingress.className | string | `"alb"` |  |
-| ingress.enabled | bool | `true` |  |
-| ingress.hosts[0].host | string | `"alert-webhooks.domain.com"` |  |
-| ingress.hosts[0].paths[0].path | string | `"/"` |  |
-| ingress.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| ingress.annotations | object | `{}` |  |
+| ingress.className | string | `""` |  |
+| ingress.enabled | bool | `false` |  |
+| ingress.hosts | list | `[]` |  |
 | ingress.tls | list | `[]` |  |
 | initContainers | list | `[]` |  |
 | livenessProbe.failureThreshold | int | `3` |  |
