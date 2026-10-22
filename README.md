@@ -155,7 +155,7 @@ Complete setup and usage guides are available in multiple languages in the **[do
 - **[Configuration Guide](./documentation/en/config_guide.md)** - Detailed configuration instructions
 - **[Service Enable Configuration](./documentation/en/service-enable-config.md)** - Service enablement settings
 - **[Kubernetes Environment Variables](./documentation/en/kubernetes-env-vars.md)** - K8s deployment configuration
-- **[Helm Installation](./kubernetes/helm/alert-webhooks-chart/README.en.md)** - Install,
+- **[Helm Installation](./kubernetes/helm/alert-webhooks-chart/README.md)** - Install,
   upgrade, verify, and roll back from the public Helm repository
 - **[Kustomize Installation](./kubernetes/kustomize/README.en.md)** -
   Render, deploy, verify, and clean up with Kustomize

@@ -22,9 +22,9 @@ annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/changes: |
     - kind: added
-      description: 新增公開 GitHub Pages Helm repository 發布流程。
+      description: Added the public GitHub Pages Helm repository release workflow.
     - kind: changed
-      description: 預設使用 v2.0.8 多平台 image，並停用環境特定的 ingress 與通知服務。
+      description: Use the v2.0.8 multi-platform image by default and disable environment-specific ingress and notification services.
   artifacthub.io/images: |
     - name: alert-webhooks
       image: docker.io/vincent119/alert-webhooks:v2.0.8

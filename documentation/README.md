@@ -19,7 +19,7 @@ This directory contains comprehensive documentation for the Alert Webhooks proje
 - **[template_guide.md](./en/template_guide.md)** - Template system guide
 - **[template_usage.md](./en/template_usage.md)** - Template usage examples
 - **[telegram_usage.md](./en/telegram_usage.md)** - Telegram API usage examples
-- **[Helm installation](../kubernetes/helm/alert-webhooks-chart/README.en.md)** -
+- **[Helm installation](../kubernetes/helm/alert-webhooks-chart/README.md)** -
   Helm installation and lifecycle guide
 - **[Kustomize installation](../kubernetes/kustomize/README.en.md)** -
   Kustomize deployment guide
@@ -34,7 +34,7 @@ This directory contains comprehensive documentation for the Alert Webhooks proje
 - **[template_guide.md](./zh/template_guide.md)** - 模板系統使用指南
 - **[template_usage.md](./zh/template_usage.md)** - 模板使用範例
 - **[telegram_usage.md](./zh/telegram_usage.md)** - Telegram API 使用範例
-- **[Helm 安裝指南](../kubernetes/helm/alert-webhooks-chart/README.md)** - Helm 安裝與生命週期指南
+- **[Helm 安裝指南](../kubernetes/helm/alert-webhooks-chart/README.zh-TW.md)** - Helm 安裝與生命週期指南
 - **[Kustomize 安裝指南](../kubernetes/kustomize/README.md)** - Kustomize 部署指南
 
 ## 🏗️ Project Structure

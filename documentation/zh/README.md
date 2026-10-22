@@ -11,7 +11,7 @@
 - **[config_guide.md](./config_guide.md)** - 設定檔詳細指南
 - **[service-enable-config.md](./service-enable-config.md)** - 服務啟用設定指南
 - **[kubernetes-env-vars.md](./kubernetes-env-vars.md)** - Kubernetes 環境變數設定
-- **[Helm 安裝指南](../../kubernetes/helm/alert-webhooks-chart/README.md)** - Helm 前置條件、安裝、升級與回滾
+- **[Helm 安裝指南](../../kubernetes/helm/alert-webhooks-chart/README.zh-TW.md)** - Helm 前置條件、安裝、升級與回滾
 - **[Kustomize 安裝指南](../../kubernetes/kustomize/README.md)** - Kustomize 前置條件、部署、驗證與清理
 - **[telegram_setup.md](./telegram_setup.md)** - Telegram 機器人設定指南
 - **[slack_setup.md](./slack_setup.md)** - Slack 機器人設定指南
