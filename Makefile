@@ -138,6 +138,10 @@ docker-shell:
 	@echo "Entering container shell..."
 	@docker exec -it alert-webhooks /bin/sh
 
+govulncheck:
+	@echo "Running vulnerability check..."
+	@go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
 # Show help
 help:
 	@echo "Available commands:"
@@ -171,3 +175,4 @@ help:
 	@echo "  deps             - Install dependencies"
 	@echo "  fmt              - Format code"
 	@echo "  lint             - Run lint checks"
+	@echo "  govulncheck      - Run vulnerability check"
