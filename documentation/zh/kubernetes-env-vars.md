@@ -192,7 +192,7 @@ Override trace auth password from env var: [REDACTED]
 
 請使用目前維護的 Kubernetes 部署指南：
 
-- [Helm 安裝指南](../../kubernetes/helm/alert-webhooks-chart/README.md)
+- [Helm 安裝指南](../../kubernetes/helm/alert-webhooks-chart/README.zh-TW.md)
 - [Kustomize 安裝指南](../../kubernetes/kustomize/README.md)
 
 ## 相關文件

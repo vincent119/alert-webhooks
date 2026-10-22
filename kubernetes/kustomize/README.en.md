@@ -192,4 +192,4 @@ kubernetes/kustomize/
 
 - [Docker deployment](../../documentation/en/docker-deployment.md)
 - [Kubernetes environment variables](../../documentation/en/kubernetes-env-vars.md)
-- [Helm installation](../helm/alert-webhooks-chart/README.en.md)
+- [Helm installation](../helm/alert-webhooks-chart/README.md)

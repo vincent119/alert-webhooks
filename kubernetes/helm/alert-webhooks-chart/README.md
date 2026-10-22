@@ -16,10 +16,10 @@ A Helm chart for Alert Webhooks - Monitoring notification service
 
 * <https://github.com/vincent119/alert-webhooks>
 
-## 前置條件
+## Prerequisites
 
-- 可連線的 Kubernetes cluster，以及具備目標 namespace 權限的 kubeconfig。
-- Helm 與 kubectl。macOS 可使用 Homebrew 安裝：
+- A reachable Kubernetes cluster and a kubeconfig with access to the target namespace.
+- Helm and kubectl. On macOS, install them with Homebrew:
 
 ```bash
 brew install helm kubectl
@@ -28,17 +28,17 @@ kubectl version --client
 kubectl config current-context
 ```
 
-其他作業系統請參考 [Helm 安裝文件](https://helm.sh/docs/intro/install/) 與 [kubectl 安裝文件](https://kubernetes.io/docs/tasks/tools/)。執行部署前，必須確認 `kubectl config current-context` 指向正確 cluster。
+For other operating systems, see the [Helm installation guide](https://helm.sh/docs/intro/install/) and [kubectl installation guide](https://kubernetes.io/docs/tasks/tools/). Before deployment, confirm that `kubectl config current-context` points to the intended cluster.
 
-## 安全設定
+## Security configuration
 
-Chart 不提供 webhook、metric 或通知服務 Token 的預設值。安裝時必須以私有 values 檔提供 `secrets.metric.user`、`secrets.metric.password`、`secrets.webhooks.user` 與 `secrets.webhooks.password`。
+The Chart does not provide default webhook, metric, or notification service credentials. Supply `secrets.metric.user`, `secrets.metric.password`, `secrets.webhooks.user`, and `secrets.webhooks.password` through a private values file.
 
-當 `config.telegram.enable`、`config.slack.enable` 或 `config.discord.enable` 為 `true` 時，必須分別提供對應的 `secrets.<service>.token`。Trace 認證維持選填。
+When `config.telegram.enable`, `config.slack.enable`, or `config.discord.enable` is `true`, provide the corresponding `secrets.<service>.token`. Trace authentication remains optional.
 
-請勿將實際憑證提交至 repository，也不要透過 `--set` 把 Secret 留在 shell history 或 CI log。私有 values 檔應放在 repository 外，並限制檔案權限。
+Do not commit real credentials to the repository or pass secrets through `--set`, which can leave them in shell history or CI logs. Store the private values file outside the repository and restrict its file permissions.
 
-以下最小範例停用通知服務；需要啟用時再於私有 values 檔加入對應 Token：
+The following minimum example disables all notification services. Add tokens to the private values file only when enabling a service:
 
 ```yaml
 ingress:
@@ -61,16 +61,16 @@ secrets:
     password: "REPLACE_WEBHOOKS_PASSWORD"
 ```
 
-## 版本契約
+## Version contract
 
-- Chart version 與 application version 分開管理。
-- `chart-v<Chart version>` tag 只發布對應的不可變 Chart package。
-- 本版本的 Chart version 為 `1.0.1`，`appVersion` 與預設 container image tag 為 `v2.0.8`。
-- 公開 repository 不提供 `latest` Chart，也不覆寫已發布的版本。
+- Chart versions and application versions are managed independently.
+- A `chart-v<Chart version>` tag publishes only the matching immutable Chart package.
+- This release uses Chart version `1.0.1`, application version `v2.0.8`, and container image tag `v2.0.8` by default.
+- Published Chart versions are not overwritten, and the repository does not provide a mutable `latest` Chart.
 
-## 從公開 repository 安裝
+## Install from the public repository
 
-先加入公開 Helm repository，並固定使用所需 Chart version：
+Add the public Helm repository and select an explicit Chart version:
 
 ```bash
 helm repo add alert-webhooks https://vincent119.github.io/alert-webhooks
@@ -78,13 +78,13 @@ helm repo update
 helm show chart alert-webhooks/alert-webhooks-chart --version 1.0.1
 ```
 
-指定 repository 外的私有 values 路徑：
+Set the path to a private values file outside the repository:
 
 ```bash
 PRIVATE_VALUES_FILE=/secure/path/alert-webhooks-values.yaml
 ```
 
-先執行 render 驗證，不連線修改 cluster：
+Render the Chart without modifying the cluster:
 
 ```bash
 helm template alert-webhooks alert-webhooks/alert-webhooks-chart \
@@ -94,7 +94,9 @@ helm template alert-webhooks alert-webhooks/alert-webhooks-chart \
   > /tmp/alert-webhooks-rendered.yaml
 ```
 
-確認 render 結果後安裝或升級：
+Review the rendered output for placeholders, unexpected image references, and secrets before continuing.
+
+Install or upgrade after the rendered output has been reviewed:
 
 ```bash
 helm upgrade --install alert-webhooks alert-webhooks/alert-webhooks-chart \
@@ -107,9 +109,9 @@ helm upgrade --install alert-webhooks alert-webhooks/alert-webhooks-chart \
   --timeout 5m
 ```
 
-## 從原始碼驗證
+## Validate from source
 
-以下命令預設從 repository root 執行：
+Run the following commands from the repository root:
 
 ```bash
 PRIVATE_VALUES_FILE=/secure/path/alert-webhooks-values.yaml
@@ -122,7 +124,7 @@ helm template alert-webhooks "${CHART_DIR}" \
   > /tmp/alert-webhooks-rendered.yaml
 ```
 
-## 驗證部署
+## Verify the deployment
 
 ```bash
 helm status alert-webhooks --namespace alert-webhooks
@@ -133,9 +135,11 @@ kubectl rollout status deployment \
   --timeout 5m
 ```
 
-## 回滾與移除
+Do not continue with notification testing until the rollout completes and the Pods are ready.
 
-先查看 release revision，再指定實際 revision 回滾：
+## Roll back or uninstall
+
+List release revisions before selecting the revision to restore:
 
 ```bash
 helm history alert-webhooks --namespace alert-webhooks
@@ -146,21 +150,23 @@ helm rollback alert-webhooks "${REVISION_NUMBER}" \
   --timeout 5m
 ```
 
-移除 release：
+Uninstall the release with:
 
 ```bash
 helm uninstall alert-webhooks --namespace alert-webhooks
 ```
 
-`helm uninstall` 不會自動刪除 namespace。刪除 namespace 前，先確認其中沒有其他工作負載。
+`helm uninstall` does not delete the namespace automatically. Before deleting the namespace, confirm that it contains no unrelated workloads or retained resources.
 
-## 維護 README
+## Maintain this README
 
-人工內容維護於 `README.md.gotmpl`，values 表格由固定版本的 `helm-docs` 產生：
+Maintain the hand-written content in `README.md.gotmpl`. Generate the values table with the repository-pinned `helm-docs` version:
 
 ```bash
 make helm-docs
 ```
+
+Do not edit the generated values table manually. The [Traditional Chinese guide](./README.zh-TW.md) provides the same installation and lifecycle overview without duplicating the generated values reference.
 
 ## Values
 

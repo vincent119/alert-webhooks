@@ -5,6 +5,15 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/)，
 版本號遵循 [語意化版本](https://semver.org/lang/zh-TW/spec/v2.0.0.html)。
 
+## [v2.0.9] - 2026-10-22
+
+### 變更
+- 將 Helm Chart package 的主要 README 改為英文，並保留獨立的繁體中文安裝指南。
+
+### 安全性
+- 將固定 digest 的 Docker builder 從 Go 1.27.2 更新至 Go 1.27.3，修正編譯後標準函式庫的 `CVE-2026-111943`。
+- 確認 application build graph 使用 `golang.org/x/crypto/nacl/secretbox` 支援 Discord，且未包含 module 層級 scanner 回報、已停止維護的 `openpgp` package。
+
 ## [v2.0.8] - 2026-10-21
 
 ### 新增

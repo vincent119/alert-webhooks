@@ -5,7 +5,7 @@ Docker Hub repository. It covers a single-host Docker deployment, health
 verification, routine operations, rollback, and the public image contract.
 
 For Kubernetes deployments, use the maintained
-[Helm guide](../../kubernetes/helm/alert-webhooks-chart/README.en.md) or
+[Helm guide](../../kubernetes/helm/alert-webhooks-chart/README.md) or
 [Kustomize guide](../../kubernetes/kustomize/README.en.md).
 
 ## Prerequisites
@@ -186,5 +186,5 @@ merges do not publish to Docker Hub.
 
 - [Configuration guide](./config_guide.md)
 - [Kubernetes environment variables](./kubernetes-env-vars.md)
-- [Helm installation](../../kubernetes/helm/alert-webhooks-chart/README.en.md)
+- [Helm installation](../../kubernetes/helm/alert-webhooks-chart/README.md)
 - [Kustomize installation](../../kubernetes/kustomize/README.en.md)

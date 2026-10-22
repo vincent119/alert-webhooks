@@ -5,7 +5,7 @@ Alert Webhooks，涵蓋單機 Docker 部署、健康驗證、例行操作、回�
 image 發布規範。
 
 Kubernetes 部署請使用目前維護的
-[Helm 指南](../../kubernetes/helm/alert-webhooks-chart/README.md)，或
+[Helm 指南](../../kubernetes/helm/alert-webhooks-chart/README.zh-TW.md)，或
 [Kustomize 指南](../../kubernetes/kustomize/README.md)。
 
 ## 前置條件
@@ -174,5 +174,5 @@ docker build --tag alert-webhooks:dev .
 
 - [設定指南](./config_guide.md)
 - [Kubernetes 環境變數](./kubernetes-env-vars.md)
-- [Helm 安裝](../../kubernetes/helm/alert-webhooks-chart/README.md)
+- [Helm 安裝](../../kubernetes/helm/alert-webhooks-chart/README.zh-TW.md)
 - [Kustomize 安裝](../../kubernetes/kustomize/README.md)
