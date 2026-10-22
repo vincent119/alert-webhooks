@@ -1,0 +1,42 @@
+apiVersion: v1
+entries:
+  alert-webhooks-chart:
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/changes: |
+        - kind: added
+          description: 新增公開 GitHub Pages Helm repository 發布流程。
+        - kind: changed
+          description: 預設使用 v2.0.8 多平台 image，並停用環境特定的 ingress 與通知服務。
+      artifacthub.io/images: |
+        - name: alert-webhooks
+          image: docker.io/vincent119/alert-webhooks:v2.0.8
+          platforms:
+            - linux/amd64
+            - linux/arm64
+      artifacthub.io/license: Apache-2.0
+    apiVersion: v2
+    appVersion: v2.0.8
+    created: "2026-10-22T02:14:09.551417559Z"
+    description: A Helm chart for Alert Webhooks - Monitoring notification service
+    digest: f2de833940e7304d774ed2bd3762fb4ff0901e2d1807eb83bd63390bbbbaf5a5
+    home: https://github.com/vincent119/alert-webhooks
+    keywords:
+    - monitoring
+    - alerting
+    - webhooks
+    - notifications
+    - telegram
+    - slack
+    - discord
+    maintainers:
+    - email: vincent119@gmail.com
+      name: vincent119
+    name: alert-webhooks-chart
+    sources:
+    - https://github.com/vincent119/alert-webhooks
+    type: application
+    urls:
+    - https://vincent119.github.io/alert-webhooks/alert-webhooks-chart-1.0.1.tgz
+    version: 1.0.1
+generated: "2026-10-22T02:14:09.549125508Z"
