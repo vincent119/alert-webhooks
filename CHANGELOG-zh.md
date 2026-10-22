@@ -12,6 +12,7 @@
 
 ### 安全性
 - 將固定 digest 的 Docker builder 從 Go 1.27.2 更新至 Go 1.27.3，修正編譯後標準函式庫的 `CVE-2026-111943`。
+- 將 Alpine runtime 的 `musl` 與 `musl-utils` 更新至 1.2.6-r3，修正 `CVE-2026-107891`，並維持固定的 base image digest 與既有 runtime 契約。
 - 確認 application build graph 使用 `golang.org/x/crypto/nacl/secretbox` 支援 Discord，且未包含 module 層級 scanner 回報、已停止維護的 `openpgp` package。
 
 ## [v2.0.8] - 2026-10-21
