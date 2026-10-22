@@ -56,10 +56,8 @@ RUN apk add --no-cache \
     "musl>=1.2.6-r3" \
     "musl-utils>=1.2.6-r3" \
     "zlib>=1.3.2-r1" \
-    "curl>=8.23.0-r0" \
     ca-certificates \
     tzdata \
-    curl \
     && update-ca-certificates
 
 # Create non-root user for security
@@ -95,7 +93,7 @@ EXPOSE 9999
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:9999/healthy || exit 1
+    CMD wget -qO- http://localhost:9999/healthy >/dev/null || exit 1
 
 # Set default environment variables
 ENV GIN_MODE=release \
