@@ -151,7 +151,7 @@ curl --fail http://127.0.0.1:9999/healthy
 - **[設定指南](./documentation/zh/config_guide.md)** - 詳細設定說明
 - **[服務啟用設定](./documentation/zh/service-enable-config.md)** - 服務啟用設定
 - **[Kubernetes 環境變數](./documentation/zh/kubernetes-env-vars.md)** - K8s 部署設定
-- **[Helm 安裝指南](./kubernetes/helm/alert-webhooks-chart/README.md)** - 使用 Helm 安裝、升級、驗證與回滾
+- **[Helm 安裝指南](./kubernetes/helm/alert-webhooks-chart/README.md)** - 從公開 Helm repository 安裝、升級、驗證與回滾
 - **[Kustomize 安裝指南](./kubernetes/kustomize/README.md)** - 使用 Kustomize render、部署、驗證與清理
 - **[Swagger 疑難排解](./documentation/zh/swagger-troubleshooting.md)** - API 文件問題解決
 

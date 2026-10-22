@@ -57,20 +57,34 @@ secrets:
     password: "REPLACE_WEBHOOKS_PASSWORD"
 ```
 
-## 安裝與升級
+## 版本契約
 
-以下命令預設從 repository root 執行。先指定 repository 外的私有 values 路徑：
+- Chart version 與 application version 分開管理。
+- `chart-v<Chart version>` tag 只發布對應的不可變 Chart package。
+- 本版本的 Chart version 為 `1.0.1`，`appVersion` 與預設 container image tag 為 `v2.0.8`。
+- 公開 repository 不提供 `latest` Chart，也不覆寫已發布的版本。
+
+## 從公開 repository 安裝
+
+先加入公開 Helm repository，並固定使用所需 Chart version：
+
+```bash
+helm repo add alert-webhooks https://vincent119.github.io/alert-webhooks
+helm repo update
+helm show chart alert-webhooks/alert-webhooks-chart --version 1.0.1
+```
+
+指定 repository 外的私有 values 路徑：
 
 ```bash
 PRIVATE_VALUES_FILE=/secure/path/alert-webhooks-values.yaml
-CHART_DIR=kubernetes/helm/alert-webhooks-chart
 ```
 
-先執行本機驗證，不連線修改 cluster：
+先執行 render 驗證，不連線修改 cluster：
 
 ```bash
-helm lint "${CHART_DIR}" --values "${PRIVATE_VALUES_FILE}"
-helm template alert-webhooks "${CHART_DIR}" \
+helm template alert-webhooks alert-webhooks/alert-webhooks-chart \
+  --version 1.0.1 \
   --namespace alert-webhooks \
   --values "${PRIVATE_VALUES_FILE}" \
   > /tmp/alert-webhooks-rendered.yaml
@@ -79,13 +93,29 @@ helm template alert-webhooks "${CHART_DIR}" \
 確認 render 結果後安裝或升級：
 
 ```bash
-helm upgrade --install alert-webhooks "${CHART_DIR}" \
+helm upgrade --install alert-webhooks alert-webhooks/alert-webhooks-chart \
+  --version 1.0.1 \
   --namespace alert-webhooks \
   --create-namespace \
   --values "${PRIVATE_VALUES_FILE}" \
   --atomic \
   --wait \
   --timeout 5m
+```
+
+## 從原始碼驗證
+
+以下命令預設從 repository root 執行：
+
+```bash
+PRIVATE_VALUES_FILE=/secure/path/alert-webhooks-values.yaml
+CHART_DIR=kubernetes/helm/alert-webhooks-chart
+
+helm lint "${CHART_DIR}" --values "${PRIVATE_VALUES_FILE}"
+helm template alert-webhooks "${CHART_DIR}" \
+  --namespace alert-webhooks \
+  --values "${PRIVATE_VALUES_FILE}" \
+  > /tmp/alert-webhooks-rendered.yaml
 ```
 
 ## 驗證部署

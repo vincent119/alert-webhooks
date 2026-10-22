@@ -1,8 +1,8 @@
 # Helm Installation Guide
 
-This guide installs, upgrades, verifies, and rolls back Alert Webhooks from the
-Helm chart in this repository. Run all commands from the repository root unless
-a section states otherwise.
+This guide installs, upgrades, verifies, and rolls back Alert Webhooks from its
+public Helm repository. Source-based validation commands run from the repository
+root unless a section states otherwise.
 
 ## Prerequisites
 
@@ -68,10 +68,63 @@ secrets:
     password: "REPLACE_WEBHOOKS_PASSWORD"
 ```
 
-## Validate the chart
+## Version contract
 
-Set the chart directory and the path to a private values file outside the
-repository:
+- Chart versions and application versions are managed independently.
+- A `chart-v<chart version>` tag publishes only the matching immutable package.
+- This release uses chart version `1.0.1`, application version `v2.0.8`, and
+  container image tag `v2.0.8` by default.
+- Published chart versions are not overwritten, and the repository does not
+  provide a mutable `latest` chart.
+
+## Install from the public repository
+
+Add the public repository and select an explicit chart version:
+
+```bash
+helm repo add alert-webhooks https://vincent119.github.io/alert-webhooks
+helm repo update
+helm show chart alert-webhooks/alert-webhooks-chart --version 1.0.1
+```
+
+Set the path to a private values file outside the repository:
+
+```bash
+PRIVATE_VALUES_FILE=/secure/path/alert-webhooks-values.yaml
+```
+
+Render the public chart without modifying the cluster:
+
+```bash
+helm template alert-webhooks alert-webhooks/alert-webhooks-chart \
+  --version 1.0.1 \
+  --namespace alert-webhooks \
+  --values "${PRIVATE_VALUES_FILE}" \
+  > /tmp/alert-webhooks-rendered.yaml
+```
+
+Review the rendered output for placeholders, unexpected image references, and
+secrets before continuing.
+
+## Install or upgrade
+
+```bash
+helm upgrade --install alert-webhooks alert-webhooks/alert-webhooks-chart \
+  --version 1.0.1 \
+  --namespace alert-webhooks \
+  --create-namespace \
+  --values "${PRIVATE_VALUES_FILE}" \
+  --atomic \
+  --wait \
+  --timeout 5m
+```
+
+The `--atomic` option rolls back a failed upgrade automatically. Stop and
+inspect the release if the command does not complete successfully.
+
+## Validate from source
+
+Set the chart directory and use the same private values file:
 
 ```bash
 PRIVATE_VALUES_FILE=/secure/path/alert-webhooks-values.yaml
@@ -90,21 +143,6 @@ helm template alert-webhooks "${CHART_DIR}" \
 
 Review the rendered output for placeholders, unexpected image references, and
 secrets before continuing.
-
-## Install or upgrade
-
-```bash
-helm upgrade --install alert-webhooks "${CHART_DIR}" \
-  --namespace alert-webhooks \
-  --create-namespace \
-  --values "${PRIVATE_VALUES_FILE}" \
-  --atomic \
-  --wait \
-  --timeout 5m
-```
-
-The `--atomic` option rolls back a failed upgrade automatically. Stop and
-inspect the release if the command does not complete successfully.
 
 ## Verify the deployment
 

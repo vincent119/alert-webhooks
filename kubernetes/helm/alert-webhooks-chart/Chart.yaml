@@ -9,17 +9,32 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 1.0.0
+version: 1.0.1
 
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application. Versions are not expected to
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
-appVersion: "v1.0"
+appVersion: "v2.0.8"
+
+annotations:
+  artifacthub.io/category: monitoring-logging
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/changes: |
+    - kind: added
+      description: 新增公開 GitHub Pages Helm repository 發布流程。
+    - kind: changed
+      description: 預設使用 v2.0.8 多平台 image，並停用環境特定的 ingress 與通知服務。
+  artifacthub.io/images: |
+    - name: alert-webhooks
+      image: docker.io/vincent119/alert-webhooks:v2.0.8
+      platforms:
+        - linux/amd64
+        - linux/arm64
 
 # Maintainers information
 maintainers:
-  - name: DevOps Team
+  - name: vincent119
     email: vincent119@gmail.com
 
 # Keywords for the chart

@@ -5,7 +5,7 @@
 # Application configuration
 app:
   name: alert-webhooks
-  version: "1.0.0"
+  version: "v2.0.8"
   environment: production
 
 # Replica count
@@ -13,10 +13,10 @@ replicaCount: 1
 
 # Container image configuration
 image:
-  repository: vincent119/alert-webhooks
+  repository: docker.io/vincent119/alert-webhooks
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion
-  tag: "v1.0.1"
+  tag: ""
 
 # Image pull secrets for private registry
 imagePullSecrets: []
@@ -53,21 +53,10 @@ service:
 
 # Ingress configuration
 ingress:
-  enabled: true
-  className: "alb"
-  annotations:
-    alb.ingress.kubernetes.io/load-balancer-name: infra
-    alb.ingress.kubernetes.io/group.name: infra
-    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-northeast-1:{aws_account}:certificate/hash"
-    alb.ingress.kubernetes.io/backend-protocol: HTTP
-    alb.ingress.kubernetes.io/target-type: "ip"
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/load-balancer-attributes: deletion_protection.enabled=true,idle_timeout.timeout_seconds=60
-  hosts:
-    - host: alert-webhooks.domain.com
-      paths:
-        - path: /
-          pathType: Prefix
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
   tls: []
 
 # Resource limits and requests
@@ -110,7 +99,7 @@ autoscaling:
 config:
   # Application settings
   app:
-    version: "1.0.0"
+    version: "v2.0.8"
     mode: "production"
     port: "9999"
 
@@ -133,31 +122,18 @@ config:
 
   # Telegram configuration
   telegram:
-    enable: true
+    enable: false
     template_mode: "full"
     template_language: "tw"
-    chat_ids:
-      - "ID"
-      - "ID"
-      - "ID"
-      - "ID"
-      - "ID"
-      - "ID"
-      - "ID"
+    chat_ids: []
 
   # Slack configuration
   slack:
-    enable: true
-    channel: "#alerts"
+    enable: false
+    channel: ""
     username: "AlertBot"
     icon_emoji: ":warning:"
-    channels:
-      chat_ids0: "#alert0"
-      chat_ids1: "#alert1"
-      chat_ids2: "#alert2"
-      chat_ids3: "#alert3"
-      chat_ids4: "#alert4"
-      chat_ids5: "#alert5"
+    channels: {}
     link_names: true
     unfurl_links: false
     unfurl_media: false
@@ -166,15 +142,9 @@ config:
 
   # Discord configuration
   discord:
-    enable: true
-    guild_id: "ID"
-    channels:
-      chat_ids0: "ID"
-      chat_ids1: "ID"
-      chat_ids2: "ID"
-      chat_ids3: "ID"
-      chat_ids4: "ID"
-      chat_ids5: "ID"
+    enable: false
+    guild_id: ""
+    channels: {}
     username: "AlertBot"
     avatar_url: ""
     template_mode: "full"
@@ -225,7 +195,7 @@ affinity: {}
 # Environment variables
 env:
   - name: SWAGGER_HOST
-    value: "alert-webhooks.domain.com"
+    value: "localhost:9999"
 
 # Optional: Inline template configs (if not using files/)
 # Provide the structure under template_config as in configs/alert_config*.yaml
