@@ -100,14 +100,14 @@ go run cmd/main.go -e production
 ## 公開 container image
 
 公開發布的 container image 位於 Docker Hub：
-`docker.io/vincent119/alert-webhooks:v2.0.8`，支援 `linux/amd64` 與
+`docker.io/vincent119/alert-webhooks:v2.0.10`，支援 `linux/amd64` 與
 `linux/arm64`。
 
 發布流程只建立不可變的固定版本 tag，不發布 Docker `latest`；部署時必須明確指定版本。
 Docker Hub 是公開發布來源，既有 private ECR production 部署流程維持不變。
 
 ```bash
-docker pull docker.io/vincent119/alert-webhooks:v2.0.8
+docker pull docker.io/vincent119/alert-webhooks:v2.0.10
 
 config_file="$(pwd)/examples/config.expamle.yaml"
 docker run --detach \
@@ -115,13 +115,13 @@ docker run --detach \
   --publish 127.0.0.1:9999:9999 \
   --volume "${config_file}:/app/configs/config.production.yaml:ro" \
   --env APP_ENV=production \
-  docker.io/vincent119/alert-webhooks:v2.0.8
+  docker.io/vincent119/alert-webhooks:v2.0.10
 
 curl --fail http://127.0.0.1:9999/healthy
 ```
 
 容器以非 root UID `1500` 執行。發布契約與部署細節請參考
-[v2.0.8 Release](https://github.com/vincent119/alert-webhooks/releases/tag/v2.0.8)
+[v2.0.10 Release](https://github.com/vincent119/alert-webhooks/releases/tag/v2.0.10)
 與 [Docker 部署指南](./documentation/zh/docker-deployment.md)。
 
 ## 📊 Chat IDs 群組用途對照表

@@ -21,28 +21,28 @@ Kubernetes 部署請使用目前維護的
 ## 公開 image 發布規範
 
 - Repository：`docker.io/vincent119/alert-webhooks`。
-- 目前 release tag：`v2.0.8`。
+- 目前 release tag：`v2.0.10`。
 - 平台：`linux/amd64`、`linux/arm64`。
 - Runtime user：非 root UID `1500`。
 - 健康端點：port `9999` 的 `/healthy`。
 - 固定版本 tag 不可覆寫，不發布 Docker `latest`。
 - Docker Hub 是公開發布來源，private ECR production 流程維持不變。
 
-`v2.0.8` manifest digest：
+`v2.0.10` manifest digest：
 
 ```text
-sha256:2729da3594959d0d3c753e5d5c58f084000673e92f08859e70fafb1eb5da3ae1
+sha256:ce8726a1007685adb18860b83b4bbb179553cc1771a0d0bbc5b52e98d433c3da
 ```
 
 發布證據請參考
-[v2.0.8 GitHub Release](https://github.com/vincent119/alert-webhooks/releases/tag/v2.0.8)。
+[v2.0.10 GitHub Release](https://github.com/vincent119/alert-webhooks/releases/tag/v2.0.10)。
 
 ## 啟動容器
 
 使用內附範例設定時，請在 repository 根目錄執行：
 
 ```bash
-image="docker.io/vincent119/alert-webhooks:v2.0.8"
+image="docker.io/vincent119/alert-webhooks:v2.0.10"
 config_file="$(pwd)/examples/config.expamle.yaml"
 
 docker pull "${image}"

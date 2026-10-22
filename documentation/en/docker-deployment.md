@@ -23,7 +23,7 @@ settings and environment-variable overrides.
 ## Public image contract
 
 - Repository: `docker.io/vincent119/alert-webhooks`.
-- Current release tag: `v2.0.8`.
+- Current release tag: `v2.0.10`.
 - Platforms: `linux/amd64` and `linux/arm64`.
 - Runtime user: non-root UID `1500`.
 - Health endpoint: `/healthy` on port `9999`.
@@ -31,14 +31,14 @@ settings and environment-variable overrides.
 - Docker Hub is the public distribution source. The private ECR production
   workflow remains unchanged.
 
-The `v2.0.8` manifest digest is:
+The `v2.0.10` manifest digest is:
 
 ```text
-sha256:2729da3594959d0d3c753e5d5c58f084000673e92f08859e70fafb1eb5da3ae1
+sha256:ce8726a1007685adb18860b83b4bbb179553cc1771a0d0bbc5b52e98d433c3da
 ```
 
 Release evidence is available in the
-[v2.0.8 GitHub Release](https://github.com/vincent119/alert-webhooks/releases/tag/v2.0.8).
+[v2.0.10 GitHub Release](https://github.com/vincent119/alert-webhooks/releases/tag/v2.0.10).
 
 ## Start the container
 
@@ -46,7 +46,7 @@ Run these commands from the repository root when using the bundled example
 configuration:
 
 ```bash
-image="docker.io/vincent119/alert-webhooks:v2.0.8"
+image="docker.io/vincent119/alert-webhooks:v2.0.10"
 config_file="$(pwd)/examples/config.expamle.yaml"
 
 docker pull "${image}"

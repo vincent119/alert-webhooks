@@ -51,7 +51,7 @@ secrets:
 
 - Chart version 與 application version 分開管理。
 - `chart-v<Chart version>` tag 只發布對應的不可變 Chart package。
-- 本版本的 Chart version 為 `1.0.1`，`appVersion` 與預設 container image tag 為 `v2.0.8`。
+- 本版本的 Chart version 為 `1.0.2`，`appVersion` 與預設 container image tag 為 `v2.0.10`。
 - 已發布的 Chart version 不會被覆寫，公開 repository 也不提供可變的 `latest` Chart。
 
 ## 從公開 repository 安裝
@@ -61,7 +61,7 @@ secrets:
 ```bash
 helm repo add alert-webhooks https://vincent119.github.io/alert-webhooks
 helm repo update
-helm show chart alert-webhooks/alert-webhooks-chart --version 1.0.1
+helm show chart alert-webhooks/alert-webhooks-chart --version 1.0.2
 ```
 
 指定 repository 外的私有 values 檔路徑：
@@ -74,7 +74,7 @@ PRIVATE_VALUES_FILE=/secure/path/alert-webhooks-values.yaml
 
 ```bash
 helm template alert-webhooks alert-webhooks/alert-webhooks-chart \
-  --version 1.0.1 \
+  --version 1.0.2 \
   --namespace alert-webhooks \
   --values "${PRIVATE_VALUES_FILE}" \
   > /tmp/alert-webhooks-rendered.yaml
@@ -84,7 +84,7 @@ helm template alert-webhooks alert-webhooks/alert-webhooks-chart \
 
 ```bash
 helm upgrade --install alert-webhooks alert-webhooks/alert-webhooks-chart \
-  --version 1.0.1 \
+  --version 1.0.2 \
   --namespace alert-webhooks \
   --create-namespace \
   --values "${PRIVATE_VALUES_FILE}" \

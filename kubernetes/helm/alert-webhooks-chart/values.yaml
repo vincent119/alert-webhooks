@@ -5,7 +5,7 @@
 # Application configuration
 app:
   name: alert-webhooks
-  version: "v2.0.8"
+  version: "v2.0.10"
   environment: production
 
 # Replica count
@@ -99,7 +99,7 @@ autoscaling:
 config:
   # Application settings
   app:
-    version: "v2.0.8"
+    version: "v2.0.10"
     mode: "production"
     port: "9999"
 
