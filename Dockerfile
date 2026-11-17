@@ -5,7 +5,7 @@ ARG GOLANG_ALPINE_VERSION=3.24
 # -----------------------------------------------------------------------------
 # Stage 1: Builder（使用本機架構編譯，Go cross-compile 產出目標平台 binary）
 # -----------------------------------------------------------------------------
-FROM --platform=$BUILDPLATFORM golang:${GOLANG_VERSION}-alpine${GOLANG_ALPINE_VERSION}@sha256:d530cf60723abf1ffae0cd16bb546b379ec0550d2f3815e5b16ed69dbc00fba4 AS builder
+FROM --platform=$BUILDPLATFORM golang:${GOLANG_VERSION}-alpine${GOLANG_ALPINE_VERSION} AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
