@@ -56,6 +56,8 @@ container_cve_scan:
   needs:
     - job: build_and_push_ecr
   allow_failure: true
+  variables:
+    TRIVY_VERSION: "0.76.2"
   cache:
     key: "trivy-db-v2-0.76.2"
     policy: pull-push
@@ -97,7 +99,7 @@ container_cve_scan:
         docker run --rm -i \
           --user "$(id -u):$(id -g)" \
           --volume "${TRIVY_CACHE_DIR}:/tmp/trivy-cache" \
-          public.ecr.aws/aquasecurity/trivy:0.75.0 \
+          public.ecr.aws/aquasecurity/trivy:${TRIVY_VERSION} \
           image \
           --cache-dir /tmp/trivy-cache \
           --quiet \
@@ -112,6 +114,10 @@ container_cve_scan:
           --platform "${platform}" \
           "${IMAGE_REF}"
     }
+    show_trivy_version() {
+     docker run --rm public.ecr.aws/aquasecurity/trivy:${TRIVY_VERSION} --version
+    }
 
+    show_trivy_version
     scan_image linux/amd64
     scan_image linux/arm64
