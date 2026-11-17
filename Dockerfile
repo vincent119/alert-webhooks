@@ -1,5 +1,5 @@
 ARG ALPINE_VERSION=3.24.2
-ARG GOLANG_VERSION=1.27.3
+ARG GOLANG_VERSION=1.27.4
 ARG GOLANG_ALPINE_VERSION=3.24
 
 # -----------------------------------------------------------------------------
