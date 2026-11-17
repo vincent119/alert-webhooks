@@ -46,7 +46,7 @@ RUN file /build/alert-webhooks && ls -la /build/alert-webhooks
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime（使用目標平台架構）
 # -----------------------------------------------------------------------------
-FROM alpine:${ALPINE_VERSION}@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS runtime
+FROM alpine:${ALPINE_VERSION} AS runtime
 
 ARG timezone=UTC
 ENV TZ=${timezone}
