@@ -55,7 +55,7 @@ ENV TZ=${timezone}
 RUN apk add --no-cache \
     "musl>=1.2.6-r3" \
     "musl-utils>=1.2.6-r3" \
-    "zlib>=1.3.2-r1" \
+    "zlib>=1.4-r0" \
     ca-certificates \
     tzdata \
     && update-ca-certificates

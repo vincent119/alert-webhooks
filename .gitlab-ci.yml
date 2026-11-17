@@ -56,7 +56,7 @@ container_cve_scan:
     - job: build_and_push_ecr
   allow_failure: true
   cache:
-    key: "trivy-db-v2-0.75.0"
+    key: "trivy-db-v2-0.76.2"
     policy: pull-push
     paths:
       - .trivy-cache/
