@@ -39,6 +39,18 @@ sha256:ce8726a1007685adb18860b83b4bbb179553cc1771a0d0bbc5b52e98d433c3da
 
 ## 啟動容器
 
+### 自行建置時的 OpenSSL 安全版本
+
+Dockerfile 的 runtime 套件限制要求 `openssl`、`libssl3` 與 `libcrypto3` 至少為
+`3.5.9-r1`。修改 Dockerfile 不會更新既有映像或正在執行的容器；需使用
+`docker buildx build --pull` 重新建置，並對 `linux/amd64`、`linux/arm64`
+分別確認套件版本及使用最新漏洞資料庫掃描，再依發布流程部署新映像。
+
+此版本限制用於修正本次已知 OpenSSL 漏洞，不代表映像沒有其他漏洞。
+回滾至舊映像前應重新評估其掃描結果。
+
+### 使用公開映像
+
 使用內附範例設定時，請在 repository 根目錄執行：
 
 ```bash

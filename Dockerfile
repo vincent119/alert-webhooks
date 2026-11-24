@@ -56,6 +56,9 @@ RUN apk add --no-cache \
     "musl>=1.2.6-r3" \
     "musl-utils>=1.2.6-r3" \
     "zlib>=1.4-r0" \
+    "openssl>=3.5.9-r1" \
+    "libssl3>=3.5.9-r1" \
+    "libcrypto3>=3.5.9-r1" \
     ca-certificates \
     tzdata \
     && update-ca-certificates
