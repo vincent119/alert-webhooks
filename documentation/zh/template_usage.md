@@ -1,5 +1,19 @@
 # 模板配置使用指南
 
+## Telegram 普通文字與 HTML 格式
+
+Telegram 使用 HTML 模式傳送訊息。自訂模板中的外部普通文字應透過 `format_text` 輸出，例如：
+
+```gotemplate
+{{ format_text $.Platform (index $alert.Annotations "description") }}
+```
+
+在 Telegram 平台，`format_text` 會跳脫 `<`、`>`、`&` 與引號，避免 `(<5%)` 等告警內容被誤認為 HTML 標籤。輸入應為原始文字，不需預先跳脫；既有 `&lt;` 會顯示為字面文字 `&lt;`。
+
+需要粗體、斜體、程式碼或連結時，使用既有的 `format_bold`、`format_italic`、`format_code`、`format_link`。傳入 `format_text` 的 HTML 標籤會顯示為普通文字；直接插值且未使用格式化函式的自訂欄位不會自動跳脫。不要對整則渲染結果再次跳脫，以免破壞模板產生的格式標籤。
+
+其他平台的 `format_text` 維持原樣輸出。
+
 ## 1. 基本配置修改
 
 ### 隱藏超連結

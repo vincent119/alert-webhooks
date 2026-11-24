@@ -124,3 +124,39 @@ func TestNonTelegramFormattersPreserveExistingOutput(t *testing.T) {
 func containsAnchor(value string) bool {
 	return len(value) >= 2 && value[:2] == "<a"
 }
+
+func TestTelegramFormatTextEscapesPlainText(t *testing.T) {
+	engine := NewTemplateEngine()
+	tests := []struct{ name, input, want string }{
+		{"比較符號", "剩餘空間 (<5%)", "剩餘空間 (&lt;5%)"},
+		{"大於與連接符號", "A > B & C", "A &gt; B &amp; C"},
+		{"引號", "\"'", "&#34;&#39;"},
+		{"標籤外觀", "<b>文字</b>", "&lt;b&gt;文字&lt;/b&gt;"},
+		{"中文", "磁碟空間不足", "磁碟空間不足"},
+		{"空字串", "", ""},
+		{"既有實體文字", "&lt;", "&amp;lt;"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := engine.formatTextForPlatform("telegram", tt.input)
+			if got != tt.want {
+				t.Fatalf("普通文字跳脫錯誤：got=%q want=%q", got, tt.want)
+			}
+			if html.UnescapeString(got) != tt.input {
+				t.Fatalf("解碼後無法還原原文：%q", got)
+			}
+		})
+	}
+}
+
+func TestNonTelegramFormatTextPreservesInput(t *testing.T) {
+	engine := NewTemplateEngine()
+	input := `<b>告警</b> (<5%) &lt; & "'`
+	for _, platform := range []string{"slack", "discord", "", "unknown"} {
+		t.Run(platform, func(t *testing.T) {
+			if got := engine.formatTextForPlatform(platform, input); got != input {
+				t.Fatalf("平台 %q 的原始文字被改變：%q", platform, got)
+			}
+		})
+	}
+}

@@ -748,7 +748,10 @@ func (te *TemplateEngine) formatTime(timeStr string) string {
 
 // formatTextForPlatform 根據平台格式化普通文字
 func (te *TemplateEngine) formatTextForPlatform(platform, text string) string {
-	// 回退到簡單處理，避免過度轉義
+	if platform == "telegram" {
+		// 普通文字不可成為 Telegram HTML 標記；格式標籤由各格式化函式產生。
+		return html.EscapeString(text)
+	}
 	return text
 }
 
